@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{staff/fragments/layout :: staffHead(~{::title}, ~{::extraHead})}">
+    <title>Tạo đơn tại quầy - SkySport Staff</title>
+    <th:block th:fragment="extraHead">
+        <style>
+            .product-card {
+                border: 2px solid var(--border);
+                border-radius: var(--radius-sm);
+                padding: 10px;
+                cursor: pointer;
+                transition: all 0.2s;
+                background: white;
+            }
+
+            .product-card:hover {
+                border-color: var(--brand-primary);
+                background: #f0fdf8;
+            }
+
+            .product-card img {
+                width: 60px;
+                height: 60px;
+                object-fit: cover;
+                border-radius: 6px;
+            }
+
+            .product-card .product-name {
+                font-size: 13px;
+                font-weight: 600;
+            }
+
+            .order-item {
+                background: white;
+                border: 1px solid var(--border);
+                border-radius: var(--radius-sm);
+                padding: 12px;
+                margin-bottom: 8px;
+            }
+
+            .variant-badge {
+                display: inline-block;
+                padding: 4px 10px;
+                margin: 3px;
+                border: 1.5px solid var(--border);
+                border-radius: 20px;
+                font-size: 12px;
+                cursor: pointer;
+                transition: all 0.15s;
+            }
+
+            .variant-badge:hover, .variant-badge.selected {
+                border-color: var(--brand-primary);
+                background: var(--brand-primary);
+                color: white;
+            }
+
+            .summary-box {
+                background: #f0fdf8;
+                border: 1.5px solid #6ee7b7;
+                border-radius: var(--radius-sm);
+                padding: 16px;
+            }
+
+            .suggest-dropdown {
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                z-index: 1050;
+                background: white;
+                border: 1px solid var(--border);
+                border-radius: var(--radius-sm);
+                max-height: 260px;
+                overflow-y: auto;
+                box-shadow: 0 6px 16px rgba(0,0,0,.08);
+                display: none;
+            }
+
+            .suggest-dropdown.show { display: block; }
+
+            .suggest-item {
+                padding: 8px 12px;
+                cursor: pointer;
+                border-bottom: 1px solid #f1f1f1;
+                font-size: 13px;
+            }
+
+            .suggest-item:hover { background: #f0fdf8; }
+            .suggest-item:last-child { border-bottom: none; }
+
+            .field-wrapper { position: relative; }
+
+            .product-tag {
+                font-size: 10px;
+                padding: 1px 6px;
+                border-radius: 8px;
+                margin-right: 3px;
+                display: inline-block;
+                color: white;
+                font-weight: 600;
+            }
+
+            .tag-bestseller { background: #f97316; }
+            .tag-sale { background: #ef4444; }
+            .tag-new { background: #3b82f6; }
+
+            .suggest-section-title {
+                font-size: 12px;
+                font-weight: 700;
+                color: var(--text-muted, #888);
+                padding: 8px 4px 4px;
+                text-transform: uppercase;
+            }
+
+            .discount-suggest-item {
+                border: 1px dashed #6ee7b7;
+                border-radius: 8px;
+                padding: 6px 10px;
+                margin-bottom: 6px;
+                font-size: 12px;
+                cursor: pointer;
+                background: #f0fdf8;
+            }
+
+            .discount-suggest-item:hover { background: #d8fbe9; }
+        </style>
+    </th:block>
+</head>
+<body>
+
+<div th:replace="~{staff/fragments/layout :: staffSidebar('order')}"></div>
+
+<div class="main-content">
+    <div class="d-flex align-items-center mb-4">
+        <a href="/staff/bill" class="btn btn-outline-secondary btn-sm me-3"><i class="bi bi-arrow-left"></i> Quay
+            lại</a>
+        <h4 class="fw-bold mb-0"><i class="bi bi-cart-plus me-2"></i>Tạo đơn hàng tại quầy</h4>
+    </div>
+
+    <!-- Flash messages -->
+    <div th:if="${errorMsg}" class="alert alert-danger"><i class="bi bi-exclamation-circle me-2"></i><span
+            th:text="${errorMsg}"></span></div>
+    <div th:if="${successMsg}" class="alert alert-success"><i class="bi bi-check-circle me-2"></i><span
+            th:text="${successMsg}"></span></div>
+
+    <div class="row g-4">
+
+        <!-- CỘT TRÁI: Chọn sản phẩm -->
+        <div class="col-lg-7">
+
+            <!-- Thông tin khách hàng -->
+            <div class="card mb-3">
+                <div class="card-header"><i class="bi bi-person me-2"></i>Thông tin khách hàng</div>
+                <div class="card-body">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-7">
+                            <label class="form-label">Tìm khách hàng (SĐT / Tên / Mã KH)</label>
+                            <div class="field-wrapper">
+                                <input type="text" id="searchPhone" class="form-control" autocomplete="off"
+                                       placeholder="Nhập SĐT, tên hoặc mã khách hàng...">
+                                <div id="customerSuggest" class="suggest-dropdown"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Họ tên</label>
+                            <input type="text" id="customerName" class="form-control" placeholder="Tên khách hàng">
+                        </div>
+                        <div class="col-md-2">
+                            <button class="btn btn-outline-danger w-100" type="button" onclick="clearCustomer()">
+                                <i class="bi bi-x"></i> Xóa
+                            </button>
+                        </div>
+                    </div>
+                    <div id="customerInfo" class="mt-2 d-none">
+                        <span class="badge bg-success"><i
+                                class="bi bi-check-circle me-1"></i>Khách hàng đã tìm thấy</span>
+                        <span id="customerInfoText" class="ms-2 text-muted" style="font-size:13px;"></span>
+                    </div>
+                    <input type="hidden" id="customerId">
+                </div>
+            </div>
+
+            <!-- Tìm và chọn sản phẩm -->
+            <div class="card">
+                <div class="card-header"><i class="bi bi-bag me-2"></i>Chọn sản phẩm</div>
+                <div class="card-body">
+                    <div class="field-wrapper mb-3">
+                        <input type="text" id="productSearch" class="form-control" autocomplete="off"
+                               placeholder="🔍 Tìm sản phẩm theo tên hoặc mã...">
+                        <div id="productSuggest" class="suggest-dropdown"></div>
+                    </div>
+
+                    <!-- Gợi ý nhanh: bán chạy / đang sale / mới -->
+                    <ul class="nav nav-tabs nav-tabs-sm mb-2" id="suggestTabs">
+                        <li class="nav-item"><a class="nav-link active" href="#" data-tab="all" onclick="switchProductTab(event,'all')">Tất cả</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#" data-tab="bestSellers" onclick="switchProductTab(event,'bestSellers')">🔥 Bán chạy</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#" data-tab="onSale" onclick="switchProductTab(event,'onSale')">🏷️ Đang sale</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#" data-tab="newProducts" onclick="switchProductTab(event,'newProducts')">✨ Mới</a></li>
+                    </ul>
+
+                    <div id="productList" class="row g-2" style="max-height: 360px; overflow-y: auto;">
+                        <div th:each="p : ${products}" class="col-6 col-md-4"
+                             th:id="'product-' + ${p.id}"
+                             th:attr="data-name=${p.name}, data-code=${p.code}">
+                            <div class="product-card h-100"
+                                 th:attr="data-product-id=${p.id}, data-product-name=${p.name}"
+                                 onclick="openVariantModal(this.dataset.productId, this.dataset.productName)">
+                                <img th:src="${productImages[p.id] != null ? productImages[p.id] : '/images/no-image.png'}"
+                                     onerror="this.src='/images/no-image.png'" class="mb-2">
+                                <div class="product-name" th:text="${p.name}"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CỘT PHẢI: Giỏ hàng + Thanh toán -->
+        <div class="col-lg-5">
+            <div class="card">
+                <div class="card-header"><i class="bi bi-receipt me-2"></i>Đơn hàng</div>
+                <div class="card-body p-3">
+
+                    <!-- Danh sách sản phẩm đã chọn -->
+                    <div id="orderItems">
+                        <div id="emptyCart" class="text-center text-muted py-4">
+                            <i class="bi bi-cart3" style="font-size:32px;"></i>
+                            <p class="mt-2">Chưa có sản phẩm nào</p>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <!-- Mã giảm giá -->
+                    <div class="mb-3">
+                        <label class="form-label">Mã giảm giá</label>
+                        <div class="input-group">
+                            <input type="text" id="discountInput" class="form-control" placeholder="Nhập mã (nếu có)">
+                            <button class="btn btn-outline-secondary" type="button" onclick="applyDiscount()">Áp dụng
+                            </button>
+                        </div>
+                        <div id="discountMsg" class="mt-1" style="font-size:12px;"></div>
+                        <div id="discountSuggest" class="mt-2"></div>
+                    </div>
+
+                    <!-- Tóm tắt -->
+                    <div class="summary-box mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">Tạm tính:</span>
+                            <span id="subtotalDisplay">0đ</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1" id="discountRow"
+                             style="display:none!important;">
+                            <span class="text-muted">Giảm giá:</span>
+                            <span id="discountDisplay" class="text-danger">-0đ</span>
+                        </div>
+                        <div class="d-flex justify-content-between fw-bold" style="font-size:16px;">
+                            <span>Tổng cộng:</span>
+                            <span id="totalDisplay" class="text-success">0đ</span>
+                        </div>
+                    </div>
+
+                    <!-- Phương thức thanh toán -->
+                    <div class="mb-3">
+                        <label class="form-label">Phương thức thanh toán <span class="text-danger">*</span></label>
+                        <select id="paymentMethodId" class="form-select">
+                            <option th:each="pm : ${paymentMethods}" th:value="${pm.id}" th:text="${pm.name}"></option>
+                        </select>
+                    </div>
+
+                    <button class="btn btn-purple w-100 py-2" onclick="submitOrder()" id="submitBtn" disabled>
+                        <i class="bi bi-check-circle me-2"></i>Xác nhận đơn hàng
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal chọn variant -->
+<div class="modal fade" id="variantModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-grid me-2"></i><span id="modalProductName"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="variantList" class="mb-3"></div>
+                <div id="selectedVariantInfo" class="d-none">
+                    <hr>
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="flex-grow-1">
+                            <div style="font-size:13px;" id="variantDetail"></div>
+                            <div class="text-success fw-bold mt-1" id="variantPrice"></div>
+                        </div>
+                        <div style="width:120px;">
+                            <label class="form-label mb-1">Số lượng</label>
+                            <input type="number" id="variantQty" class="form-control form-control-sm" min="1" value="1">
+                            <div class="text-muted mt-1" style="font-size:11px;">Tồn: <span id="variantStock"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-purple" onclick="addToOrder()" id="addBtn" disabled>
+                    <i class="bi bi-plus-circle me-1"></i>Thêm vào đơn
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Form ẩn để submit -->
+<form id="orderForm" method="post" th:action="@{/staff/order/create}" style="display:none;"></form>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // ===== STATE =====
+    let orderItems = []; // [{productDetailId, productName, size, color, price, quantity, stock}]
+    let discountAmount = 0;
+    let currentProductId = null;
+    let currentVariants = [];
+    let selectedVariant = null;
+
+    // ===== TÌM KHÁCH HÀNG (gợi ý theo SĐT / Tên / Mã KH) =====
+    let customerSearchTimer = null;
+
+    document.getElementById('searchPhone').addEventListener('input', function () {
+        const kw = this.value.trim();
+        clearTimeout(customerSearchTimer);
+        const dropdown = document.getElementById('customerSuggest');
+        if (!kw) {
+            dropdown.classList.remove('show');
+            dropdown.innerHTML = '';
+            return;
+        }
+        customerSearchTimer = setTimeout(() => {
+            fetch('/staff/order/search-customer?keyword=' + encodeURIComponent(kw))
+                .then(r => r.json())
+                .then(data => renderCustomerSuggest(data, kw));
+        }, 300);
+    });
+
+    function renderCustomerSuggest(customers, kw) {
+        const dropdown = document.getElementById('customerSuggest');
+        if (!customers || customers.length === 0) {
+            dropdown.innerHTML = `<div class="suggest-item text-muted">
+                Không tìm thấy khách hàng. Nhấn "Áp dụng" hoặc tạo đơn để tạo khách lẻ mới với SĐT "${escapeHtml(kw)}".
+            </div>`;
+            dropdown.classList.add('show');
+            return;
+        }
+        let html = '';
+        customers.forEach(c => {
+            html += `<div class="suggest-item" onclick='selectCustomer(${JSON.stringify(c).replace(/'/g, "&#39;")})'>
+                <strong>${escapeHtml(c.name || 'Khách lẻ')}</strong>
+                ${c.code ? ' <span class="text-muted">(' + escapeHtml(c.code) + ')</span>' : ''}<br>
+                <span class="text-muted">${escapeHtml(c.phone || '')}${c.email ? ' • ' + escapeHtml(c.email) : ''}</span>
+            </div>`;
+        });
+        dropdown.innerHTML = html;
+        dropdown.classList.add('show');
+    }
+
+    function selectCustomer(c) {
+        document.getElementById('customerId').value = c.id;
+        document.getElementById('customerName').value = c.name || '';
+        document.getElementById('searchPhone').value = c.phone || '';
+        document.getElementById('customerInfo').classList.remove('d-none');
+        document.getElementById('customerInfoText').textContent = (c.name || 'Khách lẻ') + ' — ' + (c.phone || '');
+        document.getElementById('customerSuggest').classList.remove('show');
+    }
+
+    function clearCustomer() {
+        document.getElementById('customerId').value = '';
+        document.getElementById('customerName').value = '';
+        document.getElementById('searchPhone').value = '';
+        document.getElementById('customerInfo').classList.add('d-none');
+        document.getElementById('customerSuggest').classList.remove('show');
+    }
+
+    function escapeHtml(str) {
+        return String(str).replace(/[&<>"']/g, c => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[c]));
+    }
+
+    // Ẩn dropdown khi click ra ngoài
+    document.addEventListener('click', function (e) {
+        if (!e.target.closest('#searchPhone') && !e.target.closest('#customerSuggest')) {
+            document.getElementById('customerSuggest').classList.remove('show');
+        }
+        if (!e.target.closest('#productSearch') && !e.target.closest('#productSuggest')) {
+            document.getElementById('productSuggest').classList.remove('show');
+        }
+    });
+
+    // ===== MODAL CHỌN VARIANT =====
+    function openVariantModal(productId, productName) {
+        currentProductId = productId;
+        selectedVariant = null;
+        document.getElementById('modalProductName').textContent = productName;
+        document.getElementById('variantList').innerHTML = '<div class="text-muted">Đang tải...</div>';
+        document.getElementById('selectedVariantInfo').classList.add('d-none');
+        document.getElementById('addBtn').disabled = true;
+
+        fetch('/staff/order/product-variants/' + productId)
+            .then(r => r.json())
+            .then(variants => {
+                currentVariants = variants;
+                if (variants.length === 0) {
+                    document.getElementById('variantList').innerHTML = '<div class="text-danger">Không có biến thể nào còn hàng!</div>';
+                    return;
+                }
+                let html = '<div class="mb-2"><strong>Chọn Size / Màu:</strong></div>';
+                variants.forEach((v, idx) => {
+                    html += `<span class="variant-badge" onclick="selectVariant(${idx})">${v.size} / ${v.color} (tồn: ${v.quantity})</span>`;
+                });
+                document.getElementById('variantList').innerHTML = html;
+            });
+
+        new bootstrap.Modal(document.getElementById('variantModal')).show();
+    }
+
+    function selectVariant(idx) {
+        selectedVariant = currentVariants[idx];
+        document.querySelectorAll('.variant-badge').forEach((b, i) => {
+            b.classList.toggle('selected', i === idx);
+        });
+        document.getElementById('variantDetail').textContent =
+            'Size: ' + selectedVariant.size + '  |  Màu: ' + selectedVariant.color;
+        document.getElementById('variantPrice').textContent =
+            new Intl.NumberFormat('vi-VN').format(selectedVariant.price) + 'đ';
+        document.getElementById('variantStock').textContent = selectedVariant.quantity;
+        document.getElementById('variantQty').max = selectedVariant.quantity;
+        document.getElementById('variantQty').value = 1;
+        document.getElementById('selectedVariantInfo').classList.remove('d-none');
+        document.getElementById('addBtn').disabled = false;
+    }
+
+    function addToOrder() {
+        if (!selectedVariant) return;
+        const qty = parseInt(document.getElementById('variantQty').value);
+        if (qty < 1 || qty > selectedVariant.quantity) {
+            alert('Số lượng không hợp lệ! Tồn kho: ' + selectedVariant.quantity);
+            return;
+        }
+
+        // Nếu đã có trong đơn thì cộng thêm
+        const existing = orderItems.find(i => i.productDetailId === selectedVariant.id);
+        if (existing) {
+            const newQty = existing.quantity + qty;
+            if (newQty > selectedVariant.quantity) {
+                alert('Tổng số lượng vượt quá tồn kho!');
+                return;
+            }
+            existing.quantity = newQty;
+        } else {
+            orderItems.push({
+                productDetailId: selectedVariant.id,
+                productName: document.getElementById('modalProductName').textContent,
+                size: selectedVariant.size,
+                color: selectedVariant.color,
+                price: selectedVariant.price,
+                quantity: qty,
+                stock: selectedVariant.quantity
+            });
+        }
+
+        bootstrap.Modal.getInstance(document.getElementById('variantModal')).hide();
+        renderOrderItems();
+        recalcTotal();
+    }
+
+    // ===== RENDER GIỎ HÀNG =====
+    function renderOrderItems() {
+        const container = document.getElementById('orderItems');
+        document.getElementById('emptyCart').style.display = orderItems.length === 0 ? 'block' : 'none';
+
+        // Xóa các item cũ (giữ lại emptyCart)
+        container.querySelectorAll('.order-item').forEach(el => el.remove());
+
+        orderItems.forEach((item, idx) => {
+            const div = document.createElement('div');
+            div.className = 'order-item';
+            div.innerHTML = `
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="flex-grow-1">
+                        <div class="fw-semibold" style="font-size:13px;">${item.productName}</div>
+                        <div class="text-muted" style="font-size:12px;">${item.size} / ${item.color}</div>
+                        <div class="text-success" style="font-size:13px;">${new Intl.NumberFormat('vi-VN').format(item.price)}đ</div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <input type="number" class="form-control form-control-sm" style="width:70px;"
+                               value="${item.quantity}" min="1" max="${item.stock}"
+                               onchange="updateQty(${idx}, this.value)">
+                        <button class="btn btn-sm btn-outline-danger" onclick="removeItem(${idx})">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="text-end text-muted" style="font-size:12px;">
+                    = ${new Intl.NumberFormat('vi-VN').format(item.price * item.quantity)}đ
+                </div>`;
+            container.appendChild(div);
+        });
+
+        document.getElementById('submitBtn').disabled = orderItems.length === 0;
+    }
+
+    function updateQty(idx, val) {
+        const qty = parseInt(val);
+        if (qty < 1 || qty > orderItems[idx].stock) {
+            alert('Số lượng không hợp lệ! Tồn kho: ' + orderItems[idx].stock);
+            renderOrderItems();
+            return;
+        }
+        orderItems[idx].quantity = qty;
+        renderOrderItems();
+        recalcTotal();
+    }
+
+    function removeItem(idx) {
+        orderItems.splice(idx, 1);
+        discountAmount = 0;
+        document.getElementById('discountInput').value = '';
+        document.getElementById('discountMsg').textContent = '';
+        document.getElementById('discountRow').style.display = 'none';
+        renderOrderItems();
+        recalcTotal();
+    }
+
+    // ===== TÍNH TIỀN =====
+    function recalcTotal() {
+        const subtotal = orderItems.reduce((s, i) => s + i.price * i.quantity, 0);
+        const total = subtotal - discountAmount;
+        document.getElementById('subtotalDisplay').textContent = fmt(subtotal);
+        document.getElementById('totalDisplay').textContent = fmt(total);
+        document.getElementById('discountDisplay').textContent = '-' + fmt(discountAmount);
+    }
+
+    function fmt(n) {
+        return new Intl.NumberFormat('vi-VN').format(n) + 'đ';
+    }
+
+    // ===== MÃ GIẢM GIÁ =====
+    function applyDiscount() {
+        const code = document.getElementById('discountInput').value.trim();
+        if (!code) return;
+        const subtotal = orderItems.reduce((s, i) => s + i.price * i.quantity, 0);
+        if (subtotal === 0) {
+            alert('Vui lòng thêm sản phẩm trước!');
+            return;
+        }
+
+        fetch(`/staff/order/validate-discount?code=${encodeURIComponent(code)}&subtotal=${subtotal}`)
+            .then(r => r.json())
+            .then(data => {
+                const msg = document.getElementById('discountMsg');
+                if (data.success) {
+                    discountAmount = data.discountAmount;
+                    msg.innerHTML = '<span class="text-success">✓ Áp dụng thành công! Giảm ' + fmt(discountAmount) + '</span>';
+                    document.getElementById('discountRow').style.removeProperty('display');
+                    recalcTotal();
+                } else {
+                    discountAmount = 0;
+                    msg.innerHTML = '<span class="text-danger">✗ ' + data.message + '</span>';
+                    document.getElementById('discountRow').style.display = 'none';
+                    recalcTotal();
+                }
+            });
+    }
+
+    // ===== SUBMIT ĐƠN =====
+    function submitOrder() {
+        if (orderItems.length === 0) {
+            alert('Vui lòng chọn sản phẩm!');
+            return;
+        }
+
+        const customerIdCheck = document.getElementById('customerId').value;
+        const customerPhoneCheck = document.getElementById('searchPhone').value.trim();
+        if (!customerIdCheck && !customerPhoneCheck) {
+            alert('Vui lòng nhập số điện thoại khách hàng (hoặc tìm khách hàng có sẵn)!');
+            return;
+        }
+
+        const form = document.getElementById('orderForm');
+        form.innerHTML = '';
+
+        // CSRF token
+        const csrfToken = document.cookie.split(';').find(c => c.trim().startsWith('XSRF-TOKEN='));
+        if (csrfToken) {
+            const token = decodeURIComponent(csrfToken.split('=')[1]);
+            addHidden(form, '_csrf', token);
+        }
+
+        // Khách hàng
+        const customerId = document.getElementById('customerId').value;
+        const customerName = document.getElementById('customerName').value.trim();
+        const customerPhone = document.getElementById('searchPhone').value.trim();
+        if (customerId) addHidden(form, 'customerId', customerId);
+        if (customerName) addHidden(form, 'customerName', customerName);
+        if (customerPhone) addHidden(form, 'customerPhone', customerPhone);
+
+        // Thanh toán
+        addHidden(form, 'paymentMethodId', document.getElementById('paymentMethodId').value);
+
+        // Mã giảm giá
+        const dc = document.getElementById('discountInput').value.trim();
+        if (dc) addHidden(form, 'discountCode', dc);
+
+        // Sản phẩm
+        orderItems.forEach(item => {
+            addHidden(form, 'productDetailIds', item.productDetailId);
+            addHidden(form, 'quantities', item.quantity);
+        });
+
+        form.submit();
+    }
+
+    function addHidden(form, name, value) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = name;
+        input.value = value;
+        form.appendChild(input);
+    }
+
+    // ===== TÌM SẢN PHẨM (gợi ý dropdown theo tên/mã) =====
+    let productSearchTimer = null;
+
+    document.getElementById('productSearch').addEventListener('input', function () {
+        const kw = this.value.trim();
+        clearTimeout(productSearchTimer);
+        const dropdown = document.getElementById('productSuggest');
+        if (!kw) {
+            dropdown.classList.remove('show');
+            dropdown.innerHTML = '';
+            return;
+        }
+        productSearchTimer = setTimeout(() => {
+            fetch('/staff/order/search-products?keyword=' + encodeURIComponent(kw))
+                .then(r => r.json())
+                .then(data => renderProductSuggest(data));
+        }, 300);
+    });
+
+    function renderProductSuggest(products) {
+        const dropdown = document.getElementById('productSuggest');
+        if (!products || products.length === 0) {
+            dropdown.innerHTML = `<div class="suggest-item text-muted">Không tìm thấy sản phẩm phù hợp</div>`;
+            dropdown.classList.add('show');
+            return;
+        }
+        let html = '';
+        products.forEach(p => {
+            let tags = '';
+            if (p.isBestSeller) tags += '<span class="product-tag tag-bestseller">Bán chạy</span>';
+            if (p.isOnSale) tags += '<span class="product-tag tag-sale">Đang sale</span>';
+            if (p.isNew) tags += '<span class="product-tag tag-new">Mới</span>';
+            html += `<div class="suggest-item d-flex align-items-center gap-2"
+                          onclick="openVariantModal(${p.id}, '${escapeHtml(p.name).replace(/'/g, "\\'")}'); document.getElementById('productSuggest').classList.remove('show');">
+                <img src="${p.image}" onerror="this.src='/images/no-image.png'" style="width:32px;height:32px;object-fit:cover;border-radius:4px;">
+                <div class="flex-grow-1">
+                    <div>${escapeHtml(p.name)}</div>
+                    <div>${tags}</div>
+                </div>
+            </div>`;
+        });
+        dropdown.innerHTML = html;
+        dropdown.classList.add('show');
+    }
+
+    // ===== GỢI Ý NHANH: bán chạy / đang sale / mới =====
+    let suggestedData = {bestSellers: [], onSale: [], newProducts: []};
+    let currentTab = 'all';
+
+    function loadSuggestedProducts() {
+        fetch('/staff/order/suggested-products')
+            .then(r => r.json())
+            .then(data => {
+                suggestedData = data;
+                renderDiscountSuggest(data.discountCodes || []);
+            })
+            .catch(() => {});
+    }
+
+    function switchProductTab(e, tab) {
+        e.preventDefault();
+        currentTab = tab;
+        document.querySelectorAll('#suggestTabs .nav-link').forEach(el => {
+            el.classList.toggle('active', el.dataset.tab === tab);
+        });
+
+        const allCards = document.querySelectorAll('#productList > div[data-name]');
+
+        if (tab === 'all') {
+            allCards.forEach(el => el.style.display = '');
+            return;
+        }
+
+        const list = suggestedData[tab] || [];
+        const idsToShow = new Set(list.map(p => p.id));
+        allCards.forEach(el => {
+            const pid = parseInt(el.id.replace('product-', ''));
+            el.style.display = idsToShow.has(pid) ? '' : 'none';
+        });
+
+        if (idsToShow.size === 0) {
+            alert('Chưa có dữ liệu gợi ý cho mục này.');
+            document.querySelectorAll('#suggestTabs .nav-link').forEach(el => el.classList.toggle('active', el.dataset.tab === 'all'));
+            currentTab = 'all';
+            allCards.forEach(el => el.style.display = '');
+        }
+    }
+
+    // ===== GỢI Ý MÃ GIẢM GIÁ ĐANG KHẢ DỤNG =====
+    function renderDiscountSuggest(codes) {
+        const box = document.getElementById('discountSuggest');
+        if (!codes || codes.length === 0) {
+            box.innerHTML = '';
+            return;
+        }
+        let html = '<div class="text-muted mb-1" style="font-size:11px;">Mã giảm giá khả dụng:</div>';
+        codes.forEach(c => {
+            let label = '';
+            if (c.percentage) label = 'Giảm ' + c.percentage + '%';
+            else if (c.discountAmount) label = 'Giảm ' + fmt(c.discountAmount);
+            if (c.minimumAmountInCart) label += ' (đơn từ ' + fmt(c.minimumAmountInCart) + ')';
+
+            html += `<div class="discount-suggest-item" onclick="useDiscountCode('${escapeHtml(c.code)}')">
+                <strong>${escapeHtml(c.code)}</strong> — ${label}
+                ${c.detail ? '<div class="text-muted">' + escapeHtml(c.detail) + '</div>' : ''}
+            </div>`;
+        });
+        box.innerHTML = html;
+    }
+
+    function useDiscountCode(code) {
+        document.getElementById('discountInput').value = code;
+        applyDiscount();
+    }
+
+    // Tải gợi ý ngay khi mở trang
+    loadSuggestedProducts();
+</script>
+
+<div th:replace="~{staff/fragments/layout :: staffScripts}"></div>
+</body>
+</html>

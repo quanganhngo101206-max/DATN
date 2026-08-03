@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{admin/fragments/layout :: adminHead(~{::title}, ~{::extraHead})}">
+    <title>Quản lý khách hàng - SkySport</title>
+    <th:block th:fragment="extraHead"></th:block>
+</head>
+<body>
+
+<div th:replace="~{admin/fragments/layout :: adminSidebar('customer')}"></div>
+
+<div class="main-content">
+    <h4 class="fw-bold mb-4"><i class="bi bi-people me-2"></i>Quản lý khách hàng</h4>
+
+    <!-- Tìm kiếm -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" action="/admin/customer">
+                <div class="input-group">
+                    <input type="text" name="keyword" class="form-control"
+                           placeholder="Tìm theo tên, email, số điện thoại..."
+                           th:value="${keyword}"/>
+                    <button type="submit" class="btn btn-purple">
+                        <i class="bi bi-search"></i> Tìm kiếm
+                    </button>
+                    <a href="/admin/customer" class="btn btn-secondary">
+                        <i class="bi bi-x"></i> Xóa lọc
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Danh sách -->
+    <div class="card">
+        <div class="card-header">
+            <i class="bi bi-list-ul me-2"></i>Danh sách khách hàng
+            <span class="badge bg-white text-dark ms-2"
+                  th:text="${#lists.size(customers)} + ' khách hàng'"></span>
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                <tr>
+                    <th>#</th>
+                    <th>Mã</th>
+                    <th>Tên</th>
+                    <th>Email</th>
+                    <th>Số điện thoại</th>
+                    <th>Tài khoản</th>
+                    <th>Trạng thái</th>
+                    <th>Thao tác</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="c, i : ${customers}">
+                    <td th:text="${i.count}"></td>
+                    <td><span class="badge bg-secondary" th:text="${c.code}"></span></td>
+                    <td th:text="${c.name}"></td>
+                    <td th:text="${c.email}"></td>
+                    <td th:text="${c.phoneNumber}"></td>
+                    <td th:text="${c.account != null ? c.account.username : 'Guest'}"></td>
+                    <td>
+                            <span class="badge bg-success"
+                                  th:if="${c.account != null && c.account.status == 1}">Hoạt động</span>
+                        <span class="badge bg-danger"
+                              th:if="${c.account != null && c.account.status == 0}">Bị khóa</span>
+                        <span class="badge bg-secondary"
+                              th:if="${c.account == null}">Guest</span>
+                    </td>
+                    <td>
+                        <a th:href="@{/admin/customer/detail/{id}(id=${c.id})}"
+                           class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                        <a th:if="${c.account != null}"
+                           th:href="@{/admin/customer/toggle/{id}(id=${c.id})}"
+                           class="btn btn-sm"
+                           th:classappend="${c.account.status == 1} ? 'btn-outline-danger' : 'btn-outline-success'"
+                           th:text="${c.account.status == 1} ? '🔒 Khóa' : '🔓 Mở'">
+                        </a>
+                    </td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(customers)}">
+                    <td colspan="8" class="text-center text-muted py-4">Chưa có khách hàng nào</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div th:replace="~{admin/fragments/layout :: adminScripts}"></div>
+</body>
+</html>

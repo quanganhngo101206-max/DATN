@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Thanh toán - SkySport</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #f7f9fc; }
+        .navbar { background: #1a1a2e; padding: 16px 0; position: sticky; top: 0; z-index: 1000; }
+        .navbar-brand { font-size: 26px; font-weight: 800; color: #e94560 !important; }
+        .nav-link { color: #eee !important; font-weight: 500; margin: 0 12px; }
+        .nav-link:hover { color: #e94560 !important; }
+        .btn-nav { background: #e94560; color: white; border: none; padding: 8px 22px; border-radius: 30px; font-weight: 600; font-size: 14px; }
+        .cart-icon { position: relative; font-size: 22px; color: white; text-decoration: none; }
+        .cart-badge { position: absolute; top: -8px; right: -12px; background: #e94560; border-radius: 50%; font-size: 10px; padding: 2px 6px; }
+        .checkout-header { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); padding: 40px 0; text-align: center; color: white; }
+        .checkout-header h1 { font-size: 36px; font-weight: 800; }
+        .form-card, .summary-card { background: white; border-radius: 20px; padding: 30px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); }
+        .form-label { font-weight: 700; color: #1a1a2e; margin-bottom: 8px; }
+        .form-control, .form-select { border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 16px; }
+        .form-control:focus, .form-select:focus { border-color: #e94560; box-shadow: 0 0 0 2px rgba(233,69,96,0.1); }
+        .btn-place-order { background: #e94560; color: white; border: none; padding: 16px; border-radius: 50px; font-weight: 700; width: 100%; font-size: 16px; }
+        .btn-place-order:hover { background: #c62a47; color: white; }
+        .product-item { display: flex; align-items: center; gap: 15px; padding: 12px 0; border-bottom: 1px solid #eee; }
+        .product-item img { width: 60px; height: 60px; object-fit: cover; border-radius: 10px; }
+        .discount-badge { background: #d4edda; color: #155724; border-radius: 8px; padding: 8px 12px; font-size: 13px; display: none; }
+        .shipping-badge { background: #cce5ff; color: #004085; border-radius: 8px; padding: 6px 12px; font-size: 12px; }
+        footer { background: #1a1a2e; color: #aaa; padding: 40px 0 20px; margin-top: 50px; }
+        footer h6 { color: white; font-weight: 700; margin-bottom: 15px; }
+        footer a { color: #999; text-decoration: none; font-size: 14px; display: block; margin-bottom: 8px; }
+        footer a:hover { color: white; }
+        .footer-bottom { border-top: 1px solid #444; padding-top: 20px; margin-top: 20px; text-align: center; }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg">
+    <div class="container">
+        <a class="navbar-brand" href="/home"><i class="bi bi-lightning-charge-fill"></i> SKYSPORT</a>
+        <div class="ms-auto d-flex align-items-center gap-3">
+            <a href="/home" class="nav-link">Trang chủ</a>
+            <a href="/products" class="nav-link">Sản phẩm</a>
+            <a href="/cart" class="cart-icon">
+                <i class="bi bi-cart3"></i>
+                <span class="cart-badge" th:text="${cartCount != null ? cartCount : 0}">0</span>
+            </a>
+            <th:block th:if="${session.account != null}">
+                <a href="/profile" class="nav-link"><i class="bi bi-person"></i> <span th:text="${session.account.username}"></span></a>
+                <a href="/logout" class="btn-nav">Đăng xuất</a>
+            </th:block>
+            <th:block th:if="${session.account == null}">
+                <a href="/login" class="btn-nav">Đăng nhập</a>
+            </th:block>
+        </div>
+    </div>
+</nav>
+
+<section class="checkout-header">
+    <div class="container">
+        <h1><i class="bi bi-credit-card"></i> Thanh toán</h1>
+    </div>
+</section>
+
+<!-- Thông báo lỗi -->
+<div class="container mt-3" th:if="${error}">
+    <div class="alert alert-danger alert-dismissible fade show">
+        <i class="bi bi-exclamation-circle me-2"></i><span th:text="${error}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+</div>
+
+<div class="container py-5">
+    <div class="row g-4">
+
+        <!-- Form thông tin -->
+        <div class="col-lg-7">
+            <div class="form-card">
+                <h5 class="fw-bold mb-4"><i class="bi bi-person"></i> Thông tin nhận hàng</h5>
+
+                <form method="post" th:action="@{/checkout}" th:object="${checkoutRequest}" id="checkoutForm">
+                    <input type="hidden" id="subtotalValue" th:value="${subtotal}">
+                    <input type="hidden" id="shippingValue" th:value="${shipping}">
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Họ tên <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" th:field="*{fullName}" placeholder="Nhập tên " required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Số điện thoại <span class="text-danger">*</span></label>
+                            <input type="tel" class="form-control" th:field="*{phoneNumber}" placeholder="Nhập số điện thoại" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control" th:field="*{email}" placeholder="Nhập email">
+                    </div>
+
+                    <!-- =====================================================
+                         ĐỊA CHỈ GIAO HÀNG — Đã sửa: dropdown + hidden fields
+                         ===================================================== -->
+                    <!-- ĐỊA CHỈ GIAO HÀNG — 2 tầng: Tỉnh/Thành → Phường/Xã -->
+                    <div class="mb-3">
+                        <label class="form-label">Địa chỉ giao hàng <span class="text-danger">*</span></label>
+
+                        <!-- 2 dropdown Tỉnh / Xã (bỏ Huyện vì Ward map thẳng lên Province) -->
+                        <div class="row mb-2">
+                            <div class="col-md-6 mb-2">
+                                <select class="form-select" id="provinceSelect"
+                                        th:attr="data-selected=${checkoutRequest.provinceId}">
+                                    <option value="">-- Chọn Tỉnh/Thành --</option>
+                                    <option th:each="p : ${provinces}"
+                                            th:value="${p.id}"
+                                            th:text="${p.name}"
+                                            th:selected="${checkoutRequest.provinceId != null and checkoutRequest.provinceId == p.id}">
+                                    </option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <select class="form-select" id="wardSelect" disabled
+                                        th:attr="data-selected=${checkoutRequest.wardId}">
+                                    <option value="">-- Chọn Phường/Xã --</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Hidden fields submit lên server (đã bỏ districtId) -->
+                        <input type="hidden" th:field="*{provinceId}" id="provinceId">
+                        <input type="hidden" th:field="*{wardId}" id="wardId">
+
+                        <!-- Ô nhập số nhà / tên đường -->
+                        <input type="text" class="form-control" th:field="*{address}"
+                               id="streetAddress"
+                               placeholder="Số nhà, tên đường..." required>
+                        <small class="text-muted">Nhập số nhà và tên đường, sau đó chọn Tỉnh/Thành và Phường/Xã ở trên</small>
+
+                        <!-- Phí ship -->
+                        <div class="mt-2">
+        <span class="shipping-badge" th:if="${shipping == 0}">
+            <i class="bi bi-truck"></i> Miễn phí vận chuyển
+        </span>
+                            <span class="shipping-badge" th:if="${shipping > 0}">
+            <i class="bi bi-truck"></i> Phí vận chuyển:
+            <strong th:text="${#numbers.formatInteger(shipping, 0, 'COMMA') + 'đ'}"></strong>
+            — Miễn phí cho đơn từ
+            <strong th:text="${#numbers.formatInteger(freeShipThreshold, 0, 'COMMA') + 'đ'}"></strong>
+        </span>
+                        </div>
+                    </div>
+                    <!-- ===== KẾT THÚC phần địa chỉ ===== -->
+
+                    <div class="mb-3">
+                        <label class="form-label">Ghi chú (tuỳ chọn)</label>
+                        <textarea class="form-control" th:field="*{note}" rows="2" placeholder="Giao giờ hành chính, gọi trước khi giao..."></textarea>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label">Phương thức thanh toán <span class="text-danger">*</span></label>
+                        <select class="form-select" th:field="*{paymentMethod}" required>
+                            <option value="COD">💰 Thanh toán khi nhận hàng (COD)</option>
+                            <option value="BANKING">🏦 Chuyển khoản ngân hàng</option>
+                        </select>
+                    </div>
+
+                    <!-- Mã giảm giá với AJAX -->
+                    <div class="mb-4">
+                        <label class="form-label">Mã giảm giá</label>
+
+                        <div th:if="${!#lists.isEmpty(availableDiscounts)}" class="mb-2">
+                            <select class="form-select" id="discountSelect">
+                                <option value="" selected>-- Chọn mã giảm giá khả dụng --</option>
+                                <option th:each="d : ${availableDiscounts}"
+                                        th:value="${d.code}"
+                                        th:text="${d.code + ' — ' + (d.type == 1
+                                            ? ('Giảm ' + #numbers.formatInteger(d.discountAmount,0,'COMMA') + 'đ')
+                                            : ('Giảm ' + #numbers.formatInteger(d.percentage,0,'COMMA') + '%'
+                                                + (d.maximumAmount != null ? (' (tối đa ' + #numbers.formatInteger(d.maximumAmount,0,'COMMA') + 'đ)') : '')))
+                                            + (d.detail != null and !d.detail.isEmpty() ? (' - ' + d.detail) : '')}">
+                                </option>
+                            </select>
+                            <small class="text-muted">Chọn mã phù hợp để tự động điền và áp dụng</small>
+                        </div>
+
+                        <div class="input-group">
+                            <input type="text" class="form-control" th:field="*{discountCode}"
+                                   id="discountInput" placeholder="Hoặc nhập mã giảm giá">
+                            <button class="btn btn-outline-danger" type="button" id="applyDiscountBtn">
+                                <i class="bi bi-tag"></i> Áp dụng
+                            </button>
+                        </div>
+                        <div id="discountMsg" class="mt-2"></div>
+                        <div class="discount-badge mt-2" id="discountBadge">
+                            <i class="bi bi-check-circle-fill"></i>
+                            Giảm <strong id="discountAmountDisplay"></strong>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-place-order">
+                        <i class="bi bi-check-lg"></i> ĐẶT HÀNG
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Tổng đơn hàng -->
+        <div class="col-lg-5">
+            <div class="summary-card">
+                <h5 class="fw-bold mb-4"><i class="bi bi-cart3"></i> Đơn hàng của bạn</h5>
+
+                <div class="product-list mb-3">
+                    <div class="product-item" th:each="item : ${cartItems}">
+                        <img th:src="${item.imageUrl != null ? item.imageUrl : 'https://placehold.co/60x60/e9ecef/6c757d?text=No+Image'}"
+                             th:alt="${item.productName}">
+                        <div class="flex-grow-1">
+                            <div class="fw-bold small" th:text="${item.productName}"></div>
+                            <div class="small text-muted">
+                                <span th:if="${item.color != null}" th:text="${item.color}"></span>
+                                <span th:if="${item.size != null}" th:text="' / ' + ${item.size}"></span>
+                                <span th:text="' × ' + ${item.quantity}"></span>
+                            </div>
+                            <div class="text-danger fw-bold small"
+                                 th:text="${#numbers.formatInteger(item.price * item.quantity, 0, 'COMMA') + 'đ'}"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <hr>
+
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Tạm tính:</span>
+                    <span class="fw-bold" id="subtotalDisplay"
+                          th:text="${#numbers.formatInteger(subtotal, 0, 'COMMA') + 'đ'}"></span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Phí vận chuyển:</span>
+                    <span id="shippingDisplay"
+                          th:text="${shipping == 0 ? 'Miễn phí' : #numbers.formatInteger(shipping, 0, 'COMMA') + 'đ'}"></span>
+                </div>
+                <div class="d-flex justify-content-between mb-2" id="discountRow" style="display:none !important;">
+                    <span class="text-muted">Giảm giá:</span>
+                    <span class="text-success fw-bold" id="discountRowAmount"></span>
+                </div>
+                <div class="d-flex justify-content-between mb-3 pt-2 border-top">
+                    <span class="fs-5 fw-bold">Tổng cộng:</span>
+                    <span class="fs-5 fw-bold text-danger" id="totalDisplay"
+                          th:text="${#numbers.formatInteger(total, 0, 'COMMA') + 'đ'}"></span>
+                </div>
+
+                <div class="text-muted small text-center">
+                    <i class="bi bi-shield-check text-success"></i> Giao dịch được bảo mật
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer>
+    <div class="container">
+        <div class="row">
+            <div class="col-md-4">
+                <h6>⚡ SKYSPORT</h6>
+                <p style="font-size:14px;">Thể thao đỉnh cao - Phong cách riêng bạn</p>
+            </div>
+            <div class="col-md-4">
+                <h6>Hỗ trợ</h6>
+                <a href="#">Chính sách đổi trả</a>
+                <a href="#">Vận chuyển</a>
+            </div>
+            <div class="col-md-4">
+                <h6>Liên hệ</h6>
+                <p><i class="bi bi-telephone"></i> 0123 456 789</p>
+                <p><i class="bi bi-envelope"></i> support@skysport.vn</p>
+            </div>
+        </div>
+        <div class="footer-bottom">© 2024 SkySport. All rights reserved.</div>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script th:inline="javascript">
+    const subtotal = parseFloat(document.getElementById('subtotalValue').value) || 0;
+    const shippingFee = parseFloat(document.getElementById('shippingValue').value) || 0;
+
+    function formatNumber(n) {
+        return Math.round(n).toLocaleString('vi-VN') + 'đ';
+    }
+
+    // =====================================================
+    // DROPDOWN TỈNH / XÃ (2 tầng — đã bỏ Huyện)
+    // =====================================================
+    const provinceSelect = document.getElementById('provinceSelect');
+    const wardSelect     = document.getElementById('wardSelect');
+
+    // Hàm tiện ích: xóa options và disable một select
+    function resetSelect(sel, placeholder) {
+        sel.innerHTML = `<option value="">${placeholder}</option>`;
+        sel.disabled = true;
+    }
+
+    // Khi chọn Tỉnh → load Phường/Xã trực tiếp (không qua Huyện)
+    provinceSelect.addEventListener('change', function () {
+        const provinceId = this.value;
+
+        // Cập nhật hidden field
+        document.getElementById('provinceId').value = provinceId;
+        document.getElementById('wardId').value = '';
+
+        resetSelect(wardSelect, '-- Chọn Phường/Xã --');
+
+        if (!provinceId) return;
+
+        fetch(`/api/location/wards?provinceId=${provinceId}`)
+            .then(res => res.json())
+            .then(data => {
+                data.forEach(w => {
+                    wardSelect.innerHTML += `<option value="${w.id}">${w.name}</option>`;
+                });
+                wardSelect.disabled = false;
+            })
+            .catch(() => alert('Không tải được danh sách phường/xã, vui lòng thử lại.'));
+    });
+
+    // Khi chọn Xã → cập nhật hidden field
+    wardSelect.addEventListener('change', function () {
+        document.getElementById('wardId').value = this.value;
+    });
+
+    // Nếu khách đã đăng nhập và đã có địa chỉ, tự load lại xã tương ứng
+    (function autoLoadSavedAddress() {
+        const savedProvinceId = provinceSelect.dataset.selected;
+        const savedWardId     = wardSelect.dataset.selected;
+
+        if (!savedProvinceId) return;
+
+        fetch(`/api/location/wards?provinceId=${savedProvinceId}`)
+            .then(res => res.json())
+            .then(data => {
+                data.forEach(w => {
+                    const opt = document.createElement('option');
+                    opt.value = w.id;
+                    opt.textContent = w.name;
+                    if (String(w.id) === String(savedWardId)) opt.selected = true;
+                    wardSelect.appendChild(opt);
+                });
+                wardSelect.disabled = false;
+            });
+    })();
+
+    // =====================================================
+    // MÃ GIẢM GIÁ (giữ nguyên từ bản gốc)
+    // =====================================================
+    const discountSelectEl = document.getElementById('discountSelect');
+    if (discountSelectEl) {
+        discountSelectEl.addEventListener('change', function () {
+            if (!this.value) return;
+            document.getElementById('discountInput').value = this.value;
+            document.getElementById('applyDiscountBtn').click();
+        });
+    }
+
+    document.getElementById('applyDiscountBtn').addEventListener('click', function () {
+        const code = document.getElementById('discountInput').value.trim();
+        if (!code) {
+            showMsg('Vui lòng nhập mã giảm giá!', 'danger');
+            return;
+        }
+
+        this.disabled = true;
+        this.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+        fetch('/checkout/apply-discount', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: `code=${encodeURIComponent(code)}&subtotal=${subtotal}`
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showMsg(data.message, 'success');
+                    document.getElementById('discountAmountDisplay').textContent = formatNumber(data.discountAmount);
+                    document.getElementById('discountBadge').style.display = 'block';
+                    document.getElementById('discountRow').style.cssText = 'display:flex';
+                    document.getElementById('discountRowAmount').textContent = '-' + formatNumber(data.discountAmount);
+                    document.getElementById('totalDisplay').textContent = formatNumber(data.finalTotal);
+                    document.getElementById('shippingDisplay').textContent =
+                        data.shipping === 0 ? 'Miễn phí' : formatNumber(data.shipping);
+                } else {
+                    showMsg(data.message, 'danger');
+                    document.getElementById('discountBadge').style.display = 'none';
+                }
+            })
+            .catch(() => showMsg('Lỗi kết nối, thử lại sau!', 'danger'))
+            .finally(() => {
+                this.disabled = false;
+                this.innerHTML = '<i class="bi bi-tag"></i> Áp dụng';
+            });
+    });
+
+    function showMsg(msg, type) {
+        const el = document.getElementById('discountMsg');
+        el.innerHTML = `<div class="alert alert-${type} py-2 mb-0 small">${msg}</div>`;
+    }
+</script>
+</body>
+</html>

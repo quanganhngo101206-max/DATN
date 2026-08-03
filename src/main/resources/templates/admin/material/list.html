@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{admin/fragments/layout :: adminHead(~{::title}, ~{::extraHead})}">
+    <title>Quản lý chất liệu - SkySport</title>
+    <th:block th:fragment="extraHead"></th:block>
+</head>
+<body>
+
+<div th:replace="~{admin/fragments/layout :: adminSidebar('material')}"></div>
+
+<div class="main-content">
+    <h4 class="fw-bold mb-4">Quản lý chất liệu</h4>
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <i class="bi bi-plus-circle"></i>
+                    <span th:text="${material.id != null} ? 'Sửa chất liệu' : 'Thêm chất liệu'"></span>
+                </div>
+                <div class="card-body p-4">
+                    <form th:action="${material.id != null} ? '/admin/material/update' : '/admin/material/save'" method="post">
+                        <input type="hidden" name="id" th:value="${material.id}"/>
+                        <input type="hidden" name="deleteFlag" th:value="${material.deleteFlag}"/>
+                        <input type="hidden" name="status" th:value="${material.status}"/>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Mã chất liệu</label>
+                            <input type="text" name="code" class="form-control" th:value="${material.code}" placeholder="VD: COTTON, POLY..." required/>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Tên chất liệu</label>
+                            <input type="text" name="name" class="form-control" th:value="${material.name}" placeholder="VD: Cotton, Polyester..." required/>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Trạng thái</label>
+                            <select name="status" class="form-select">
+                                <option value="1" th:selected="${material.status == 1}">Hoạt động</option>
+                                <option value="0" th:selected="${material.status == 0}">Tắt</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-purple w-100">
+                            <i class="bi bi-save"></i>
+                            <span th:text="${material.id != null} ? 'Cập nhật' : 'Thêm mới'"></span>
+                        </button>
+                        <a th:if="${material.id != null}" href="/admin/material" class="btn btn-secondary w-100 mt-2">Hủy</a>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header"><i class="bi bi-list-ul"></i> Danh sách chất liệu</div>
+                <div class="card-body p-0">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                        <tr><th>#</th><th>Mã</th><th>Tên</th><th>Trạng thái</th><th>Thao tác</th></tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="m, i : ${materials}">
+                            <td th:text="${i.count}"></td>
+                            <td><span class="badge bg-secondary" th:text="${m.code}"></span></td>
+                            <td th:text="${m.name}"></td>
+                            <td>
+                                <span class="badge bg-success" th:if="${m.status == 1}">Hoạt động</span>
+                                <span class="badge bg-danger" th:if="${m.status == 0}">Tắt</span>
+                            </td>
+                            <td>
+                                <a th:href="@{/admin/material/edit/{id}(id=${m.id})}" class="btn btn-sm btn-warning"><i class="bi bi-pencil"></i></a>
+                                <a th:href="@{/admin/material/delete/{id}(id=${m.id})}" class="btn btn-sm btn-danger" onclick="return confirm('Xóa chất liệu này?')"><i class="bi bi-trash"></i></a>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(materials)}">
+                            <td colspan="5" class="text-center text-muted py-4">Chưa có chất liệu nào</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div th:replace="~{admin/fragments/layout :: adminScripts}"></div>
+</body>
+</html>

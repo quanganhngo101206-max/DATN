@@ -75,6 +75,17 @@ public class StaffService {
         }
     }
 
+    // Mở khóa tài khoản bị auto-lock do đăng nhập sai quá nhiều lần
+    public void unlockAccount(Integer id) {
+        Staff staff = findById(id);
+        if (staff != null && staff.getAccount() != null) {
+            Account account = staff.getAccount();
+            account.setIsNonLocked(true);
+            account.setFailedAttempts(0);
+            accountRepository.save(account);
+        }
+    }
+
     private String generateShortId() {
         return UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase();
     }

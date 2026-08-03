@@ -464,6 +464,11 @@
             <div class="product-info-card">
                 <div class="product-brand" th:text="${product.brand != null ? product.brand.name : 'SKYSPORT'}"></div>
                 <h1 class="product-name" th:text="${product.name}"></h1>
+                <div th:if="${hasActiveSale}">
+                    <span class="text-muted text-decoration-line-through" style="font-size:16px;"
+                          th:text="${#numbers.formatInteger(displayOriginalPrice, 0, 'COMMA') + 'đ'}"></span>
+                    <span class="badge bg-danger ms-2">Sale</span>
+                </div>
                 <div class="product-price" th:text="${#numbers.formatInteger(displayPrice, 0, 'COMMA') + 'đ'}"></div>
                 <div class="product-rating">
                     <div class="stars">

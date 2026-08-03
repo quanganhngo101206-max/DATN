@@ -9,6 +9,8 @@ import com.skysport.datn.repository.CategoryRepository;
 import com.skysport.datn.repository.MaterialRepository;
 import com.skysport.datn.repository.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -32,6 +34,13 @@ public class ProductService {
     // Lấy tất cả sản phẩm
     public List<Product> findAll() {
         return productRepository.findByDeleteFlag(false);
+    }
+
+    // Tìm kiếm + lọc + phân trang (dùng cho trang danh sách admin)
+    public Page<Product> search(String keyword, Integer categoryId, Integer brandId,
+                                Integer status, Pageable pageable) {
+        String kw = (keyword == null || keyword.isBlank()) ? null : keyword.trim();
+        return productRepository.search(kw, categoryId, brandId, status, pageable);
     }
 
     // Tìm theo id

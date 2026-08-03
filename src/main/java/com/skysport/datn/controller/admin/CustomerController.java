@@ -73,4 +73,11 @@ public class CustomerController {
         customerService.toggleStatus(id);
         return "redirect:/admin/customer";
     }
+
+    // 5. Mở khóa tài khoản bị auto-lock do đăng nhập sai quá nhiều lần
+    @GetMapping("/unlock/{id}")
+    public String unlock(@PathVariable Integer id) {
+        customerService.unlockAccount(id);
+        return "redirect:/admin/customer";
+    }
 }

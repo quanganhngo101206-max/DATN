@@ -72,10 +72,12 @@
                             <td>
                                 <span class="badge bg-success" th:if="${s.account != null && s.account.status == 1}">Hoạt động</span>
                                 <span class="badge bg-danger" th:if="${s.account != null && s.account.status == 0}">Bị khóa</span>
+                                <span class="badge bg-warning text-dark" th:if="${s.account != null && s.account.isNonLocked == false}">🔒 Khóa do đăng nhập sai</span>
                             </td>
                             <td>
                                 <a th:href="@{/admin/staff/edit/{id}(id=${s.id})}" class="btn btn-sm btn-warning"><i class="bi bi-pencil"></i></a>
                                 <a th:href="@{/admin/staff/toggle/{id}(id=${s.id})}" class="btn btn-sm" th:classappend="${s.account != null && s.account.status == 1} ? 'btn-danger' : 'btn-success'" th:text="${s.account != null && s.account.status == 1} ? '🔒 Khóa' : '🔓 Mở'"></a>
+                                <a th:href="@{/admin/staff/unlock/{id}(id=${s.id})}" class="btn btn-sm btn-outline-warning" th:if="${s.account != null && s.account.isNonLocked == false}">Mở khóa đăng nhập</a>
                             </td>
                         </tr>
                         <tr th:if="${#lists.isEmpty(staffs)}">

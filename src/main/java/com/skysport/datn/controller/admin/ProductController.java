@@ -5,8 +5,14 @@ import com.skysport.datn.entity.ProductDetail;
 import com.skysport.datn.entity.Image;
 import com.skysport.datn.repository.ImageRepository;
 import com.skysport.datn.service.ProductDetailService;
+import com.skysport.datn.service.ProductDiscountService;
 import com.skysport.datn.service.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -24,16 +30,42 @@ public class ProductController {
     private ProductDetailService productDetailService;
     @Autowired
     private ImageRepository imageRepository;
+    @Autowired
+    private ProductDiscountService productDiscountService;
 
-    // Danh sách sản phẩm
+    // Danh sách sản phẩm (tìm kiếm + lọc + phân trang)
     @GetMapping
-    public String list(Model model) {
-        model.addAttribute("products", productService.findAll());
+    public String list(@RequestParam(required = false) String keyword,
+                       @RequestParam(required = false) Integer categoryId,
+                       @RequestParam(required = false) Integer brandId,
+                       @RequestParam(required = false) Integer status,
+                       @RequestParam(defaultValue = "0") int page,
+                       @RequestParam(defaultValue = "10") int size,
+                       Model model) {
+        populateListAttributes(model, keyword, categoryId, brandId, status, page, size);
         model.addAttribute("product", new Product());
+        return "admin/product/list";
+    }
+
+    // Gom logic tìm kiếm/lọc/phân trang dùng chung cho list(), addForm(), edit()
+    private void populateListAttributes(Model model, String keyword, Integer categoryId,
+                                        Integer brandId, Integer status, int page, int size) {
+        Pageable pageable = PageRequest.of(Math.max(page, 0), Math.max(size, 1),
+                Sort.by(Sort.Direction.DESC, "id"));
+        Page<Product> productPage = productService.search(keyword, categoryId, brandId, status, pageable);
+
+        model.addAttribute("productPage", productPage);
+        model.addAttribute("products", productPage.getContent());
         model.addAttribute("categories", productService.findAllCategory());
         model.addAttribute("brands", productService.findAllBrand());
         model.addAttribute("materials", productService.findAllMaterial());
-        return "admin/product/list";
+
+        // Giữ lại giá trị tìm kiếm/lọc trên form để hiển thị lại sau khi submit
+        model.addAttribute("keyword", keyword);
+        model.addAttribute("selectedCategoryId", categoryId);
+        model.addAttribute("selectedBrandId", brandId);
+        model.addAttribute("selectedStatus", status);
+        model.addAttribute("pageSize", size);
     }
 
     // Thêm sản phẩm
@@ -54,19 +86,9 @@ public class ProductController {
 
     @GetMapping("/add")
     public String addForm(Model model) {
-        System.out.println("=== Đang gọi /admin/product/add ===");
-
-        // ✅ Quan trọng: Phải có đủ các attribute này
-        model.addAttribute("product", new Product());           // Object rỗng cho form
-        model.addAttribute("products", productService.findAll());  // Cho bảng danh sách
-        model.addAttribute("categories", productService.findAllCategory());
-        model.addAttribute("brands", productService.findAllBrand());
-        model.addAttribute("materials", productService.findAllMaterial());
-
-        System.out.println("Categories: " + productService.findAllCategory().size());
-        System.out.println("Brands: " + productService.findAllBrand().size());
-        System.out.println("Materials: " + productService.findAllMaterial().size());
-
+        // Object rỗng cho form
+        model.addAttribute("product", new Product());
+        populateListAttributes(model, null, null, null, null, 0, 10);
         return "admin/product/list";
     }
 
@@ -140,14 +162,20 @@ public class ProductController {
     public String saveDetail(@ModelAttribute ProductDetail detail,
                              @RequestParam Integer productId,
                              @RequestParam Integer sizeId,
-                             @RequestParam Integer colorId) {
+                             @RequestParam Integer colorId,
+                             RedirectAttributes ra) {
         Product product = productService.findById(productId);
         detail.setProduct(product);
         detail.setSize(productDetailService.findAllSize()
                 .stream().filter(s -> s.getId().equals(sizeId)).findFirst().orElse(null));
         detail.setColor(productDetailService.findAllColor()
                 .stream().filter(c -> c.getId().equals(colorId)).findFirst().orElse(null));
-        productDetailService.save(detail);
+        try {
+            productDetailService.save(detail);
+            ra.addFlashAttribute("successMsg", "Đã thêm biến thể sản phẩm.");
+        } catch (RuntimeException e) {
+            ra.addFlashAttribute("errorMsg", e.getMessage());
+        }
         return "redirect:/admin/product/detail/" + productId;
     }
 
@@ -155,10 +183,7 @@ public class ProductController {
     @GetMapping("/edit/{id}")
     public String edit(@PathVariable Integer id, Model model) {
         model.addAttribute("product", productService.findById(id));
-        model.addAttribute("products", productService.findAll());
-        model.addAttribute("categories", productService.findAllCategory());
-        model.addAttribute("brands", productService.findAllBrand());
-        model.addAttribute("materials", productService.findAllMaterial());
+        populateListAttributes(model, null, null, null, null, 0, 10);
         return "admin/product/list";
     }
 
@@ -189,6 +214,39 @@ public class ProductController {
     public String delete(@PathVariable Integer id) {
         productService.delete(id);
         return "redirect:/admin/product";
+    }
+
+    // Áp khuyến mãi cho 1 biến thể sản phẩm
+    @PostMapping("/detail/{detailId}/discount/save")
+    public String saveDiscount(@PathVariable Integer detailId,
+                               @RequestParam Float discountedAmount,
+                               @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm") LocalDateTime startDate,
+                               @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm") LocalDateTime endDate,
+                               RedirectAttributes ra) {
+        ProductDetail detail = productDetailService.findById(detailId);
+        if (detail == null || detail.getProduct() == null) {
+            ra.addFlashAttribute("errorMsg", "Biến thể không tồn tại!");
+            return "redirect:/admin/product";
+        }
+        try {
+            productDiscountService.createDiscount(detailId, discountedAmount, startDate, endDate);
+            ra.addFlashAttribute("successMsg", "Đã áp dụng khuyến mãi cho biến thể.");
+        } catch (RuntimeException e) {
+            ra.addFlashAttribute("errorMsg", e.getMessage());
+        }
+        return "redirect:/admin/product/detail/" + detail.getProduct().getId();
+    }
+
+    // Tắt khuyến mãi trước hạn
+    @GetMapping("/detail/discount/close/{id}")
+    public String closeDiscount(@PathVariable Integer id, @RequestParam Integer productId, RedirectAttributes ra) {
+        try {
+            productDiscountService.closeDiscount(id);
+            ra.addFlashAttribute("successMsg", "Đã tắt khuyến mãi.");
+        } catch (RuntimeException e) {
+            ra.addFlashAttribute("errorMsg", e.getMessage());
+        }
+        return "redirect:/admin/product/detail/" + productId;
     }
 
     @GetMapping("/detail/delete/{id}")

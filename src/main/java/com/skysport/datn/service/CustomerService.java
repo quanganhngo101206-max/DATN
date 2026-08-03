@@ -41,6 +41,17 @@ public class CustomerService {
         }
     }
 
+    // Mở khóa tài khoản bị auto-lock do đăng nhập sai quá nhiều lần
+    public void unlockAccount(Integer id) {
+        Customer customer = findById(id);
+        if (customer != null && customer.getAccount() != null) {
+            Account account = customer.getAccount();
+            account.setIsNonLocked(true);
+            account.setFailedAttempts(0);
+            accountRepository.save(account);
+        }
+    }
+
     // Tìm kiếm theo tên hoặc email
     public List<Customer> search(String keyword) {
         return customerRepository.searchByKeyword(keyword);

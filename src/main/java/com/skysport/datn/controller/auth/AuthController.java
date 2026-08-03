@@ -7,6 +7,7 @@ import com.skysport.datn.enums.RoleName;
 import com.skysport.datn.repository.AccountRepository;
 import com.skysport.datn.service.CartService;
 import com.skysport.datn.service.RegisterService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -76,16 +77,25 @@ public class AuthController {
         return "redirect:/home";
     }
 
+    // Số lần đăng nhập sai tối đa trước khi khóa tài khoản
+    private static final int MAX_FAILED_ATTEMPTS = 5;
+
     @PostMapping("/login")
     public String login(@RequestParam String username,
                         @RequestParam String password,
                         @RequestParam(required = false, defaultValue = "customer") String type,
+                        HttpServletRequest request,
                         HttpSession session,
                         Model model) {
         try {
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(username, password)
             );
+
+            // Chống session fixation: cấp session ID mới sau khi xác thực thành công,
+            // giữ nguyên các attribute đã có (giỏ hàng guest, ...)
+            request.changeSessionId();
+
             SecurityContextHolder.getContext().setAuthentication(authentication);
             session.setAttribute(
                     HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
@@ -97,6 +107,13 @@ public class AuthController {
                 model.addAttribute("error", "Không tìm thấy tài khoản!");
                 return "customer/login";
             }
+
+            // Đăng nhập thành công -> reset bộ đếm đăng nhập sai
+            if (account.getFailedAttempts() != null && account.getFailedAttempts() > 0) {
+                account.setFailedAttempts(0);
+                accountRepository.save(account);
+            }
+
             session.setAttribute("account", account);
 
             // Merge giỏ hàng guest vào session (giữ nguyên items, chỉ cập nhật tồn kho)
@@ -117,11 +134,36 @@ public class AuthController {
         } catch (DisabledException | LockedException e) {
             model.addAttribute("error", "Tài khoản đã bị khóa!");
         } catch (BadCredentialsException e) {
-            model.addAttribute("error", "Sai tài khoản hoặc mật khẩu!");
+            model.addAttribute("error", handleFailedAttempt(username));
         } catch (AuthenticationException e) {
             model.addAttribute("error", "Đăng nhập thất bại!");
         }
         return "customer/login";
+    }
+
+    /**
+     * Tăng bộ đếm đăng nhập sai cho tài khoản. Nếu đạt ngưỡng MAX_FAILED_ATTEMPTS
+     * thì khóa tài khoản (isNonLocked = false) — lần đăng nhập kế tiếp sẽ bị
+     * Spring Security chặn ngay ở bước authenticate() với LockedException.
+     * Trả về thông báo lỗi phù hợp để hiển thị cho người dùng.
+     */
+    private String handleFailedAttempt(String username) {
+        Account account = accountRepository.findByUsername(username).orElse(null);
+        if (account == null) {
+            return "Sai tài khoản hoặc mật khẩu!";
+        }
+
+        int attempts = (account.getFailedAttempts() == null ? 0 : account.getFailedAttempts()) + 1;
+        account.setFailedAttempts(attempts);
+
+        if (attempts >= MAX_FAILED_ATTEMPTS) {
+            account.setIsNonLocked(false);
+            accountRepository.save(account);
+            return "Tài khoản đã bị khóa do đăng nhập sai quá " + MAX_FAILED_ATTEMPTS + " lần!";
+        }
+
+        accountRepository.save(account);
+        return "Sai tài khoản hoặc mật khẩu! Còn " + (MAX_FAILED_ATTEMPTS - attempts) + " lần thử.";
     }
 
     @GetMapping("/register")

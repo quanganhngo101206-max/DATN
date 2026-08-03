@@ -17,6 +17,9 @@ public interface ProductDetailRepository extends JpaRepository<ProductDetail, In
     List<ProductDetail> findByProductId(Integer productId);
     List<ProductDetail> findByProductIdAndDeleteFlagFalse(Integer productId);
 
+    // Tìm biến thể theo product + size + color để chặn trùng (bao gồm cả bản ghi đã xóa mềm)
+    Optional<ProductDetail> findByProduct_IdAndSize_IdAndColor_Id(Integer productId, Integer sizeId, Integer colorId);
+
     // Khóa pessimistic write — dùng khi checkout để tránh race condition trừ tồn kho
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT pd FROM ProductDetail pd WHERE pd.id = :id")

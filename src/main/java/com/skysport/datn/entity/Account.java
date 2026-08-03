@@ -26,6 +26,8 @@ public class Account {
 
     private Boolean isNonLocked;
 
+    private Integer failedAttempts;
+
     private LocalDateTime updateDate;
 
     private String username;

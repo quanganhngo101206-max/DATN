@@ -67,4 +67,12 @@ public class StaffManagementController {
         staffService.toggleStatus(id);
         return "redirect:/admin/staff";
     }
+
+    // Mở khóa tài khoản bị auto-lock do đăng nhập sai quá nhiều lần
+    @GetMapping("/unlock/{id}")
+    public String unlock(@PathVariable Integer id, RedirectAttributes ra) {
+        staffService.unlockAccount(id);
+        ra.addFlashAttribute("successMsg", "Đã mở khóa tài khoản.");
+        return "redirect:/admin/staff";
+    }
 }

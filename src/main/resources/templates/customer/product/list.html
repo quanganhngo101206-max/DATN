@@ -289,6 +289,11 @@
                         <div class="product-body">
                             <div class="product-brand" th:text="${p.brand != null ? p.brand.name : 'SKYSPORT'}"></div>
                             <div class="product-name" th:text="${p.name}"></div>
+                            <div th:if="${productOnSale[p.id]}">
+                                <span class="text-muted text-decoration-line-through" style="font-size:13px;"
+                                      th:text="${#numbers.formatInteger(productOriginalPrices[p.id], 0, 'COMMA') + 'đ'}"></span>
+                                <span class="badge bg-danger ms-1" style="font-size:10px;">Sale</span>
+                            </div>
                             <div class="product-price" th:text="${#numbers.formatInteger(productPrices[p.id], 0, 'COMMA') + 'đ'}"></div>
                             <a th:href="@{/products/{id}(id=${p.id})}" class="btn-detail">Xem chi tiết</a>
                         </div>

@@ -92,12 +92,21 @@ public class CustomerProductController {
                 .distinct()
                 .collect(Collectors.toList());
 
-        // Lấy giá thấp nhất để hiển thị (sửa lỗi kiểu dữ liệu)
+        // Lấy giá thấp nhất để hiển thị (đã áp khuyến mãi nếu biến thể đang sale)
         Double minPrice = details.stream()
+                .filter(d -> d.getFinalPrice() != null)
+                .mapToDouble(ProductDetail::getFinalPrice)
+                .min()
+                .orElse(0.0);
+
+        // Giá gốc thấp nhất (để hiển thị gạch ngang khi có sale)
+        Double minOriginalPrice = details.stream()
                 .filter(d -> d.getPrice() != null)
                 .mapToDouble(ProductDetail::getPrice)
                 .min()
                 .orElse(0.0);
+
+        boolean hasActiveSale = details.stream().anyMatch(ProductDetail::isOnSale);
 
         model.addAttribute("product", product);
         model.addAttribute("details", details);
@@ -106,6 +115,8 @@ public class CustomerProductController {
         model.addAttribute("images", images);
         model.addAttribute("mainImage", images.isEmpty() ? null : images.get(0));
         model.addAttribute("displayPrice", minPrice);
+        model.addAttribute("displayOriginalPrice", minOriginalPrice);
+        model.addAttribute("hasActiveSale", hasActiveSale);
 
         // === Đánh giá sản phẩm ===
         List<Review> reviews = reviewRepository.findByProduct_IdOrderByCreatedDateDesc(id);
@@ -182,18 +193,29 @@ public class CustomerProductController {
 
         // Lấy giá thấp nhất và ảnh cho mỗi sản phẩm
         Map<Integer, Double> productPrices = new HashMap<>();
+        Map<Integer, Double> productOriginalPrices = new HashMap<>();
+        Map<Integer, Boolean> productOnSale = new HashMap<>();
         Map<Integer, String> productImages = new HashMap<>();
 
         for (Product p : products) {
             List<ProductDetail> details = productDetailRepository.findByProductIdAndDeleteFlagFalse(p.getId());
 
-            // Sửa lỗi: dùng mapToDouble thay vì map + min comparator
+            // Giá hiển thị: giá thấp nhất SAU khi áp khuyến mãi (nếu đang sale)
             Double minPrice = details.stream()
+                    .filter(d -> d.getFinalPrice() != null)
+                    .mapToDouble(ProductDetail::getFinalPrice)
+                    .min()
+                    .orElse(0.0);
+            productPrices.put(p.getId(), minPrice);
+
+            Double minOriginalPrice = details.stream()
                     .filter(d -> d.getPrice() != null)
                     .mapToDouble(ProductDetail::getPrice)
                     .min()
                     .orElse(0.0);
-            productPrices.put(p.getId(), minPrice);
+            productOriginalPrices.put(p.getId(), minOriginalPrice);
+
+            productOnSale.put(p.getId(), details.stream().anyMatch(ProductDetail::isOnSale));
 
             List<Image> imgs = imageRepository.findByProductId(p.getId());
             if (!imgs.isEmpty()) {
@@ -203,6 +225,8 @@ public class CustomerProductController {
 
         model.addAttribute("products", products);
         model.addAttribute("productPrices", productPrices);
+        model.addAttribute("productOriginalPrices", productOriginalPrices);
+        model.addAttribute("productOnSale", productOnSale);
         model.addAttribute("productImages", productImages);
         model.addAttribute("categories", categoryRepository.findByDeleteFlag(false));
         model.addAttribute("brands", brandRepository.findByDeleteFlag(false));

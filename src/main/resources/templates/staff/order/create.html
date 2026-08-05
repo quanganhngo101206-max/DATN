@@ -206,29 +206,15 @@
             <div class="card mb-3">
                 <div class="card-header"><i class="bi bi-person me-2"></i>Thông tin khách hàng</div>
                 <div class="card-body">
-                    <div class="row g-2 align-items-end">
-                        <div class="col-md-7">
-                            <label class="form-label">Tìm khách hàng (SĐT / Tên / Mã KH)</label>
-                            <div class="field-wrapper">
-                                <input type="text" id="searchPhone" class="form-control" autocomplete="off"
-                                       placeholder="Nhập SĐT, tên hoặc mã khách hàng..." oninput="updateCustomerInfo()">
-                                <div id="customerSuggest" class="suggest-dropdown"></div>
-                            </div>
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <label class="form-label">Họ tên khách hàng <span class="text-danger">*</span></label>
+                            <input type="text" id="customerName" class="form-control" placeholder="Nhập họ tên khách hàng..." oninput="updateCustomerInfo()">
                         </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Họ tên</label>
-                            <input type="text" id="customerName" class="form-control" placeholder="Tên khách hàng" oninput="updateCustomerInfo()">
+                        <div class="col-md-6">
+                            <label class="form-label">Số điện thoại <span class="text-danger">*</span></label>
+                            <input type="text" id="searchPhone" class="form-control" placeholder="Nhập số điện thoại..." oninput="updateCustomerInfo()">
                         </div>
-                        <div class="col-md-2">
-                            <button class="btn btn-outline-danger w-100" type="button" onclick="clearCustomer()">
-                                <i class="bi bi-x"></i> Xóa
-                            </button>
-                        </div>
-                    </div>
-                    <div id="customerInfo" class="mt-2 d-none">
-                        <span class="badge bg-success"><i
-                                class="bi bi-check-circle me-1"></i>Khách hàng đã tìm thấy</span>
-                        <span id="customerInfoText" class="ms-2 text-muted" style="font-size:13px;"></span>
                     </div>
                     <input type="hidden" id="customerId">
                 </div>
@@ -446,12 +432,6 @@
         document.getElementById('customerId').value = newBill.customer.id || '';
         document.getElementById('customerName').value = newBill.customer.name || '';
         document.getElementById('searchPhone').value = newBill.customer.phone || '';
-        if(newBill.customer.id || newBill.customer.name || newBill.customer.phone) {
-             document.getElementById('customerInfo').classList.remove('d-none');
-             document.getElementById('customerInfoText').textContent = (newBill.customer.name || 'Khách lẻ') + ' — ' + (newBill.customer.phone || '');
-        } else {
-             document.getElementById('customerInfo').classList.add('d-none');
-        }
         
         // Restore discount
         document.getElementById('discountInput').value = newBill.discountCode || '';
@@ -480,67 +460,7 @@
         renderTabs();
     });
 
-    // ===== TÌM KHÁCH HÀNG (gợi ý theo SĐT / Tên / Mã KH) =====
-    let customerSearchTimer = null;
-
-    document.getElementById('searchPhone').addEventListener('input', function () {
-        const kw = this.value.trim();
-        clearTimeout(customerSearchTimer);
-        const dropdown = document.getElementById('customerSuggest');
-        if (!kw) {
-            dropdown.classList.remove('show');
-            dropdown.innerHTML = '';
-            return;
-        }
-        customerSearchTimer = setTimeout(() => {
-            fetch('/staff/order/search-customer?keyword=' + encodeURIComponent(kw))
-                .then(r => r.json())
-                .then(data => renderCustomerSuggest(data, kw));
-        }, 300);
-    });
-
-    function renderCustomerSuggest(customers, kw) {
-        const dropdown = document.getElementById('customerSuggest');
-        if (!customers || customers.length === 0) {
-            dropdown.innerHTML = `<div class="suggest-item text-muted">
-                Không tìm thấy khách hàng.
-            </div>`;
-            dropdown.classList.add('show');
-            return;
-        }
-        let html = '';
-        customers.forEach(c => {
-            html += `<div class="suggest-item" onclick='selectCustomer(${JSON.stringify(c).replace(/'/g, "&#39;")})'>
-                <strong>${escapeHtml(c.name || 'Khách lẻ')}</strong>
-                ${c.code ? ' <span class="text-muted">(' + escapeHtml(c.code) + ')</span>' : ''}<br>
-                <span class="text-muted">${escapeHtml(c.phone || '')}${c.email ? ' • ' + escapeHtml(c.email) : ''}</span>
-            </div>`;
-        });
-        dropdown.innerHTML = html;
-        dropdown.classList.add('show');
-    }
-
-    function selectCustomer(c) {
-        document.getElementById('customerId').value = c.id;
-        document.getElementById('customerName').value = c.name || '';
-        document.getElementById('searchPhone').value = c.phone || '';
-        document.getElementById('customerInfo').classList.remove('d-none');
-        document.getElementById('customerInfoText').textContent = (c.name || 'Khách lẻ') + ' — ' + (c.phone || '');
-        const sugg = document.getElementById('customerSuggest');
-        if (sugg) sugg.classList.remove('show');
-        updateCustomerInfo();
-    }
-
-    function clearCustomer() {
-        document.getElementById('customerId').value = '';
-        document.getElementById('customerName').value = '';
-        document.getElementById('searchPhone').value = '';
-        document.getElementById('customerInfo').classList.add('d-none');
-        const sugg = document.getElementById('customerSuggest');
-        if (sugg) sugg.classList.remove('show');
-        updateCustomerInfo();
-    }
-
+    // ===== CẬP NHẬT THÔNG TIN KHÁCH HÀNG =====
     function updateCustomerInfo() {
         const bill = getActiveBill();
         if (bill) {
@@ -565,9 +485,6 @@
 
     // Ẩn dropdown khi click ra ngoài
     document.addEventListener('click', function (e) {
-        if (!e.target.closest('#searchPhone') && !e.target.closest('#customerSuggest')) {
-            document.getElementById('customerSuggest').classList.remove('show');
-        }
         if (!e.target.closest('#productSearch') && !e.target.closest('#productSuggest')) {
             const ps = document.getElementById('productSuggest');
             if(ps) ps.classList.remove('show');
@@ -778,27 +695,19 @@
             return;
         }
 
-<<<<<<< HEAD
-        const customerIdCheck = document.getElementById('customerId').value;
+        const customerNameCheck = document.getElementById('customerName').value.trim();
         const customerPhoneCheck = document.getElementById('searchPhone').value.trim();
-        if (!customerIdCheck && !customerPhoneCheck) {
-            alert('Vui lòng nhập số điện thoại khách hàng (hoặc tìm khách hàng có sẵn)!');
+        if (!customerNameCheck || !customerPhoneCheck) {
+            alert('Vui lòng nhập họ tên và số điện thoại khách hàng!');
             return;
         }
 
-        const form = document.getElementById('orderForm');
-        form.innerHTML = '';
-
-        // CSRF token
-=======
         const form = document.getElementById('orderForm');
         const csrfInput = form.querySelector('input[name="_csrf"]');
         form.innerHTML = '';
         if (csrfInput) {
             form.appendChild(csrfInput);
         }
-
->>>>>>> 9067c3b (Update POS tabs, fix duplicate orders and order status transitions)
         const csrfToken = document.cookie.split(';').find(c => c.trim().startsWith('XSRF-TOKEN='));
         if (csrfToken) {
             const token = decodeURIComponent(csrfToken.split('=')[1]);

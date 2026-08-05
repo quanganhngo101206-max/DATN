@@ -312,7 +312,7 @@ public class CheckoutController {
             session.setAttribute("lastOrderId", bill.getId());
             session.setAttribute("lastOrderPhone", request.getPhoneNumber());
 
-            // Tạo BillDetail + trừ tồn kho
+            // Tạo BillDetail (không trừ tồn kho lúc đặt hàng)
             for (CartController.CartItem item : cart.values()) {
                 ProductDetail productDetail = lockedDetails.get(item.getProductDetailId());
 
@@ -322,9 +322,6 @@ public class CheckoutController {
                 detail.setMomentPrice(item.getPrice().floatValue());
                 detail.setQuantity(item.getQuantity());
                 billDetailRepository.save(detail);
-
-                productDetail.setQuantity(productDetail.getQuantity() - item.getQuantity());
-                cartService.updateProductDetail(productDetail);
             }
 
             // Ghi lịch sử

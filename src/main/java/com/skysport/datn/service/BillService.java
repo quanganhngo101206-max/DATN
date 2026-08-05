@@ -78,8 +78,8 @@ public class BillService {
 
         if (!valid) return false;
 
-        if (next == OrderStatus.CANCELLED) {
-            restockBillItems(bill);
+        if (next == OrderStatus.COMPLETED) {
+            deductBillItems(bill);
         }
 
         bill.setStatus(next.getValue());
@@ -102,13 +102,13 @@ public class BillService {
         return true;
     }
 
-    private void restockBillItems(Bill bill) {
+    private void deductBillItems(Bill bill) {
         List<BillDetail> details = billDetailRepository.findByBillId(bill.getId());
         for (BillDetail detail : details) {
             if (detail.getProductDetail() == null || detail.getQuantity() == null) continue;
             ProductDetail pd = productDetailRepository.findById(detail.getProductDetail().getId()).orElse(null);
             if (pd != null) {
-                pd.setQuantity((pd.getQuantity() != null ? pd.getQuantity() : 0) + detail.getQuantity());
+                pd.setQuantity((pd.getQuantity() != null ? pd.getQuantity() : 0) - detail.getQuantity());
                 productDetailRepository.save(pd);
             }
         }

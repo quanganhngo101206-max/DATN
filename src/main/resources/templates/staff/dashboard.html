@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{staff/fragments/layout :: staffHead(~{::title}, ~{::extraHead})}">
+    <title>Dashboard - SkySport Staff</title>
+    <th:block th:fragment="extraHead"><style>
+        .stat-card {
+      background: white; border-radius: 20px; padding: 20px;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+      transition: transform 0.3s; border-left: 5px solid;
+    }
+    .stat-card:hover { transform: translateY(-5px); }
+    .stat-card .icon { font-size: 40px; opacity: 0.7; }
+    .stat-card .value { font-size: 32px; font-weight: 800; }
+    .stat-card .label { color: #888; font-size: 14px; }
+    </style></th:block>
+</head>
+<body>
+
+<div th:replace="~{staff/fragments/layout :: staffSidebar('dashboard')}"></div>
+
+<div class="main-content">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="fw-bold mb-0"><i class="bi bi-speedometer2 me-2"></i>Dashboard</h4>
+    <span class="text-muted" th:text="${'Xin chào, ' + session.account.username}"></span>
+  </div>
+
+  <!-- Stat Cards -->
+  <div class="row g-4 mb-4">
+    <div class="col-md-3">
+      <div class="stat-card" style="border-color: #f59e0b;">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <div class="label">Chờ xác nhận</div>
+            <div class="value text-warning" th:text="${pendingOrders}">0</div>
+            <small class="text-muted">đơn cần xử lý</small>
+          </div>
+          <div class="icon text-warning"><i class="bi bi-hourglass-split"></i></div>
+        </div>
+        <a href="/staff/bill?status=1" class="btn btn-sm btn-warning mt-3 w-100">Xử lý ngay</a>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="stat-card" style="border-color: #3b82f6;">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <div class="label">Đang giao</div>
+            <div class="value text-primary" th:text="${shippingOrders}">0</div>
+            <small class="text-muted">đơn đang vận chuyển</small>
+          </div>
+          <div class="icon text-primary"><i class="bi bi-truck"></i></div>
+        </div>
+        <a href="/staff/bill?status=3" class="btn btn-sm btn-primary mt-3 w-100">Xem đơn</a>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="stat-card" style="border-color: #8b5cf6;">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <div class="label">Đơn hôm nay</div>
+            <div class="value" style="color:#8b5cf6" th:text="${todayOrders}">0</div>
+            <small class="text-muted">đơn mới trong ngày</small>
+          </div>
+          <div class="icon" style="color:#8b5cf6"><i class="bi bi-calendar-check"></i></div>
+        </div>
+        <a href="/staff/bill" class="btn btn-sm mt-3 w-100 btn-purple">Xem tất cả</a>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="stat-card" style="border-color: #10b981;">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <div class="label">Doanh thu hôm nay</div>
+            <div class="value text-success" style="font-size:22px"
+                 th:text="${#numbers.formatInteger(todayRevenue, 0, 'COMMA') + 'đ'}">0đ</div>
+            <small class="text-muted">đơn hoàn thành</small>
+          </div>
+          <div class="icon text-success"><i class="bi bi-cash-stack"></i></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- Đơn hàng mới nhất -->
+    <div class="col-md-7">
+      <div class="card">
+        <div class="card-header"><i class="bi bi-clock-history me-2"></i>5 Đơn hàng mới nhất</div>
+        <div class="card-body p-0">
+          <table class="table table-hover mb-0">
+            <thead class="table-light">
+            <tr>
+              <th>Mã đơn</th>
+              <th>Khách hàng</th>
+              <th>Tổng tiền</th>
+              <th>Trạng thái</th>
+              <th></th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="o : ${recentOrders}">
+              <td class="fw-bold" th:text="${o.code}"></td>
+              <td th:text="${o.customerName}"></td>
+              <td th:text="${#numbers.formatInteger(o.amount, 0, 'COMMA') + 'đ'}"></td>
+              <td>
+                                    <span th:switch="${o.status}">
+                                        <span th:case="1" class="badge bg-warning text-dark">Chờ xác nhận</span>
+                                        <span th:case="2" class="badge bg-primary">Đã xác nhận</span>
+                                        <span th:case="3" class="badge bg-info text-dark">Đang giao</span>
+                                        <span th:case="5" class="badge bg-danger">Đã hủy</span>
+                                        <span th:case="7" class="badge bg-success">Hoàn thành</span>
+                                    </span>
+              </td>
+              <td>
+                <a th:href="@{/staff/bill/detail/{id}(id=${o.id})}"
+                   class="btn btn-sm btn-purple">
+                  <i class="bi bi-eye"></i>
+                </a>
+              </td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(recentOrders)}">
+              <td colspan="5" class="text-center text-muted py-3">Chưa có đơn hàng</td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tồn kho thấp -->
+    <div class="col-md-5">
+      <div class="card">
+        <div class="card-header">
+          <i class="bi bi-exclamation-triangle me-2"></i>Tồn kho thấp (≤ 10)
+        </div>
+        <div class="card-body p-0">
+          <table class="table table-hover mb-0">
+            <thead class="table-light">
+            <tr>
+              <th>Sản phẩm</th>
+              <th>Size</th>
+              <th>Màu</th>
+              <th>Còn</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="p : ${lowStockList}">
+              <td th:text="${p.productName}" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></td>
+              <td th:text="${p.size}"></td>
+              <td th:text="${p.color}"></td>
+              <td>
+                                    <span th:text="${p.quantity}"
+                                          th:class="${p.quantity <= 5} ? 'badge bg-danger' : 'badge bg-warning text-dark'">
+                                    </span>
+              </td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(lowStockList)}">
+              <td colspan="4" class="text-center text-muted py-3">
+                <i class="bi bi-check-circle text-success"></i> Tồn kho ổn định
+              </td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div th:replace="~{staff/fragments/layout :: staffScripts}"></div>
+</body>
+</html>

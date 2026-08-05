@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{admin/fragments/layout :: adminHead(~{::title}, ~{::extraHead})}">
+    <title>Quản lý đơn hàng - SkySport</title>
+    <th:block th:fragment="extraHead"></th:block>
+</head>
+<body>
+
+<div th:replace="~{admin/fragments/layout :: adminSidebar('bill')}"></div>
+
+<div class="main-content">
+  <h4 class="fw-bold mb-4"><i class="bi bi-receipt me-2"></i>Quản lý đơn hàng</h4>
+
+  <!-- Tabs lọc trạng thái -->
+  <div class="mb-3">
+    <a th:href="@{/admin/bill}" th:classappend="${currentStatus == -1} ? 'btn btn-purple text-white' : 'btn btn-outline-secondary'" class="btn btn-sm me-1">Tất cả</a>
+    <a th:href="@{/admin/bill(status=1)}" th:classappend="${currentStatus == 1} ? 'btn btn-warning' : 'btn btn-outline-warning'" class="btn btn-sm me-1">Chờ xác nhận</a>
+    <a th:href="@{/admin/bill(status=2)}" th:classappend="${currentStatus == 2} ? 'btn btn-primary' : 'btn btn-outline-primary'" class="btn btn-sm me-1">Đã xác nhận</a>
+    <a th:href="@{/admin/bill(status=3)}" th:classappend="${currentStatus == 3} ? 'btn btn-info text-white' : 'btn btn-outline-info'" class="btn btn-sm me-1">Đang giao</a>
+    <a th:href="@{/admin/bill(status=7)}" th:classappend="${currentStatus == 7} ? 'btn btn-success' : 'btn btn-outline-success'" class="btn btn-sm me-1">Hoàn thành</a>
+    <a th:href="@{/admin/bill(status=5)}" th:classappend="${currentStatus == 5} ? 'btn btn-danger' : 'btn btn-outline-danger'" class="btn btn-sm me-1">Đã hủy</a>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><i class="bi bi-list-ul me-2"></i>Danh sách đơn hàng</div>
+    <div class="card-body p-0">
+      <table class="table table-hover mb-0">
+        <thead class="table-light">
+        <tr>
+          <th>Mã đơn</th>
+          <th>Khách hàng</th>
+          <th>Địa chỉ</th>
+          <th>Tổng tiền</th>
+          <th>Ngày tạo</th>
+          <th>Trạng thái</th>
+          <th>Thao tác</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:if="${#lists.isEmpty(bills)}">
+          <td colspan="7" class="text-center py-4 text-muted">Không có đơn hàng nào</td>
+        </tr>
+        <tr th:each="bill : ${bills}">
+          <td class="fw-bold" th:text="${bill.code}"></td>
+          <td th:text="${bill.customer != null ? bill.customer.name : 'Khách lẻ'}"></td>
+          <td th:text="${bill.billingAddress}"></td>
+          <td th:text="${#numbers.formatInteger(bill.amount, 0, 'COMMA') + 'đ'}"></td>
+          <td th:text="${#temporals.format(bill.createDate, 'dd/MM/yyyy HH:mm')}"></td>
+          <td>
+                            <span th:switch="${bill.status}">
+                                <span th:case="1" class="badge bg-warning text-dark">Chờ xác nhận</span>
+                                <span th:case="2" class="badge bg-primary">Đã xác nhận</span>
+                                <span th:case="3" class="badge bg-info text-dark">Đang giao</span>
+                                <span th:case="4" class="badge bg-secondary">Đã giao</span>
+                                <span th:case="5" class="badge bg-danger">Đã hủy</span>
+                                <span th:case="6" class="badge bg-dark">Trả hàng</span>
+                                <span th:case="7" class="badge bg-success">Hoàn thành</span>
+                            </span>
+          </td>
+          <td>
+            <a th:href="@{/admin/bill/detail/{id}(id=${bill.id})}" class="btn btn-sm btn-outline-primary">
+              <i class="bi bi-eye"></i> Chi tiết
+            </a>
+          </td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<style>
+  .btn-purple { background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; }
+</style>
+
+<div th:replace="~{admin/fragments/layout :: adminScripts}"></div>
+</body>
+</html>

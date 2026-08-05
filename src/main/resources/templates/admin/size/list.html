@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{admin/fragments/layout :: adminHead(~{::title}, ~{::extraHead})}">
+    <title>Quản lý Size - SkySport</title>
+    <th:block th:fragment="extraHead"></th:block>
+</head>
+<body>
+
+<div th:replace="~{admin/fragments/layout :: adminSidebar('size')}"></div>
+
+<div class="main-content">
+    <h4 class="fw-bold mb-4">Quản lý Size</h4>
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <i class="bi bi-plus-circle"></i>
+                    <span th:text="${size.id != null} ? 'Sửa size' : 'Thêm size'"></span>
+                </div>
+                <div class="card-body p-4">
+                    <form th:action="${size.id != null} ? '/admin/size/update' : '/admin/size/save'" method="post">
+                        <input type="hidden" name="id" th:value="${size.id}"/>
+                        <input type="hidden" name="deleteFlag" th:value="${size.deleteFlag}"/>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Mã size</label>
+                            <input type="text" name="code" class="form-control" th:value="${size.code}" placeholder="VD: S, M, L..." required/>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Tên size</label>
+                            <input type="text" name="name" class="form-control" th:value="${size.name}" placeholder="VD: Small, Medium..." required/>
+                        </div>
+                        <button type="submit" class="btn btn-purple w-100">
+                            <i class="bi bi-save"></i>
+                            <span th:text="${size.id != null} ? 'Cập nhật' : 'Thêm mới'"></span>
+                        </button>
+                        <a th:if="${size.id != null}" href="/admin/size" class="btn btn-secondary w-100 mt-2">Hủy</a>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header"><i class="bi bi-list-ul"></i> Danh sách size</div>
+                <div class="card-body p-0">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                        <tr><th>#</th><th>Mã</th><th>Tên</th><th>Thao tác</th></tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="s, i : ${sizes}">
+                            <td th:text="${i.count}"></td>
+                            <td><span class="badge bg-secondary" th:text="${s.code}"></span></td>
+                            <td th:text="${s.name}"></td>
+                            <td>
+                                <a th:href="@{/admin/size/edit/{id}(id=${s.id})}" class="btn btn-sm btn-warning"><i class="bi bi-pencil"></i></a>
+                                <a th:href="@{/admin/size/delete/{id}(id=${s.id})}" class="btn btn-sm btn-danger" onclick="return confirm('Xóa size này?')"><i class="bi bi-trash"></i></a>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(sizes)}">
+                            <td colspan="4" class="text-center text-muted py-4">Chưa có size nào</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div th:replace="~{admin/fragments/layout :: adminScripts}"></div>
+</body>
+</html>

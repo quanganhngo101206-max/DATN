@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Chi tiết đơn hàng - SkySport</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #f7f9fc; }
+
+        .navbar {
+            background: #1a1a2e;
+            padding: 16px 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        .navbar-brand { font-size: 26px; font-weight: 800; color: #e94560 !important; }
+        .nav-link { color: #eee !important; font-weight: 500; margin: 0 12px; }
+        .nav-link:hover { color: #e94560 !important; }
+        .btn-nav {
+            background: #e94560;
+            color: white;
+            border: none;
+            padding: 8px 22px;
+            border-radius: 30px;
+            font-weight: 600;
+        }
+        .cart-icon { position: relative; font-size: 22px; color: white; text-decoration: none; }
+        .cart-badge {
+            position: absolute;
+            top: -8px;
+            right: -12px;
+            background: #e94560;
+            border-radius: 50%;
+            font-size: 10px;
+            padding: 2px 6px;
+        }
+
+        .page-header {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            padding: 50px 0;
+            text-align: center;
+            color: white;
+        }
+        .page-header h1 { font-size: 42px; font-weight: 800; }
+
+        .card { border: none; border-radius: 20px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .card-header { background: white; border-bottom: 1px solid #eee; padding: 15px 20px; font-weight: 700; border-radius: 20px 20px 0 0 !important; }
+        .badge-status { padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+        .status-1 { background: #fef3c7; color: #d97706; }
+        .status-2 { background: #e0f2fe; color: #0284c7; }
+        .status-3 { background: #e0e7ff; color: #4338ca; }
+        .status-7 { background: #d1fae5; color: #059669; }
+        .status-5 { background: #fee2e2; color: #dc2626; }
+        .status-6 { background: #ffedd5; color: #c2410c; }
+        .info-row { display: flex; padding: 8px 0; border-bottom: 1px solid #eee; }
+        .info-label { width: 140px; font-weight: 600; color: #555; }
+        .info-value { flex: 1; color: #333; }
+        .product-img { width: 80px; height: 80px; object-fit: cover; border-radius: 12px; }
+        .product-name { font-weight: 700; color: #1a1a2e; }
+
+        footer {
+            background: #1a1a2e;
+            color: #aaa;
+            padding: 50px 0 20px;
+            margin-top: 60px;
+        }
+        footer h6 { color: white; font-weight: 700; margin-bottom: 15px; }
+        footer a { color: #aaa; text-decoration: none; font-size: 13px; display: block; margin-bottom: 8px; }
+        footer a:hover { color: #e94560; }
+        .footer-bottom { border-top: 1px solid #444; padding-top: 20px; margin-top: 20px; text-align: center; }
+    </style>
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg">
+    <div class="container">
+        <a class="navbar-brand" href="/home"><i class="bi bi-lightning-charge-fill"></i> SKYSPORT</a>
+        <div class="ms-auto d-flex align-items-center gap-3">
+            <a href="/home" class="nav-link">Trang chủ</a>
+            <a href="/products" class="nav-link">Sản phẩm</a>
+            <a href="/cart" class="cart-icon">
+                <i class="bi bi-cart3"></i>
+                <span class="cart-badge" th:text="${cartCount != null ? cartCount : 0}">0</span>
+            </a>
+            <div class="dropdown">
+                <button class="btn-nav dropdown-toggle" data-bs-toggle="dropdown">
+                    <span th:text="${session.account.username}"></span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item" href="/profile">Thông tin cá nhân</a></li>
+                    <li><a class="dropdown-item" href="/customer/orders">Đơn hàng của tôi</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item text-danger" href="/logout">Đăng xuất</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- Header -->
+<section class="page-header">
+    <div class="container">
+        <h1><i class="bi bi-receipt"></i> Chi tiết đơn hàng</h1>
+        <p th:text="'Mã đơn: ' + ${bill.code}"></p>
+    </div>
+</section>
+
+<div class="container py-5">
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Sản phẩm -->
+            <div class="card">
+                <div class="card-header"><i class="bi bi-box-seam"></i> Danh sách sản phẩm</div>
+                <div class="card-body p-0">
+                    <table class="table mb-0">
+                        <thead class="table-light">
+                        <tr><th>Sản phẩm</th><th>Đơn giá</th><th>Số lượng</th><th>Thành tiền</th></tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="detail : ${details}">
+                            <td>
+                                <div class="d-flex align-items-center gap-3">
+                                    <img class="product-img"
+                                         th:src="${productImageMap[detail.productDetail.product.id] != null ? productImageMap[detail.productDetail.product.id] : 'https://placehold.co/80x80/e9ecef/6c757d?text=No+Image'}">
+                                    <div>
+                                        <div class="product-name" th:text="${detail.productDetail.product.name}"></div>
+                                        <div class="text-muted small">
+                                            <span th:if="${detail.productDetail.color != null}" th:text="'Màu: ' + ${detail.productDetail.color.name}"></span>
+                                            <span th:if="${detail.productDetail.size != null}" th:text="' | Size: ' + ${detail.productDetail.size.name}"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td th:text="${#numbers.formatInteger(detail.momentPrice, 0, 'COMMA') + 'đ'}"></td>
+                            <td th:text="${detail.quantity}"></td>
+                            <td class="fw-bold text-danger" th:text="${#numbers.formatInteger(detail.momentPrice * detail.quantity, 0, 'COMMA') + 'đ'}"></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <!-- Thông tin đơn hàng -->
+            <div class="card">
+                <div class="card-header"><i class="bi bi-info-circle"></i> Thông tin đơn hàng</div>
+                <div class="card-body">
+                    <div class="info-row"><div class="info-label">Mã đơn:</div><div class="info-value" th:text="${bill.code}"></div></div>
+                    <div class="info-row"><div class="info-label">Ngày đặt:</div><div class="info-value" th:text="${#temporals.format(bill.createDate, 'dd/MM/yyyy HH:mm')}"></div></div>
+                    <div class="info-row"><div class="info-label">Trạng thái:</div>
+                        <div class="info-value">
+                            <span class="badge-status"
+                                  th:class="${bill.status == 1 ? 'status-1' : (bill.status == 2 ? 'status-2' : (bill.status == 3 ? 'status-3' : (bill.status == 7 ? 'status-7' : (bill.status == 6 ? 'status-6' : 'status-5'))))}"
+                                  th:text="${bill.status == 1 ? 'Chờ xác nhận' : (bill.status == 2 ? 'Đã xác nhận' : (bill.status == 3 ? 'Đang giao' : (bill.status == 7 ? 'Hoàn thành' : (bill.status == 6 ? 'Trả hàng' : 'Đã hủy'))))}"></span>
+                        </div>
+                    </div>
+                    <div class="info-row"><div class="info-label">Phí vận chuyển:</div><div class="info-value">30,000đ</div></div>
+                    <div class="info-row"><div class="info-label">Mã giảm giá:</div><div class="info-value" th:text="${bill.discountCode != null ? bill.discountCode.code : 'Không có'}"></div></div>
+                    <hr>
+                    <div class="info-row"><div class="info-label fw-bold">Tổng cộng:</div><div class="info-value fw-bold text-danger fs-5" th:text="${#numbers.formatInteger(bill.amount, 0, 'COMMA') + 'đ'}"></div></div>
+                </div>
+            </div>
+
+            <!-- Thông tin giao hàng -->
+            <div class="card">
+                <div class="card-header"><i class="bi bi-truck"></i> Địa chỉ giao hàng</div>
+                <div class="card-body">
+                    <div class="info-row"><div class="info-label">Người nhận:</div><div class="info-value" th:text="${bill.customer != null ? bill.customer.name : 'Khách lẻ'}"></div></div>
+                    <div class="info-row"><div class="info-label">Số điện thoại:</div><div class="info-value" th:text="${bill.customer != null ? bill.customer.phoneNumber : ''}"></div></div>
+                    <div class="info-row"><div class="info-label">Địa chỉ:</div><div class="info-value" th:text="${bill.billingAddress}"></div></div>
+                </div>
+            </div>
+
+            <div class="text-center mt-3">
+                <a href="/customer/orders" class="btn btn-outline-secondary rounded-pill"><i class="bi bi-arrow-left"></i> Quay lại</a>
+                <button th:if="${bill.status == 1}"
+                        id="cancelOrderBtn"
+                        class="btn btn-danger rounded-pill ms-2"
+                        th:data-order-id="${bill.id}">
+                    <i class="bi bi-x-circle"></i> Hủy đơn
+                </button>
+                <a th:if="${bill.status == 7 and !hasActiveReturn}"
+                   th:href="@{/customer/order/return/{id}(id=${bill.id})}"
+                   class="btn btn-outline-warning rounded-pill ms-2">
+                    <i class="bi bi-arrow-return-left"></i> Yêu cầu trả hàng
+                </a>
+                <span th:if="${bill.status == 7 and hasActiveReturn}"
+                      class="badge bg-secondary ms-2 align-middle p-2">
+                    <i class="bi bi-hourglass-split"></i> Yêu cầu trả hàng đang xử lý
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Footer -->
+<footer>
+    <div class="container">
+        <div class="row">
+            <div class="col-md-4"><h6>⚡ SKYSPORT</h6><p class="small">Chuyên áo thể thao chính hãng</p></div>
+            <div class="col-md-2"><h6>Sản phẩm</h6><a href="/products">Áo thể thao</a></div>
+            <div class="col-md-2"><h6>Hỗ trợ</h6><a href="#">Chính sách đổi trả</a><a href="#">Vận chuyển</a></div>
+            <div class="col-md-4"><h6>Liên hệ</h6><p><i class="bi bi-telephone"></i> 0123 456 789</p><p><i class="bi bi-envelope"></i> support@skysport.vn</p></div>
+        </div>
+        <div class="footer-bottom">© 2024 SkySport. All rights reserved.</div>
+    </div>
+</footer>
+
+<!-- Chỉ thay đổi phần script, giữ nguyên phần còn lại -->
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    function cancelOrder(orderId) {
+        if (confirm('Bạn có chắc chắn muốn hủy đơn hàng này?')) {
+            fetch('/customer/order/cancel/' + orderId, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Đã hủy đơn hàng thành công!');
+                        location.href = '/customer/orders';
+                    } else {
+                        alert(data.message || 'Không thể hủy đơn hàng!');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Có lỗi xảy ra!');
+                });
+        }
+    }
+
+    // Gắn sự kiện cho nút hủy đơn (nếu có)
+    const cancelBtn = document.getElementById('cancelOrderBtn');
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', function() {
+            const orderId = this.getAttribute('data-order-id');
+            cancelOrder(orderId);
+        });
+    }
+</script>
+</body>
+</html>

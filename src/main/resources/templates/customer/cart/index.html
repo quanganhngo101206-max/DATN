@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Giỏ hàng - SkySport</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #f7f9fc; }
+
+        .navbar {
+            background: #1a1a2e;
+            padding: 16px 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        .navbar-brand { font-size: 26px; font-weight: 800; color: #e94560 !important; }
+        .nav-link { color: #eee !important; font-weight: 500; margin: 0 12px; transition: color 0.3s; }
+        .nav-link:hover { color: #e94560 !important; }
+        .btn-nav {
+            background: #e94560;
+            color: white !important;
+            border: none;
+            padding: 8px 22px;
+            border-radius: 30px;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .btn-nav:hover { background: #c62a47; transform: translateY(-2px); color: white !important; }
+        .cart-icon { position: relative; font-size: 22px; color: white; text-decoration: none; }
+        .cart-badge {
+            position: absolute;
+            top: -8px;
+            right: -12px;
+            background: #e94560;
+            color: white;
+            border-radius: 50%;
+            font-size: 10px;
+            padding: 2px 6px;
+        }
+
+        .cart-header {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            padding: 50px 0;
+            text-align: center;
+            color: white;
+        }
+        .cart-header h1 { font-size: 42px; font-weight: 800; }
+        .cart-header p { font-size: 16px; opacity: 0.8; }
+
+        .cart-table {
+            background: white;
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+        }
+        .cart-table th {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            font-weight: 700;
+            font-size: 14px;
+            border-bottom: 1px solid #eee;
+        }
+        .cart-table td {
+            padding: 20px;
+            vertical-align: middle;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+        }
+        .product-img {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 12px;
+        }
+        .product-name { font-weight: 700; color: #1a1a2e; margin-bottom: 5px; font-size: 15px; }
+        .product-variant { font-size: 13px; color: #999; }
+        .quantity-input {
+            width: 70px;
+            text-align: center;
+            border: 2px solid #dee2e6;
+            border-radius: 10px;
+            padding: 8px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .quantity-input:focus { border-color: #e94560; outline: none; }
+        .btn-remove {
+            background: none;
+            border: none;
+            color: #e94560;
+            font-size: 22px;
+            cursor: pointer;
+            transition: all 0.3s;
+            padding: 4px 8px;
+        }
+        .btn-remove:hover { color: #c62a47; transform: scale(1.1); }
+
+        .summary-card {
+            background: white;
+            border-radius: 24px;
+            padding: 25px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+            position: sticky;
+            top: 100px;
+        }
+        .summary-card h5 { font-weight: 800; margin-bottom: 20px; color: #1a1a2e; font-size: 18px; }
+        .summary-card span { font-size: 14px; }
+        .discount-input {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        .discount-input input {
+            flex: 1;
+            padding: 10px 15px;
+            border: 2px solid #dee2e6;
+            border-radius: 12px;
+            font-size: 14px;
+        }
+        .discount-input input:focus { border-color: #e94560; outline: none; }
+        .discount-input button {
+            background: #e94560;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .discount-input button:hover { background: #c62a47; }
+        .btn-checkout {
+            display: block;
+            text-align: center;
+            background: linear-gradient(135deg, #e94560, #c62a47);
+            color: white;
+            text-decoration: none;
+            padding: 14px;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 15px;
+            width: 100%;
+            margin-top: 20px;
+            transition: all 0.3s;
+        }
+        .btn-checkout:hover { opacity: 0.9; transform: translateY(-2px); color: white; }
+        .btn-continue {
+            display: block;
+            text-align: center;
+            margin-top: 15px;
+            color: #666;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .btn-continue:hover { color: #e94560; }
+
+        .empty-cart {
+            text-align: center;
+            padding: 60px 20px;
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+        }
+        .empty-cart i { font-size: 80px; color: #ccc; margin-bottom: 20px; display: block; }
+        .empty-cart h3 { font-size: 24px; margin-bottom: 15px; }
+
+        .toast-message {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 9999;
+            min-width: 300px;
+        }
+        .toast-success {
+            background: #10b981;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+        }
+        .toast-error {
+            background: #ef4444;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+        }
+
+        footer {
+            background: #1a1a2e;
+            color: #aaa;
+            padding: 50px 0 20px;
+            margin-top: 60px;
+        }
+        footer h5 { color: white; font-weight: 700; margin-bottom: 20px; font-size: 16px; }
+        footer a { color: #aaa; text-decoration: none; font-size: 13px; display: block; margin-bottom: 8px; }
+        footer a:hover { color: #e94560; }
+    </style>
+</head>
+<body>
+
+<!-- Navbar (giữ nguyên cấu trúc cũ) -->
+<nav class="navbar navbar-expand-lg">
+    <div class="container">
+        <a class="navbar-brand" href="/home"><i class="bi bi-lightning-charge-fill"></i> SKYSPORT</a>
+        <div class="ms-auto d-flex align-items-center gap-3">
+            <a href="/home" class="nav-link">Trang chủ</a>
+            <a href="/products" class="nav-link">Sản phẩm</a>
+            <a href="/wishlist" class="nav-link" style="position:relative;">
+                <i class="bi bi-heart-fill" style="color:#e94560;"></i> Yêu thích
+                <span class="cart-badge" th:text="${wishlistCount != null ? wishlistCount : 0}">0</span>
+            </a>
+            <a href="/cart" class="nav-link fw-bold text-white" style="position:relative;">
+                <i class="bi bi-cart3"></i> Giỏ hàng
+                <span class="cart-badge" th:text="${cartCount != null ? cartCount : 0}">0</span>
+            </a>
+            <th:block th:if="${session.account != null}">
+                <a href="/profile" class="nav-link"><i class="bi bi-person"></i> <span th:text="${session.account.username}"></span></a>
+                <a href="/logout" class="btn-nav">Đăng xuất</a>
+            </th:block>
+            <th:block th:if="${session.account == null}">
+                <a href="/login" class="btn-nav">Đăng nhập</a>
+            </th:block>
+        </div>
+    </div>
+</nav>
+
+<!-- Header -->
+<section class="cart-header">
+    <div class="container">
+        <h1><i class="bi bi-cart3"></i> Giỏ hàng</h1>
+        <p>Xem lại sản phẩm và tiến hành thanh toán</p>
+    </div>
+</section>
+
+<div class="container py-5">
+    <div class="row g-4">
+
+        <!-- Danh sách sản phẩm -->
+        <div class="col-lg-8">
+            <div th:if="${#lists.isEmpty(cartItems)}" class="empty-cart">
+                <i class="bi bi-cart-x"></i>
+                <h3>Giỏ hàng trống</h3>
+                <p class="text-muted">Hãy thêm sản phẩm vào giỏ hàng nhé!</p>
+                <a href="/products" class="btn btn-danger rounded-pill px-4 mt-3">Mua sắm ngay</a>
+            </div>
+
+            <div th:if="${!#lists.isEmpty(cartItems)}" class="cart-table">
+                <table class="table mb-0">
+                    <thead>
+                    <tr>
+                        <th>Sản phẩm</th>
+                        <th>Đơn giá</th>
+                        <th>Số lượng</th>
+                        <th>Thành tiền</th>
+                        <th></th>
+                    </tr>
+                    </thead>
+                    <tbody id="cartBody">
+                    <tr th:each="item : ${cartItems}" th:id="'cart-item-' + ${item.productDetailId}">
+                        <td>
+                            <div class="d-flex align-items-center gap-3">
+                                <img class="product-img" th:src="${item.imageUrl != null ? item.imageUrl : 'https://placehold.co/80x80/e9ecef/6c757d?text=No+Image'}"
+                                     th:alt="${item.productName}"
+                                     onerror="this.src='https://placehold.co/80x80/e9ecef/6c757d?text=No+Image'">
+                                <div>
+                                    <div class="product-name" th:text="${item.productName}"></div>
+                                    <div class="product-variant">
+                                        <span th:if="${item.color != null}" th:text="'Màu: ' + ${item.color}"></span>
+                                        <span th:if="${item.size != null}" th:text="' | Size: ' + ${item.size}"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="fw-bold" th:text="${#numbers.formatInteger(item.price, 0, 'COMMA') + 'đ'}"></td>
+                        <td>
+                            <input type="number" class="quantity-input"
+                                   th:value="${item.quantity}"
+                                   th:data-detail-id="${item.productDetailId}"
+                                   min="1"
+                                   onchange="updateQuantity(this)">
+                        </td>
+                        <td class="fw-bold text-danger" th:id="'total-' + ${item.productDetailId}"
+                            th:text="${#numbers.formatInteger(item.price * item.quantity, 0, 'COMMA') + 'đ'}"></td>
+                        <td>
+                            <button class="btn-remove" th:data-detail-id="${item.productDetailId}" onclick="removeItem(this)">
+                                <i class="bi bi-trash3"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tổng đơn hàng -->
+        <div class="col-lg-4">
+            <div class="summary-card">
+                <h5>Tổng đơn hàng</h5>
+
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Tạm tính:</span>
+                    <span id="subtotal" th:text="${#numbers.formatInteger(subtotal, 0, 'COMMA') + 'đ'}">0đ</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Phí vận chuyển:</span>
+                    <span id="shipping" th:text="${shipping == 0 ? 'Miễn phí' : #numbers.formatInteger(shipping, 0, 'COMMA') + 'đ'}"></span>
+                </div>
+
+                <div th:if="${appliedDiscount != null}" id="discountSection">
+                    <div class="d-flex justify-content-between mb-2 text-success">
+                        <span>Giảm giá <span th:text="'(' + ${appliedDiscount.code} + ')'"></span>:</span>
+                        <span id="discountAmount" th:text="'-' + ${#numbers.formatInteger(discountAmount, 0, 'COMMA') + 'đ'}">0đ</span>
+                    </div>
+                </div>
+
+                <hr>
+
+                <div class="d-flex justify-content-between mb-3">
+                    <span class="fs-5 fw-bold">Tổng cộng:</span>
+                    <span class="fs-5 fw-bold text-danger" id="total" th:text="${#numbers.formatInteger(total, 0, 'COMMA') + 'đ'}">0đ</span>
+                </div>
+
+                <!-- Mã giảm giá -->
+                <div class="discount-input" th:if="${appliedDiscount == null}">
+                    <input type="text" id="discountCode" placeholder="Nhập mã giảm giá">
+                    <button onclick="applyDiscount()">Áp dụng</button>
+                </div>
+                <div th:if="${appliedDiscount != null}" class="alert alert-success p-2 small">
+                    <i class="bi bi-check-circle"></i> Đã áp dụng: <strong th:text="${appliedDiscount.code}"></strong>
+                    <a href="#" class="float-end text-danger" onclick="removeDiscount()">Hủy</a>
+                </div>
+
+                <a href="/checkout" class="btn-checkout">Tiến hành thanh toán <i class="bi bi-arrow-right"></i></a>
+                <a href="/products" class="btn-continue">← Tiếp tục mua sắm</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div id="toastMessage" class="toast-message" style="display: none;"></div>
+
+<!-- Footer -->
+<footer>
+    <div class="container">
+        <div class="row">
+            <div class="col-md-4">
+                <h5><i class="bi bi-lightning-charge-fill text-danger"></i> SKYSPORT</h5>
+                <p class="small">Chuyên áo thể thao chính hãng - Thiết kế đột phá - Chất liệu cao cấp</p>
+            </div>
+            <div class="col-md-2">
+                <h5>Sản phẩm</h5>
+                <a href="/products?categoryId=1">Áo thun thể thao</a>
+                <a href="/products?categoryId=2">Áo polo thể thao</a>
+                <a href="/products?categoryId=3">Áo khoác thể thao</a>
+                <a href="/products?categoryId=4">Áo nỉ thể thao</a>
+            </div>
+            <div class="col-md-2">
+                <h5>Hỗ trợ</h5>
+                <a href="#">Chính sách đổi trả</a>
+                <a href="#">Vận chuyển</a>
+                <a href="#">Hướng dẫn mua hàng</a>
+            </div>
+            <div class="col-md-4">
+                <h5>Liên hệ</h5>
+                <p class="small"><i class="bi bi-geo-alt"></i> 123 Đường Lê Lợi, Quận 1, TP.HCM</p>
+                <p class="small"><i class="bi bi-envelope"></i> support@skysport.vn</p>
+                <p class="small"><i class="bi bi-telephone"></i> 0123 456 789</p>
+            </div>
+        </div>
+        <div class="text-center pt-4 mt-4 border-top border-secondary">
+            <small>© 2024 SkySport. All rights reserved.</small>
+        </div>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    function showToast(message, type) {
+        const toastDiv = document.getElementById('toastMessage');
+        toastDiv.innerHTML = `<div class="toast-${type}">
+            <i class="bi bi-${type === 'success' ? 'check-circle-fill' : 'exclamation-circle-fill'}"></i>
+            <span>${message}</span>
+        </div>`;
+        toastDiv.style.display = 'block';
+        setTimeout(() => {
+            toastDiv.style.display = 'none';
+        }, 3000);
+    }
+
+    function updateQuantity(input) {
+        const detailId = input.getAttribute('data-detail-id');
+        const quantity = parseInt(input.value);
+
+        fetch('/cart/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'detailId=' + detailId + '&quantity=' + quantity
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const totalSpan = document.getElementById('total-' + detailId);
+                    if (totalSpan && data.itemTotal !== undefined) {
+                        totalSpan.innerText = formatNumber(data.itemTotal) + 'đ';
+                    }
+                    const priceCell = document.querySelector(`#cart-item-${detailId} td:nth-child(2)`);
+                    if (priceCell && data.unitPrice !== undefined) {
+                        priceCell.innerText = formatNumber(data.unitPrice) + 'đ';
+                    }
+                    document.getElementById('subtotal').innerText = formatNumber(data.subtotal) + 'đ';
+                    document.getElementById('shipping').innerText = data.shipping === 0 ? 'Miễn phí' : formatNumber(data.shipping) + 'đ';
+                    if (data.discountAmount > 0) {
+                        document.getElementById('discountAmount').innerText = '-' + formatNumber(data.discountAmount) + 'đ';
+                    }
+                    document.getElementById('total').innerText = formatNumber(data.total) + 'đ';
+                    const cartBadge = document.querySelector('.cart-badge');
+                    if (cartBadge) cartBadge.innerText = data.cartCount;
+                    showToast('Đã cập nhật số lượng', 'success');
+                } else {
+                    showToast(data.message, 'error');
+                    location.reload();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Có lỗi xảy ra!', 'error');
+            });
+    }
+
+    function removeItem(btn) {
+        const detailId = btn.getAttribute('data-detail-id');
+
+        fetch('/cart/remove/' + detailId, {
+            method: 'DELETE'
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const row = document.getElementById('cart-item-' + detailId);
+                    row.remove();
+                    document.getElementById('subtotal').innerText = formatNumber(data.subtotal) + 'đ';
+                    document.getElementById('shipping').innerText = data.shipping === 0 ? 'Miễn phí' : formatNumber(data.shipping) + 'đ';
+                    if (data.discountAmount > 0) {
+                        if (!document.getElementById('discountSection')) {
+                            location.reload();
+                        }
+                    }
+                    document.getElementById('total').innerText = formatNumber(data.total) + 'đ';
+                    const cartBadge = document.querySelector('.cart-badge');
+                    if (cartBadge) cartBadge.innerText = data.cartCount;
+                    showToast('Đã xóa sản phẩm', 'success');
+                    if (data.cartCount === 0) {
+                        location.reload();
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Có lỗi xảy ra!', 'error');
+            });
+    }
+
+    function applyDiscount() {
+        const discountCode = document.getElementById('discountCode').value;
+
+        fetch('/cart/apply-discount', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'discountCode=' + discountCode
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast(data.message, 'success');
+                    location.reload();
+                } else {
+                    showToast(data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Có lỗi xảy ra!', 'error');
+            });
+    }
+
+    function removeDiscount() {
+        fetch('/cart/remove-discount', {
+            method: 'POST'
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+    }
+
+    function formatNumber(num) {
+        if (num === undefined || num === null || isNaN(num)) {
+            return '0';
+        }
+        return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
+</script>
+</body>
+</html>

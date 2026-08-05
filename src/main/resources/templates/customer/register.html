@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Đăng ký - SkySport</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #1a1a2e;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .register-container {
+            background: white;
+            border-radius: 32px;
+            padding: 40px;
+            width: 500px;
+            max-width: 100%;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo h1 {
+            font-size: 32px;
+            font-weight: 800;
+            color: #1a1a2e;
+            letter-spacing: 2px;
+        }
+
+        .logo h1 span {
+            color: #e94560;
+        }
+
+        .logo p {
+            color: #666;
+            font-size: 14px;
+            margin-top: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .form-group label i {
+            color: #e94560;
+            margin-right: 8px;
+            width: 20px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e9ecef;
+            border-radius: 16px;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.3s;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .form-group input:focus {
+            border-color: #e94560;
+            box-shadow: 0 0 0 3px rgba(233, 69, 96, 0.1);
+        }
+
+        .btn-register {
+            width: 100%;
+            padding: 14px;
+            background: #e94560;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            letter-spacing: 1px;
+            margin-top: 10px;
+        }
+
+        .btn-register:hover {
+            background: #c62a47;
+            transform: translateY(-2px);
+        }
+
+        .error-message {
+            background: #ffe0e0;
+            color: #e53935;
+            padding: 12px 16px;
+            border-radius: 16px;
+            font-size: 13px;
+            margin-bottom: 20px;
+            border-left: 4px solid #e53935;
+        }
+
+        .success-message {
+            background: #d1fae5;
+            color: #059669;
+            padding: 12px 16px;
+            border-radius: 16px;
+            font-size: 13px;
+            margin-bottom: 20px;
+            border-left: 4px solid #059669;
+        }
+
+        .login-link {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .login-link a {
+            color: #e94560;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .login-link a:hover {
+            text-decoration: underline;
+        }
+
+        .terms {
+            text-align: center;
+            font-size: 11px;
+            color: #999;
+            margin-top: 15px;
+        }
+
+        .terms a {
+            color: #e94560;
+            text-decoration: none;
+        }
+
+        .terms a:hover {
+            text-decoration: underline;
+        }
+
+        /* Field validation styles */
+        .form-group input.error-field {
+            border-color: #e53935;
+        }
+
+        .field-error {
+            color: #e53935;
+            font-size: 11px;
+            margin-top: 5px;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+<div class="register-container">
+    <!-- Logo -->
+    <div class="logo">
+        <h1>⚡ <span>SKYSPORT</span></h1>
+        <p>Tham gia cộng đồng thể thao đỉnh cao</p>
+    </div>
+
+    <!-- Hiển thị lỗi nếu có -->
+    <div th:if="${error}" class="error-message">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        <span th:text="${error}"></span>
+    </div>
+
+    <!-- Phần hiển thị thành công -->
+    <div th:if="${success}" class="success-message">
+        <i class="bi bi-check-circle-fill"></i>
+        <span th:text="${success}"></span>
+    </div>
+
+    <!-- Hiển thị thành công nếu có -->
+    <div th:if="${success}" class="success-message">
+        <i class="bi bi-check-circle-fill"></i> <span th:text="${success}"></span>
+    </div>
+
+    <!-- Form đăng ký -->
+    <form th:action="@{/register}" method="post" th:object="${registerRequest}">
+
+        <div class="form-group">
+            <label><i class="bi bi-person-badge"></i> Tên đăng nhập</label>
+            <input type="text"
+                   class="form-control"
+                   th:field="*{username}"
+                   placeholder="Chọn tên đăng nhập"
+                   required>
+        </div>
+
+        <div class="form-group">
+            <label><i class="bi bi-lock"></i> Mật khẩu</label>
+            <input type="password"
+                   class="form-control"
+                   th:field="*{password}"
+                   placeholder="Nhập mật khẩu"
+                   required>
+        </div>
+        <div class="form-group">
+            <label><i class="bi bi-lock"></i> Xác nhận mật khẩu</label>
+            <input type="password"
+                   class="form-control"
+                   name="confirmPassword"
+                   placeholder="Nhập lại mật khẩu"
+                   required>
+        </div>
+
+        <div class="form-group">
+            <label><i class="bi bi-person"></i> Họ và tên</label>
+            <input type="text"
+                   class="form-control"
+                   th:field="*{fullName}"
+                   placeholder="Nhập họ và tên đầy đủ"
+                   required>
+        </div>
+
+        <div class="form-group">
+            <label><i class="bi bi-envelope"></i> Email</label>
+            <input type="email"
+                   class="form-control"
+                   th:field="*{email}"
+                   placeholder="example@email.com"
+                   required>
+        </div>
+
+        <div class="form-group">
+            <label><i class="bi bi-phone"></i> Số điện thoại</label>
+            <input type="tel"
+                   class="form-control"
+                   th:field="*{phoneNumber}"
+                   placeholder="0123456789"
+                   required>
+        </div>
+
+        <button type="submit" class="btn-register">
+            <i class="bi bi-person-plus"></i> ĐĂNG KÝ TÀI KHOẢN
+        </button>
+    </form>
+
+
+    <!-- Link đăng nhập -->
+    <div class="login-link">
+        Đã có tài khoản? <a href="/login">Đăng nhập ngay</a>
+    </div>
+
+    <div class="terms">
+        Bằng việc đăng ký, bạn đồng ý với
+        <a href="#">Điều khoản sử dụng</a> và
+        <a href="#">Chính sách bảo mật</a> của chúng tôi
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

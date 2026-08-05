@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Sản phẩm - SkySport</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #f7f9fc; }
+
+        .navbar {
+            background: #1a1a2e;
+            padding: 16px 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        .navbar-brand {
+            font-size: 26px;
+            font-weight: 800;
+            color: #e94560 !important;
+        }
+        .navbar-brand i { color: #e94560; }
+        .nav-link { color: #eee !important; font-weight: 500; margin: 0 12px; transition: color 0.3s; }
+        .nav-link:hover { color: #e94560 !important; }
+        .btn-nav {
+            background: #e94560;
+            color: white;
+            border: none;
+            padding: 8px 22px;
+            border-radius: 30px;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .btn-nav:hover { background: #c62a47; transform: translateY(-2px); }
+        .cart-icon { position: relative; font-size: 22px; color: white; text-decoration: none; }
+        .cart-badge {
+            position: absolute;
+            top: -8px;
+            right: -12px;
+            background: #e94560;
+            color: white;
+            border-radius: 50%;
+            font-size: 10px;
+            padding: 2px 6px;
+        }
+
+        .hero {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            padding: 50px 0;
+            text-align: center;
+            color: white;
+        }
+        .hero h1 { font-size: 42px; font-weight: 800; }
+        .hero p { font-size: 16px; opacity: 0.8; }
+
+        .filter-card {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.03);
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+        .filter-title {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 18px;
+            color: #1a1a2e;
+        }
+        .filter-title i { color: #e94560; margin-right: 8px; }
+        .filter-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+        .filter-btn {
+            background: #f1f3f5;
+            padding: 8px 16px;
+            border-radius: 30px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #4a5568;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+        .filter-btn:hover { background: #e9ecef; transform: translateY(-1px); }
+        .filter-btn.active {
+            background: #e94560;
+            color: white;
+        }
+
+        .product-card {
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            height: 100%;
+        }
+        .product-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 35px rgba(233,69,96,0.15);
+        }
+        .product-img {
+            height: 260px;
+            overflow: hidden;
+            background: #f8f9fa;
+            position: relative;
+        }
+        .product-img img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s;
+        }
+        .product-card:hover .product-img img { transform: scale(1.05); }
+        .product-body { padding: 18px; }
+        .product-brand {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #e94560;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+        .product-name {
+            font-size: 15px;
+            font-weight: 700;
+            color: #1a1a2e;
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+        .product-price {
+            font-size: 18px;
+            font-weight: 800;
+            color: #1a1a2e;
+        }
+        .btn-detail {
+            background: linear-gradient(135deg, #e94560, #c62a47);
+            color: white;
+            border: none;
+            border-radius: 30px;
+            padding: 8px 0;
+            width: 100%;
+            margin-top: 12px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        .btn-detail:hover { opacity: 0.9; transform: translateY(-2px); color: white; }
+
+        footer {
+            background: #1a1a2e;
+            color: #aaa;
+            padding: 40px 0 20px;
+            margin-top: 50px;
+        }
+        footer h6 { color: white; font-weight: 700; margin-bottom: 15px; }
+        footer a {
+            color: #999;
+            text-decoration: none;
+            font-size: 14px;
+            display: block;
+            margin-bottom: 8px;
+        }
+        footer a:hover { color: white; }
+        .footer-bottom {
+            border-top: 1px solid #444;
+            padding-top: 20px;
+            margin-top: 20px;
+            text-align: center;
+            font-size: 13px;
+        }
+
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 28px; }
+            .product-img { height: 200px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Navbar (giữ nguyên cấu trúc cũ) -->
+<nav class="navbar navbar-expand-lg">
+    <div class="container">
+        <a class="navbar-brand" href="/home"><i class="bi bi-lightning-charge-fill"></i> SKYSPORT</a>
+        <div class="ms-auto d-flex align-items-center gap-3">
+            <a href="/home" class="nav-link">Trang chủ</a>
+            <a href="/products" class="nav-link fw-bold text-white">Sản phẩm</a>
+            <a href="/wishlist" class="nav-link" style="position:relative;">
+                <i class="bi bi-heart-fill" style="color:#e94560;"></i> Yêu thích
+                <span class="cart-badge" th:text="${wishlistCount != null ? wishlistCount : 0}">0</span>
+            </a>
+            <a href="/cart" class="nav-link" style="position:relative;">
+                <i class="bi bi-cart3"></i> Giỏ hàng
+                <span class="cart-badge" th:text="${session.cartCount != null ? session.cartCount : 0}">0</span>
+            </a>
+            <th:block th:if="${session.account != null}">
+                <a href="/profile" class="nav-link"><i class="bi bi-person"></i> <span th:text="${session.account.username}"></span></a>
+                <a href="/logout" class="btn-nav">Đăng xuất</a>
+            </th:block>
+            <th:block th:if="${session.account == null}">
+                <a href="/login" class="btn-nav">Đăng nhập</a>
+            </th:block>
+        </div>
+    </div>
+</nav>
+
+<!-- Hero mới đẹp hơn -->
+<section class="hero">
+    <div class="container">
+        <h1> SKYSPORT</h1>
+        <p>Áo thể thao chính hãng - Thiết kế đột phá - Chất liệu thoáng khí</p>
+    </div>
+</section>
+
+<div class="container py-5">
+    <div class="row g-4">
+
+        <!-- Sidebar lọc (giữ nguyên logic cũ) -->
+        <div class="col-md-3">
+            <div class="filter-card">
+                <div class="filter-title"><i class="bi bi-search"></i> Tìm kiếm</div>
+                <form method="get" action="/products">
+                    <div class="input-group">
+                        <input type="text" name="keyword" class="form-control" placeholder="Tên sản phẩm..." th:value="${keyword}">
+                        <button class="btn btn-danger" type="submit"><i class="bi bi-search"></i></button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="filter-card">
+                <div class="filter-title"><i class="bi bi-grid"></i> Danh mục</div>
+                <div class="filter-buttons">
+                    <a href="/products" class="filter-btn" th:classappend="${selectedCategory == null} ? 'active' : ''">Tất cả</a>
+                    <a th:each="cat : ${categories}"
+                       th:href="@{/products(categoryId=${cat.id}, brandId=${selectedBrand}, gender=${selectedGender}, keyword=${keyword})}"
+                       class="filter-btn"
+                       th:classappend="${selectedCategory == cat.id} ? 'active' : ''"
+                       th:text="${cat.name}"></a>
+                </div>
+            </div>
+
+            <div class="filter-card">
+                <div class="filter-title"><i class="bi bi-award"></i> Thương hiệu</div>
+                <div class="filter-buttons">
+                    <a href="/products" class="filter-btn" th:classappend="${selectedBrand == null} ? 'active' : ''">Tất cả</a>
+                    <a th:each="b : ${brands}"
+                       th:href="@{/products(categoryId=${selectedCategory}, brandId=${b.id}, gender=${selectedGender}, keyword=${keyword})}"
+                       class="filter-btn"
+                       th:classappend="${selectedBrand == b.id} ? 'active' : ''"
+                       th:text="${b.name}"></a>
+                </div>
+            </div>
+
+            <div class="filter-card">
+                <div class="filter-title"><i class="bi bi-gender-ambiguous"></i> Giới tính</div>
+                <div class="filter-buttons">
+                    <a th:href="@{/products(categoryId=${selectedCategory}, brandId=${selectedBrand}, keyword=${keyword})}"
+                       class="filter-btn" th:classappend="${selectedGender == null} ? 'active' : ''">Tất cả</a>
+                    <a th:href="@{/products(categoryId=${selectedCategory}, brandId=${selectedBrand}, gender=1, keyword=${keyword})}"
+                       class="filter-btn" th:classappend="${selectedGender == 1} ? 'active' : ''">Nam</a>
+                    <a th:href="@{/products(categoryId=${selectedCategory}, brandId=${selectedBrand}, gender=2, keyword=${keyword})}"
+                       class="filter-btn" th:classappend="${selectedGender == 2} ? 'active' : ''">Nữ</a>
+                    <a th:href="@{/products(categoryId=${selectedCategory}, brandId=${selectedBrand}, gender=0, keyword=${keyword})}"
+                       class="filter-btn" th:classappend="${selectedGender == 0} ? 'active' : ''">Unisex</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Danh sách sản phẩm (giữ nguyên logic cũ) -->
+        <div class="col-md-9">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h4 class="fw-bold mb-0">🔥 Sản phẩm nổi bật</h4>
+                <span class="badge bg-danger" th:text="${#lists.size(products)} + ' sản phẩm'"></span>
+            </div>
+
+            <div class="row g-4" th:if="${!#lists.isEmpty(products)}">
+                <div class="col-md-4 col-sm-6" th:each="p : ${products}">
+                    <div class="product-card">
+                        <div class="product-img">
+                            <img th:src="${productImages[p.id] != null ? productImages[p.id] : 'https://placehold.co/300x300/e9ecef/6c757d?text=No+Image'}"
+                                 th:alt="${p.name}"
+                                 onerror="this.src='https://placehold.co/300x300/e9ecef/6c757d?text=No+Image'">
+                            <button class="wish-btn" th:data-product-id="${p.id}" onclick="toggleWishlist(this)"
+                                    style="position:absolute; top:10px; right:10px; width:36px; height:36px; border-radius:50%; border:none; background:white; box-shadow:0 2px 8px rgba(0,0,0,0.15); display:flex; align-items:center; justify-content:center; z-index:2;">
+                                <i th:class="${wishlistProductIds.contains(p.id)} ? 'bi bi-heart-fill' : 'bi bi-heart'"
+                                   style="color:#e94560;"></i>
+                            </button>
+                        </div>
+                        <div class="product-body">
+                            <div class="product-brand" th:text="${p.brand != null ? p.brand.name : 'SKYSPORT'}"></div>
+                            <div class="product-name" th:text="${p.name}"></div>
+                            <div th:if="${productOnSale[p.id]}">
+                                <span class="text-muted text-decoration-line-through" style="font-size:13px;"
+                                      th:text="${#numbers.formatInteger(productOriginalPrices[p.id], 0, 'COMMA') + 'đ'}"></span>
+                                <span class="badge bg-danger ms-1" style="font-size:10px;">Sale</span>
+                            </div>
+                            <div class="product-price" th:text="${#numbers.formatInteger(productPrices[p.id], 0, 'COMMA') + 'đ'}"></div>
+                            <a th:href="@{/products/{id}(id=${p.id})}" class="btn-detail">Xem chi tiết</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div th:if="${#lists.isEmpty(products)}" class="text-center py-5">
+                <i class="bi bi-search" style="font-size: 48px; color: #ccc;"></i>
+                <p class="mt-3">Không tìm thấy sản phẩm nào</p>
+                <a href="/products" class="btn btn-danger rounded-pill px-4">Xem tất cả sản phẩm</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Footer -->
+<footer>
+    <div class="container">
+        <div class="row">
+            <div class="col-md-4">
+                <h6>⚡ SKYSPORT</h6>
+                <p style="font-size:14px;">Thể thao đỉnh cao - Phong cách riêng bạn</p>
+                <p style="font-size:12px;">Chuyên cung cấp áo thể thao chính hãng từ các thương hiệu nổi tiếng</p>
+            </div>
+            <div class="col-md-2">
+                <h6>Sản phẩm</h6>
+                <a href="/products?categoryId=1">Áo thun thể thao</a>
+                <a href="/products?categoryId=2">Áo Polo thể thao</a>
+                <a href="/products?categoryId=3">Áo khoác thể thao</a>
+                <a href="/products?categoryId=4">Áo nỉ thể thao</a>
+                <a href="/products?categoryId=5">Áo gió thể thao</a>
+                <a href="/products?categoryId=6">Áo ném bóng</a>
+                <a href="/products?categoryId=7">Áo đồng đội</a>
+                <a href="/products?categoryId=8">Áo trong thể thao</a>
+            </div>
+            <div class="col-md-2">
+                <h6>Hỗ trợ</h6>
+                <a href="#">Chính sách đổi trả</a>
+                <a href="#">Chính sách vận chuyển</a>
+                <a href="#">Hướng dẫn mua hàng</a>
+                <a href="#">Câu hỏi thường gặp</a>
+            </div>
+            <div class="col-md-4">
+                <h6>Liên hệ</h6>
+                <p style="font-size:14px;">
+                    <i class="bi bi-telephone"></i> 0123 456 789<br>
+                    <i class="bi bi-envelope"></i> support@skysport.vn<br>
+                    <i class="bi bi-geo-alt"></i> 123 Đường Lê Lợi, Quận 1, TP.HCM
+                </p>
+                <div class="d-flex gap-3 mt-2">
+                    <a href="#" class="text-white"><i class="bi bi-facebook fs-5"></i></a>
+                    <a href="#" class="text-white"><i class="bi bi-instagram fs-5"></i></a>
+                    <a href="#" class="text-white"><i class="bi bi-youtube fs-5"></i></a>
+                    <a href="#" class="text-white"><i class="bi bi-tiktok fs-5"></i></a>
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            © 2024 SkySport. All rights reserved.
+        </div>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    function toggleWishlist(btn) {
+        const productId = btn.dataset.productId;
+        fetch('/wishlist/toggle/' + productId, { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    const icon = btn.querySelector('i');
+                    icon.className = data.inWishlist ? 'bi bi-heart-fill' : 'bi bi-heart';
+                    const badge = document.querySelector('a[href="/wishlist"] .cart-badge');
+                    if (badge && data.wishlistCount !== undefined) {
+                        badge.textContent = data.wishlistCount;
+                    }
+                } else if (data.message && data.message.includes('đăng nhập')) {
+                    window.location.href = '/login';
+                }
+            })
+            .catch(() => {});
+    }
+</script>
+</body>
+</html>

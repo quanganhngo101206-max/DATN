@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{admin/fragments/layout :: adminHead(~{::title}, ~{::extraHead})}">
+    <title>Chi tiết sản phẩm - SkySport</title>
+    <th:block th:fragment="extraHead">
+        <style>
+            .product-info-card {
+                background: var(--surface);
+                border: 1px solid var(--border);
+                border-radius: var(--radius);
+                padding: 24px;
+                margin-bottom: 24px;
+                box-shadow: var(--shadow-sm);
+            }
+            .info-label {
+                font-size: 11.5px; font-weight: 600; text-transform: uppercase;
+                letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 4px;
+            }
+            .info-value {
+                font-size: 14px; font-weight: 500; color: var(--text-primary);
+            }
+            .info-block { margin-bottom: 16px; }
+            .variant-qty-low { color: #dc2626; font-weight: 700; }
+
+            /* Bộ lọc size */
+            #sizeFilter { min-width: 160px; }
+            tr[data-row-type="header"] td {
+                background: #f8fafc;
+            }
+            tr.d-none-filtered { display: none !important; }
+        </style>
+    </th:block>
+</head>
+<body>
+
+<div th:replace="~{admin/fragments/layout :: adminSidebar('product')}"></div>
+
+<div class="main-content">
+
+    <!-- Header -->
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div class="d-flex align-items-center gap-3">
+            <a href="/admin/product" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Quay lại
+            </a>
+            <div>
+                <h4 class="fw-bold mb-0" th:text="${product.name}">Chi tiết sản phẩm</h4>
+                <small class="text-muted">Quản lý biến thể và thông tin sản phẩm</small>
+            </div>
+        </div>
+        <span class="badge" style="background:#f1f5f9;color:#64748b;font-size:12px;padding:6px 12px;border-radius:8px;"
+              th:text="'Mã: ' + ${product.code}"></span>
+    </div>
+
+    <div th:if="${errorMsg}" class="alert alert-danger">
+        <i class="bi bi-exclamation-circle me-2"></i><span th:text="${errorMsg}"></span>
+    </div>
+    <div th:if="${successMsg}" class="alert alert-success">
+        <i class="bi bi-check-circle me-2"></i><span th:text="${successMsg}"></span>
+    </div>
+
+    <!-- Thông tin sản phẩm -->
+    <div class="product-info-card">
+        <div class="row g-4">
+            <div class="col-md-3">
+                <div class="info-label">Danh mục</div>
+                <div class="info-value" th:text="${product.category != null ? product.category.name : '—'}"></div>
+            </div>
+            <div class="col-md-3">
+                <div class="info-label">Thương hiệu</div>
+                <div class="info-value" th:text="${product.brand != null ? product.brand.name : '—'}"></div>
+            </div>
+            <div class="col-md-2">
+                <div class="info-label">Chất liệu</div>
+                <div class="info-value" th:text="${product.material != null ? product.material.name : '—'}"></div>
+            </div>
+            <div class="col-md-2">
+                <div class="info-label">Giới tính</div>
+                <div class="info-value"
+                     th:text="${product.gender == 1 ? 'Nam' : (product.gender == 2 ? 'Nữ' : 'Unisex')}"></div>
+            </div>
+            <div class="col-md-2">
+                <div class="info-label">Trạng thái</div>
+                <div>
+                    <span th:if="${product.status == 1}"
+                          style="background:#f0fdf4;color:#16a34a;font-size:12px;font-weight:600;padding:4px 10px;border-radius:20px;">
+                        ● Hoạt động
+                    </span>
+                    <span th:if="${product.status != 1}"
+                          style="background:#fef2f2;color:#dc2626;font-size:12px;font-weight:600;padding:4px 10px;border-radius:20px;">
+                        ● Tắt
+                    </span>
+                </div>
+            </div>
+            <div class="col-12" th:if="${product.describe != null and !#strings.isEmpty(product.describe)}">
+                <div class="info-label">Mô tả</div>
+                <div class="info-value text-secondary" th:text="${product.describe}"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hình ảnh sản phẩm -->
+    <div class="row g-4 mb-1">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header"><i class="bi bi-image"></i> Thêm hình ảnh</div>
+                <div class="card-body p-4">
+                    <form th:action="@{/admin/product/{id}/image/add(id=${product.id})}" method="post">
+                        <div class="mb-3">
+                            <label class="form-label">Link ảnh (URL)</label>
+                            <input type="text" name="link" class="form-control"
+                                   placeholder="https://..." required/>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Tên ảnh (tùy chọn)</label>
+                            <input type="text" name="name" class="form-control"
+                                   th:placeholder="${product.name}"/>
+                        </div>
+                        <button type="submit" class="btn btn-purple w-100">
+                            <i class="bi bi-save"></i> Thêm ảnh
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <i class="bi bi-images"></i> Thư viện ảnh
+                    <span class="ms-2" style="font-size:12px;opacity:0.7;"
+                          th:text="'(' + ${#lists.size(images)} + ' ảnh)'"></span>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3" th:if="${!#lists.isEmpty(images)}">
+                        <div class="col-6 col-lg-3" th:each="img : ${images}">
+                            <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+                                <img th:src="${img.link}" th:alt="${img.name}"
+                                     style="width:100%;height:120px;object-fit:cover;display:block;"/>
+                                <div class="p-2 d-flex align-items-center justify-content-between">
+                                    <small class="text-muted text-truncate"
+                                           th:text="${img.name}" style="max-width:100px;"></small>
+                                    <a th:href="@{/admin/product/{pid}/image/delete/{iid}(pid=${product.id}, iid=${img.id})}"
+                                       class="btn btn-sm btn-outline-danger"
+                                       onclick="return confirm('Xóa ảnh này?')">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div th:if="${#lists.isEmpty(images)}" class="text-center text-muted py-4">
+                        <i class="bi bi-image d-block mb-2" style="font-size:32px;opacity:0.3;"></i>
+                        Chưa có ảnh nào
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+
+        <!-- Form thêm biến thể -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header"><i class="bi bi-plus-circle"></i> Thêm biến thể</div>
+                <div class="card-body p-4">
+                    <form th:action="@{/admin/product/detail/save}" method="post">
+                        <input type="hidden" name="productId" th:value="${product.id}"/>
+
+                        <div class="mb-3">
+                            <label class="form-label">Size</label>
+                            <select name="sizeId" class="form-select" required>
+                                <option value="">-- Chọn size --</option>
+                                <option th:each="s : ${sizes}" th:value="${s.id}" th:text="${s.name}"></option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Màu sắc</label>
+                            <select name="colorId" class="form-select" required>
+                                <option value="">-- Chọn màu --</option>
+                                <option th:each="c : ${colors}" th:value="${c.id}" th:text="${c.name}"></option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Số lượng</label>
+                            <input type="number" name="quantity" class="form-control" placeholder="VD: 100" min="0" required/>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Giá bán (đ)</label>
+                            <input type="number" name="price" class="form-control" placeholder="VD: 500000" min="0" required/>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Barcode</label>
+                            <input type="text" name="barcode" class="form-control" placeholder="VD: NK-S-DO-001"/>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Trạng thái</label>
+                            <select name="deleteFlag" class="form-select">
+                                <option value="false">Hoạt động</option>
+                                <option value="true">Tắt</option>
+                            </select>
+                        </div>
+
+                        <button type="submit" class="btn btn-purple w-100">
+                            <i class="bi bi-save"></i> Thêm biến thể
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Danh sách biến thể -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <div>
+                        <i class="bi bi-list-ul"></i> Danh sách biến thể
+                        <span class="ms-2" style="font-size:12px;opacity:0.7;"
+                              th:text="'(' + ${#lists.size(details)} + ' biến thể)'"></span>
+                    </div>
+                    <select id="sizeFilter" class="form-select form-select-sm">
+                        <option value="all">Tất cả size</option>
+                        <option th:each="s : ${sizes}" th:value="${s.id}" th:text="${s.name}"></option>
+                    </select>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Size</th>
+                            <th>Màu</th>
+                            <th>Số lượng</th>
+                            <th>Giá bán</th>
+                            <th>Barcode</th>
+                            <th>Khuyến mãi</th>
+                            <th>Thao tác</th>
+                        </tr>
+                        </thead>
+                        <tbody id="detailsBody">
+                        <th:block th:each="d, i : ${details}">
+                            <!-- Header nhóm Size: hiện khi size đổi so với dòng trước -->
+                            <tr th:if="${i.index == 0 || d.size?.id != details[i.index - 1].size?.id}"
+                                data-row-type="header"
+                                th:attr="data-size-id=${d.size != null ? d.size.id : ''}">
+                                <td colspan="8" style="padding:8px 16px;">
+                                    <span style="font-weight:700;font-size:13px;color:#334155;">
+                                        Size:
+                                        <span style="background:#eff6ff;color:#2563eb;padding:3px 10px;border-radius:20px;font-size:12px;"
+                                              th:text="${d.size != null ? d.size.name : '—'}"></span>
+                                    </span>
+                                </td>
+                            </tr>
+                            <tr data-row-type="data"
+                                th:attr="data-size-id=${d.size != null ? d.size.id : ''}">
+                                <td th:text="${i.count}" class="text-muted"></td>
+                                <td>
+                                    <span style="background:#eff6ff;color:#2563eb;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;"
+                                          th:text="${d.size != null ? d.size.name : '—'}"></span>
+                                </td>
+                                <td>
+                                    <span style="background:#f0fdf4;color:#16a34a;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;"
+                                          th:text="${d.color != null ? d.color.name : '—'}"></span>
+                                </td>
+                                <td>
+                                    <span th:text="${d.quantity}"
+                                          th:class="${d.quantity != null and d.quantity <= 5} ? 'variant-qty-low' : 'fw-500'"></span>
+                                    <i th:if="${d.quantity != null and d.quantity <= 5}"
+                                       class="bi bi-exclamation-triangle-fill text-warning ms-1"
+                                       title="Tồn kho thấp"></i>
+                                </td>
+                                <td>
+                                    <span th:if="${d.isOnSale()}">
+                                        <span class="text-muted text-decoration-line-through" style="font-size:12px;"
+                                              th:text="${#numbers.formatDecimal(d.price, 0, 'COMMA', 0, 'POINT') + 'đ'}"></span>
+                                        <br/>
+                                        <span class="fw-600" style="color:#dc2626;"
+                                              th:text="${#numbers.formatDecimal(d.finalPrice, 0, 'COMMA', 0, 'POINT') + 'đ'}"></span>
+                                    </span>
+                                    <span th:unless="${d.isOnSale()}" class="fw-600" style="color:#16a34a;"
+                                          th:text="${#numbers.formatDecimal(d.price, 0, 'COMMA', 0, 'POINT') + 'đ'}"></span>
+                                </td>
+                                <td class="text-muted" th:text="${d.barcode != null ? d.barcode : '—'}"></td>
+                                <td>
+                                    <span th:if="${d.isOnSale()}"
+                                          style="background:#fef2f2;color:#dc2626;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;"
+                                          th:text="'-' + ${#numbers.formatDecimal(d.productDiscount.discountedAmount, 0, 'COMMA', 0, 'POINT')} + 'đ đến ' + ${#temporals.format(d.productDiscount.endDate, 'dd/MM HH:mm')}">
+                                    </span>
+                                    <span th:unless="${d.isOnSale()}" class="text-muted" style="font-size:12px;">Không có</span>
+                                </td>
+                                <td>
+                                    <div class="d-flex gap-1">
+                                        <button type="button" class="btn btn-sm btn-outline-primary"
+                                                data-bs-toggle="modal" th:data-bs-target="'#saleModal' + ${d.id}"
+                                                title="Áp/đổi khuyến mãi">
+                                            <i class="bi bi-tag"></i>
+                                        </button>
+                                        <a th:if="${d.isOnSale()}"
+                                           th:href="@{/admin/product/detail/discount/close/{id}(id=${d.productDiscount.id}, productId=${product.id})}"
+                                           class="btn btn-sm btn-outline-warning"
+                                           onclick="return confirm('Tắt khuyến mãi này?')" title="Tắt khuyến mãi">
+                                            <i class="bi bi-tag-fill"></i>
+                                        </a>
+                                        <a th:href="@{/admin/product/detail/delete/{id}(id=${d.id})}"
+                                           class="btn btn-sm btn-outline-danger"
+                                           onclick="return confirm('Xóa biến thể này?')" title="Xóa biến thể">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        </th:block>
+                        <tr th:if="${#lists.isEmpty(details)}">
+                            <td colspan="8" class="text-center text-muted py-5">
+                                <i class="bi bi-box d-block mb-2" style="font-size:32px;opacity:0.3;"></i>
+                                Chưa có biến thể nào
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                    <!-- Thông báo khi lọc theo size không có kết quả -->
+                    <div id="noVariantForSize" class="text-center text-muted py-5" style="display:none;">
+                        <i class="bi bi-funnel d-block mb-2" style="font-size:28px;opacity:0.3;"></i>
+                        Size này chưa có biến thể nào
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Modal áp khuyến mãi (1 modal / biến thể) -->
+    <div class="modal fade" th:id="'saleModal' + ${d.id}" tabindex="-1" th:each="d : ${details}">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form th:action="@{/admin/product/detail/{id}/discount/save(id=${d.id})}" method="post">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            Áp khuyến mãi —
+                            <span th:text="${d.size != null ? d.size.name : ''}"></span>
+                            /
+                            <span th:text="${d.color != null ? d.color.name : ''}"></span>
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="text-muted" style="font-size:13px;">
+                            Giá gốc:
+                            <strong th:text="${#numbers.formatDecimal(d.price, 0, 'COMMA', 0, 'POINT') + 'đ'}"></strong>
+                            <span th:if="${d.isOnSale()}" class="text-danger ms-2">
+                                (đang có khuyến mãi active — sẽ được đóng và thay bằng khuyến mãi mới)
+                            </span>
+                        </p>
+                        <div class="mb-3">
+                            <label class="form-label">Số tiền giảm (đ)</label>
+                            <input type="number" name="discountedAmount" class="form-control"
+                                   min="1" step="1000" placeholder="VD: 100000" required/>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Bắt đầu</label>
+                            <input type="datetime-local" name="startDate" class="form-control" required/>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Kết thúc</label>
+                            <input type="datetime-local" name="endDate" class="form-control" required/>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                        <button type="submit" class="btn btn-purple">Áp dụng</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div th:replace="~{admin/fragments/layout :: adminScripts}"></div>
+
+<!-- Lọc biến thể theo size (client-side, không cần phân trang) -->
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var filterSelect = document.getElementById('sizeFilter');
+        var tbody = document.getElementById('detailsBody');
+        var emptyMsg = document.getElementById('noVariantForSize');
+        if (!filterSelect || !tbody) return;
+
+        function applyFilter() {
+            var selected = filterSelect.value; // 'all' hoặc id size
+            var rows = tbody.querySelectorAll('tr[data-row-type]');
+            var visibleDataCount = 0;
+
+            rows.forEach(function (row) {
+                var rowType = row.getAttribute('data-row-type');
+                var rowSizeId = row.getAttribute('data-size-id');
+
+                if (selected === 'all') {
+                    // Hiện tất cả, giữ nguyên header nhóm theo size
+                    row.classList.remove('d-none-filtered');
+                    if (rowType === 'data') visibleDataCount++;
+                } else if (rowType === 'header') {
+                    // Chọn 1 size cụ thể: ẩn header nhóm vì chỉ còn đúng 1 size, không cần chia nhóm nữa
+                    row.classList.add('d-none-filtered');
+                } else {
+                    var match = rowSizeId === selected;
+                    row.classList.toggle('d-none-filtered', !match);
+                    if (match) visibleDataCount++;
+                }
+            });
+
+            if (emptyMsg) {
+                emptyMsg.style.display = (selected !== 'all' && visibleDataCount === 0) ? '' : 'none';
+            }
+        }
+
+        filterSelect.addEventListener('change', applyFilter);
+        applyFilter();
+    });
+</script>
+</body>
+</html>

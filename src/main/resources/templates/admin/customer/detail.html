@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{admin/fragments/layout :: adminHead(~{::title}, ~{::extraHead})}">
+    <title>Chi tiết khách hàng - SkySport</title>
+    <th:block th:fragment="extraHead"></th:block>
+</head>
+<body>
+
+<div th:replace="~{admin/fragments/layout :: adminSidebar('customer')}"></div>
+
+<div class="main-content">
+
+    <div class="d-flex align-items-center mb-4">
+        <a href="/admin/customer" class="btn btn-outline-secondary btn-sm me-3">
+            <i class="bi bi-arrow-left"></i> Quay lại
+        </a>
+        <h4 class="fw-bold mb-0">
+            <i class="bi bi-person me-2"></i>Chi tiết khách hàng
+        </h4>
+    </div>
+
+    <div class="row g-4">
+
+        <!-- Thông tin cá nhân -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <i class="bi bi-person me-2"></i>Thông tin cá nhân
+                </div>
+
+                <div class="card-body p-4">
+                    <table class="table table-borderless">
+                        <tr>
+                            <td class="fw-bold" style="width:40%">Mã khách hàng:</td>
+                            <td>
+                                <span class="badge bg-secondary"
+                                      th:text="${customer.code}">
+                                </span>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <td class="fw-bold">Họ tên:</td>
+                            <td th:text="${customer.name}"></td>
+                        </tr>
+
+                        <tr>
+                            <td class="fw-bold">Email:</td>
+                            <td th:text="${customer.email}"></td>
+                        </tr>
+
+                        <tr>
+                            <td class="fw-bold">Số điện thoại:</td>
+                            <td th:text="${customer.phoneNumber}"></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Thông tin tài khoản -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <i class="bi bi-person-badge me-2"></i>Thông tin tài khoản
+                </div>
+
+                <div class="card-body p-4">
+
+                    <table class="table table-borderless"
+                           th:if="${customer.account != null}">
+
+                        <tr>
+                            <td class="fw-bold" style="width:40%">
+                                Tên đăng nhập:
+                            </td>
+                            <td th:text="${customer.account.username}"></td>
+                        </tr>
+
+                        <tr>
+                            <td class="fw-bold">Email:</td>
+                            <td th:text="${customer.account.email}"></td>
+                        </tr>
+
+                        <tr>
+                            <td class="fw-bold">Trạng thái:</td>
+                            <td>
+                                <span class="badge bg-success"
+                                      th:if="${customer.account.status == 1}">
+                                    Hoạt động
+                                </span>
+
+                                <span class="badge bg-danger"
+                                      th:if="${customer.account.status == 0}">
+                                    Bị khóa
+                                </span>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <td class="fw-bold">Ngày tạo:</td>
+                            <td th:text="${#temporals.format(customer.account.createDate,'dd/MM/yyyy')}"></td>
+                        </tr>
+                    </table>
+
+                    <p th:if="${customer.account == null}"
+                       class="text-muted">
+                        Khách hàng này là Guest
+                    </p>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- Địa chỉ giao hàng -->
+        <div class="col-12">
+            <div class="card">
+
+                <div class="card-header">
+                    <i class="bi bi-geo-alt me-2"></i>Địa chỉ giao hàng
+                </div>
+
+                <div class="card-body p-4">
+
+                    <div th:if="${customer.addressShipping != null}">
+
+                        <div class="mb-2">
+                            <strong>Người nhận:</strong>
+                            <span th:text="${customer.addressShipping.receiverName}"></span>
+                        </div>
+
+                        <div class="mb-2">
+                            <strong>Số điện thoại:</strong>
+                            <span th:text="${customer.addressShipping.receiverPhone}"></span>
+                        </div>
+
+                        <div>
+                            <strong>Địa chỉ:</strong>
+                            <span th:text="${customer.addressShipping.address}"></span>
+                            <span th:if="${ward != null}">
+                                , <span th:text="${ward.name}"></span>
+                            </span>
+                            <span th:if="${district != null}">
+                                , <span th:text="${district.name}"></span>
+                            </span>
+                            <span th:if="${province != null}">
+                                , <span th:text="${province.name}"></span>
+                            </span>
+                        </div>
+
+                    </div>
+
+                    <div th:if="${customer.addressShipping == null}"
+                         class="text-muted">
+                        Chưa có địa chỉ giao hàng
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<div th:replace="~{admin/fragments/layout :: adminScripts}"></div>
+
+</body>
+</html>

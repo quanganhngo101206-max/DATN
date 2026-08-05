@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>SkySport - Thể thao đỉnh cao</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f7f9fc;
+        }
+
+        /* Navbar - Giống cart */
+        .navbar {
+            background: #1a1a2e;
+            padding: 16px 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        .navbar-brand {
+            font-size: 26px;
+            font-weight: 800;
+            color: #e94560 !important;
+        }
+        .nav-link {
+            color: #eee !important;
+            font-weight: 500;
+            margin: 0 12px;
+            transition: color 0.3s;
+        }
+        .nav-link:hover {
+            color: #e94560 !important;
+        }
+        .btn-nav {
+            background: #e94560;
+            color: white;
+            border: none;
+            padding: 8px 22px;
+            border-radius: 30px;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .btn-nav:hover {
+            background: #c62a47;
+            transform: translateY(-2px);
+        }
+        .cart-icon {
+            position: relative;
+            font-size: 22px;
+            color: white;
+            text-decoration: none;
+        }
+        .cart-badge {
+            position: absolute;
+            top: -8px;
+            right: -12px;
+            background: #e94560;
+            border-radius: 50%;
+            font-size: 10px;
+            padding: 2px 6px;
+        }
+        .search-input {
+            border-radius: 30px;
+            border: none;
+            padding: 8px 16px;
+            font-size: 14px;
+            width: 220px;
+        }
+        .search-btn {
+            background: #e94560;
+            color: white;
+            border-radius: 30px;
+            border: none;
+            padding: 8px 16px;
+            margin-left: 8px;
+        }
+
+        /* Hero Section - Giống cart header */
+        .hero {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            padding: 80px 0;
+            text-align: center;
+            color: white;
+        }
+        .hero h1 {
+            font-size: 48px;
+            font-weight: 800;
+            margin-bottom: 20px;
+        }
+        .hero p {
+            font-size: 18px;
+            opacity: 0.8;
+            margin-bottom: 30px;
+        }
+        .btn-shop {
+            background: #e94560;
+            color: white;
+            border: none;
+            padding: 14px 40px;
+            border-radius: 50px;
+            font-weight: 700;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s;
+        }
+        .btn-shop:hover {
+            background: #c62a47;
+            transform: translateY(-2px);
+            color: white;
+        }
+
+        /* Section Title - Giống cart */
+        .section-title {
+            font-size: 28px;
+            font-weight: 800;
+            color: #1a1a2e;
+            margin-bottom: 30px;
+            position: relative;
+            padding-bottom: 12px;
+        }
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 60px;
+            height: 3px;
+            background: #e94560;
+            border-radius: 2px;
+        }
+
+        /* Category Card - Style mới */
+        .category-card {
+            background: white;
+            border-radius: 24px;
+            padding: 30px 20px;
+            text-align: center;
+            color: #1a1a2e;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: block;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+            border: 1px solid #eee;
+        }
+        .category-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border-color: #e94560;
+        }
+        .category-card i {
+            font-size: 40px;
+            margin-bottom: 10px;
+            display: block;
+            color: #e94560;
+        }
+        .category-card h5 {
+            font-weight: 700;
+            margin: 0;
+            font-size: 16px;
+        }
+
+        /* Product Card - Giống cart */
+        .product-card {
+            border: none;
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s;
+            height: 100%;
+            background: white;
+        }
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        .product-card img {
+            height: 220px;
+            object-fit: cover;
+            width: 100%;
+            background: #f5f5f5;
+        }
+        .product-card .card-body {
+            padding: 15px;
+        }
+        .product-name {
+            font-weight: 700;
+            font-size: 15px;
+            color: #1a1a2e;
+            margin-bottom: 5px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .product-brand {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 8px;
+        }
+        .product-price {
+            color: #e94560;
+            font-weight: 800;
+            font-size: 18px;
+        }
+        .btn-view {
+            background: #1a1a2e;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 8px 12px;
+            font-size: 13px;
+            font-weight: 600;
+            width: 100%;
+            margin-top: 10px;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: block;
+            text-align: center;
+        }
+        .btn-view:hover {
+            background: #e94560;
+            color: white;
+        }
+
+        /* Banner khuyến mãi */
+        .promo-card {
+            background: #1a1a2e;
+            border-radius: 24px;
+            padding: 30px;
+            color: white;
+            height: 100%;
+        }
+        .promo-card h4 {
+            font-size: 24px;
+            font-weight: 800;
+            margin-bottom: 15px;
+        }
+        .promo-card h4 i {
+            margin-right: 10px;
+            color: #e94560;
+        }
+        .promo-card p {
+            margin: 0;
+            opacity: 0.8;
+        }
+
+        /* Footer - Giống cart */
+        footer {
+            background: #1a1a2e;
+            color: #aaa;
+            padding: 50px 0 20px;
+            margin-top: 60px;
+        }
+        footer h6 {
+            color: white;
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+        footer a {
+            color: #aaa;
+            text-decoration: none;
+            font-size: 13px;
+            display: block;
+            margin-bottom: 8px;
+        }
+        footer a:hover {
+            color: #e94560;
+        }
+        .footer-bottom {
+            border-top: 1px solid #444;
+            padding-top: 20px;
+            margin-top: 20px;
+            text-align: center;
+            font-size: 13px;
+        }
+
+        .toast-message {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 9999;
+            min-width: 300px;
+        }
+        .toast-success {
+            background: #10b981;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Navbar - Giống cart -->
+<nav class="navbar navbar-expand-lg">
+    <div class="container">
+        <a class="navbar-brand" href="/home"><i class="bi bi-lightning-charge-fill"></i> SKYSPORT</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+            <span class="navbar-toggler-icon bg-white rounded"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navMenu">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item"><a class="nav-link" href="/home">Trang chủ</a></li>
+                <li class="nav-item"><a class="nav-link" href="/products">Sản phẩm</a></li>
+                <li class="nav-item"><a class="nav-link" href="/promotion">Khuyến mãi</a></li>
+                <li class="nav-item"><a class="nav-link" href="/contact">Liên hệ</a></li>
+            </ul>
+            <div class="d-flex align-items-center gap-3">
+                <form action="/products" method="get" class="d-flex">
+                    <input type="text" name="keyword" class="search-input" placeholder="Tìm kiếm...">
+                    <button class="search-btn" type="submit"><i class="bi bi-search"></i></button>
+                </form>
+                <a href="/cart" class="cart-icon">
+                    <i class="bi bi-cart3"></i>
+                    <span class="cart-badge" th:text="${cartCount != null ? cartCount : '0'}">0</span>
+                </a>
+                <div th:if="${session.account == null}">
+                    <a href="/login" class="btn-nav">Đăng nhập</a>
+                </div>
+                <div th:if="${session.account != null}" class="dropdown">
+                    <button class="btn-nav dropdown-toggle" data-bs-toggle="dropdown">
+                        <span th:text="${session.account.username}"></span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="/profile">Thông tin cá nhân</a></li>
+                        <li><a class="dropdown-item" href="/customer/orders">Đơn hàng của tôi</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger" href="/logout">Đăng xuất</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- Hero Banner - Giống cart header -->
+<section class="hero">
+    <div class="container">
+        <h1><i class="bi bi-lightning-charge-fill"></i> SKYSPORT</h1>
+        <p>Thể thao đỉnh cao - Phong cách riêng bạn</p>
+        <a href="/products" class="btn-shop">Mua sắm ngay →</a>
+    </div>
+</section>
+
+<!-- Danh mục sản phẩm -->
+<section class="py-5">
+    <div class="container">
+        <h2 class="section-title">Danh mục sản phẩm</h2>
+        <div class="row g-4">
+            <div class="col-md-3 col-6" th:each="cat : ${categories}">
+                <a th:href="@{/products(categoryId=${cat.id})}" class="category-card">
+                    <i class="bi bi-tag"></i>
+                    <h5 th:text="${cat.name}">Danh mục</h5>
+                </a>
+            </div>
+            <div class="col-12 text-center" th:if="${#lists.isEmpty(categories)}">
+                <p class="text-muted">Chưa có danh mục nào</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Sản phẩm nổi bật -->
+<section class="py-5 bg-light">
+    <div class="container">
+        <h2 class="section-title">Sản phẩm nổi bật</h2>
+        <div class="row g-4">
+            <div class="col-md-3 col-6" th:each="p : ${featuredProducts}">
+                <div class="card product-card">
+                    <img th:src="${productImages[p.id] != null ? productImages[p.id] : 'https://placehold.co/300x220/e9ecef/6c757d?text=No+Image'}"
+                         th:alt="${p.name}"
+                         onerror="this.src='https://placehold.co/300x220/e9ecef/6c757d?text=No+Image'">
+                    <div class="card-body">
+                        <p class="product-brand" th:text="${p.brand != null ? p.brand.name : ''}"></p>
+                        <p class="product-name" th:text="${p.name}"></p>
+                        <span class="product-price" th:text="${#numbers.formatInteger(productPrices[p.id], 0, 'COMMA') + 'đ'}">0đ</span>
+                        <a th:href="@{/products/{id}(id=${p.id})}" class="btn-view">
+                            <i class="bi bi-eye"></i> Xem chi tiết
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 text-center" th:if="${#lists.isEmpty(featuredProducts)}">
+                <p class="text-muted">Chưa có sản phẩm nào</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Sản phẩm mới nhất -->
+<section class="py-5">
+    <div class="container">
+        <h2 class="section-title">Sản phẩm mới nhất</h2>
+        <div class="row g-4">
+            <div class="col-md-3 col-6" th:each="p : ${newProducts}">
+                <div class="card product-card">
+                    <img th:src="${productImages[p.id] != null ? productImages[p.id] : 'https://placehold.co/300x220/e9ecef/6c757d?text=No+Image'}"
+                         th:alt="${p.name}"
+                         onerror="this.src='https://placehold.co/300x220/e9ecef/6c757d?text=No+Image'">
+                    <div class="card-body">
+                        <p class="product-brand" th:text="${p.brand != null ? p.brand.name : ''}"></p>
+                        <p class="product-name" th:text="${p.name}"></p>
+                        <span class="product-price" th:text="${#numbers.formatInteger(productPrices[p.id], 0, 'COMMA') + 'đ'}">0đ</span>
+                        <a th:href="@{/products/{id}(id=${p.id})}" class="btn-view">
+                            <i class="bi bi-eye"></i> Xem chi tiết
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 text-center" th:if="${#lists.isEmpty(newProducts)}">
+                <p class="text-muted">Chưa có sản phẩm nào</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Banner khuyến mãi -->
+<section class="py-4">
+    <div class="container">
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="promo-card">
+                    <h4><i class="bi bi-truck"></i> Miễn phí vận chuyển</h4>
+                    <p>Cho đơn hàng từ 500.000đ trong nội thành Hà Nội & TP.HCM</p>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="promo-card" style="background: #e94560;">
+                    <h4><i class="bi bi-gift"></i> Giảm giá 10%</h4>
+                    <p>Cho khách hàng đăng ký thành viên mới</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Footer - Giống cart -->
+<footer>
+    <div class="container">
+        <div class="row">
+            <div class="col-md-4">
+                <h6>⚡ SKYSPORT</h6>
+                <p style="font-size:14px;">Thể thao đỉnh cao - Phong cách riêng bạn</p>
+                <p style="font-size:12px;">Chuyên cung cấp áo thể thao chính hãng từ các thương hiệu nổi tiếng</p>
+            </div>
+            <div class="col-md-2">
+                <h6>Sản phẩm</h6>
+                <a th:each="cat : ${categories}" th:href="@{/products(categoryId=${cat.id})}" th:text="${cat.name}"></a>
+            </div>
+            <div class="col-md-2">
+                <h6>Hỗ trợ</h6>
+                <a href="#">Chính sách đổi trả</a>
+                <a href="#">Chính sách vận chuyển</a>
+                <a href="#">Hướng dẫn mua hàng</a>
+                <a href="#">Câu hỏi thường gặp</a>
+            </div>
+            <div class="col-md-4">
+                <h6>Liên hệ</h6>
+                <p style="font-size:14px;">
+                    <i class="bi bi-telephone"></i> 0123 456 789<br>
+                    <i class="bi bi-envelope"></i> support@skysport.vn<br>
+                    <i class="bi bi-geo-alt"></i> 123 Đường Lê Lợi, Quận 1, TP.HCM
+                </p>
+                <div class="d-flex gap-3 mt-2">
+                    <a href="#" class="text-white"><i class="bi bi-facebook fs-5"></i></a>
+                    <a href="#" class="text-white"><i class="bi bi-instagram fs-5"></i></a>
+                    <a href="#" class="text-white"><i class="bi bi-youtube fs-5"></i></a>
+                    <a href="#" class="text-white"><i class="bi bi-tiktok fs-5"></i></a>
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            © 2024 SkySport. All rights reserved.
+        </div>
+    </div>
+</footer>
+
+<!-- Toast -->
+<div class="toast-message" id="cartToast" style="display:none;">
+    <div class="toast-success">
+        <i class="bi bi-check-circle-fill"></i>
+        <span>Đã thêm vào giỏ hàng!</span>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script th:inline="javascript">
+    /*<![CDATA[*/
+    var urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('added') === 'success') {
+        var toastEl = document.getElementById('cartToast');
+        toastEl.style.display = 'block';
+        setTimeout(function () {
+            toastEl.style.display = 'none';
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }, 3000);
+    }
+    /*]]>*/
+</script>
+</body>
+</html>

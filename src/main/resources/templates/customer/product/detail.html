@@ -452,7 +452,7 @@
                 <div class="thumb-list" th:if="${#lists.size(images) > 0}">
                     <div class="thumb" th:each="img, idx : ${images}"
                          th:classappend="${idx.index == 0} ? 'active' : ''"
-                         onclick="changeImage(this, '${img.link}')">
+                         th:onclick="|changeImage(this, '${img.link}')|">
                         <img th:src="${img.link}" th:alt="${product.name}">
                     </div>
                 </div>

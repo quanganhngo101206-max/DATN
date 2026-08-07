@@ -60,6 +60,12 @@
             <artifactId>spring-boot-starter-mail</artifactId>
         </dependency>
 
+        <!-- Jackson for JSON Parsing -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+
         <!-- Thymeleaf extras for Spring Security -->
         <dependency>
             <groupId>org.thymeleaf.extras</groupId>

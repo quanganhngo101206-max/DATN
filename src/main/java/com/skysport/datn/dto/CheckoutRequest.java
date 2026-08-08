@@ -30,7 +30,10 @@ public class CheckoutRequest {
 
     private String discountCode;
 
+    @NotNull(message = "Vui lòng chọn tỉnh/thành phố")
     private Integer provinceId;   // ID tỉnh/thành phố được chọn
+
+    @NotNull(message = "Vui lòng chọn phường/xã")
     private Integer wardId;       // ID phường/xã được chọn
     // Đã bỏ districtId vì Ward map thẳng lên Province
 }

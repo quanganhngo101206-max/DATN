@@ -133,7 +133,7 @@
 <!-- =====================================================
      FRAGMENT: adminSidebar
      Usage: <div th:replace="~{admin/fragments/layout :: adminSidebar('bill')}"></div>
-     activeMenu values: dashboard, product, category, brand, size, color, material, bill, import, customer, staff, discount
+     activeMenu values: dashboard, report, product, category, brand, size, color, material, bill, import, customer, staff, discount
      ===================================================== -->
 <div th:fragment="adminSidebar(activeMenu)">
     <div class="sidebar">
@@ -148,6 +148,9 @@
             <div class="nav-section">Tổng quan</div>
             <a class="nav-item" th:classappend="${activeMenu == 'dashboard'} ? 'active'" href="/admin/dashboard">
                 <i class="bi bi-speedometer2"></i> Dashboard
+            </a>
+            <a class="nav-item" th:classappend="${activeMenu == 'report'} ? 'active'" href="/admin/report/sales">
+                <i class="bi bi-bar-chart-line"></i> Thống kê
             </a>
 
             <div class="nav-section">Danh mục</div>

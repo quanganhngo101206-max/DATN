@@ -31,6 +31,7 @@ public class MaterialController {
     public String edit(@PathVariable Integer id, Model model) {
         model.addAttribute("material", materialService.findById(id));
         model.addAttribute("materials", materialService.findAll());
+        model.addAttribute("openModal", true);
         return "admin/material/list";
     }
 

@@ -84,6 +84,7 @@
                                     <span th:case="1" class="badge bg-warning text-dark fs-6">Chờ xác nhận</span>
                                     <span th:case="2" class="badge bg-primary fs-6">Đã xác nhận</span>
                                     <span th:case="3" class="badge bg-info text-dark fs-6">Đang giao</span>
+                                    <span th:case="4" class="badge bg-secondary fs-6">Đã giao</span>
                                     <span th:case="5" class="badge bg-danger fs-6">Đã hủy</span>
                                     <span th:case="6" class="badge bg-dark fs-6">Trả hàng</span>
                                     <span th:case="7" class="badge bg-success fs-6">Hoàn thành</span>
@@ -163,7 +164,7 @@
         <div class="col-md-4">
 
             <!-- Cập nhật trạng thái (chỉ hiện khi đơn chưa kết thúc) -->
-            <div class="card" th:if="${bill.status != 5 and bill.status != 7 and bill.status != 6}">
+            <div class="card" th:if="${bill.status == 1 or bill.status == 2 or bill.status == 3}">
                 <div class="card-header"><i class="bi bi-arrow-repeat me-2"></i>Cập nhật trạng thái</div>
                 <div class="card-body">
                     <form th:action="@{/staff/bill/update-status/{id}(id=${bill.id})}" method="post">
@@ -206,6 +207,7 @@
                                     <span th:case="1">📋 Đặt hàng</span>
                                     <span th:case="2">✅ Xác nhận</span>
                                     <span th:case="3">🚚 Đang giao</span>
+                                    <span th:case="4">📦 Đã giao</span>
                                     <span th:case="5">❌ Đã hủy</span>
                                     <span th:case="6">↩️ Trả hàng</span>
                                     <span th:case="7">🎉 Hoàn thành</span>

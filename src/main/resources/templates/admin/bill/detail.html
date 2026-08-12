@@ -128,7 +128,7 @@
         <div class="col-md-4">
 
             <!-- Cập nhật trạng thái -->
-            <div class="card" th:if="${bill.status != 5 and bill.status != 7}">
+            <div class="card" th:if="${bill.status == 1 or bill.status == 2 or bill.status == 3}">
                 <div class="card-header"><i class="bi bi-arrow-repeat me-2"></i>Cập nhật trạng thái</div>
                 <div class="card-body">
                     <form th:action="@{/admin/bill/update-status/{id}(id=${bill.id})}" method="post">

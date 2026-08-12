@@ -148,6 +148,9 @@
             <div class="nav-section">Nghiệp vụ</div>
             <a class="nav-item" th:classappend="${activeMenu == 'bill'} ? 'active'" href="/staff/bill">
                 <i class="bi bi-receipt-cutoff"></i> Đơn hàng
+                <span th:if="${newOrderCount > 0}" class="ms-auto badge"
+                      style="background:#ef4444;color:white;font-size:10px;padding:2px 7px;border-radius:10px;"
+                      th:text="${newOrderCount}"></span>
             </a>
             <a class="nav-item" th:classappend="${activeMenu == 'import'} ? 'active'" href="/staff/import">
                 <i class="bi bi-box-arrow-in-down"></i> Nhập hàng

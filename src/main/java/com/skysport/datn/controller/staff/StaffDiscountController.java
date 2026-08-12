@@ -42,6 +42,7 @@ public class StaffDiscountController {
     public String addForm(Model model) {
         model.addAttribute("discount", new DiscountCode());
         model.addAttribute("discounts", discountCodeService.findAll());
+        model.addAttribute("openModal", true);
         return "staff/discount/list";
     }
 
@@ -77,6 +78,7 @@ public class StaffDiscountController {
         }
         model.addAttribute("discount", dc);
         model.addAttribute("discounts", discountCodeService.findAll());
+        model.addAttribute("openModal", true);
         return "staff/discount/list";
     }
 
@@ -122,4 +124,4 @@ public class StaffDiscountController {
         ra.addFlashAttribute("successMsg", "Đã xóa yêu cầu tạo mã giảm giá.");
         return "redirect:/staff/discount";
     }
-}
+}   

@@ -21,6 +21,8 @@ public class CustomerService {
 
     private final AccountRepository accountRepository;
 
+    private final NotificationStateService notificationStateService;
+
     // Lấy tất cả khách hàng
     public List<Customer> findAll() {
         return customerRepository.findAll();
@@ -63,5 +65,15 @@ public class CustomerService {
 
     public Page<Customer> searchPaged(String keyword, int page, int size) {
         return customerRepository.searchByKeyword(keyword, PageRequest.of(page, size));
+    }
+
+    // Số khách hàng đăng ký (tài khoản được tạo) sau lần admin xem gần nhất
+    public long countNewCustomers() {
+        return customerRepository.countByAccount_CreateDateAfter(notificationStateService.getCustomerLastViewedAt());
+    }
+
+    // Đánh dấu đã xem hết thông báo khách hàng mới (chỉ cập nhật mốc thời gian trong bộ nhớ)
+    public void markAllCustomersViewed() {
+        notificationStateService.markCustomersViewedNow();
     }
 }

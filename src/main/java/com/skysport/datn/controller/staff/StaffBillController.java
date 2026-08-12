@@ -66,12 +66,12 @@ public class StaffBillController {
 
     @PostMapping("/update-status/{id}")
     public String updateStatus(@PathVariable Integer id,
-                               @RequestParam Integer newStatus,
+                               @RequestParam(required = false) Integer newStatus,
                                @RequestParam(required = false) String note,
                                HttpSession session,
                                RedirectAttributes redirectAttributes) {
         Account account = (Account) session.getAttribute("account");
-        boolean success = billService.updateStatus(id, newStatus, note, account);
+        boolean success = newStatus != null && billService.updateStatus(id, newStatus, note, account);
         if (success) {
             redirectAttributes.addFlashAttribute("successMsg", "Cập nhật trạng thái thành công!");
         } else {

@@ -36,6 +36,7 @@ public class DiscountCodeController {
         model.addAttribute("discounts", discountCodeService.findAll());
         model.addAttribute("currentStatus", -1);
         model.addAttribute("pendingCount", discountCodeService.findByStatus(0).size());
+        model.addAttribute("openModal", true);
         return "admin/discount/list";
     }
 
@@ -67,6 +68,7 @@ public class DiscountCodeController {
         model.addAttribute("discounts", discountCodeService.findAll());
         model.addAttribute("currentStatus", -1);
         model.addAttribute("pendingCount", discountCodeService.findByStatus(0).size());
+        model.addAttribute("openModal", true);
         return "admin/discount/list";
     }
 

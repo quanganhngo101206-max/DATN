@@ -52,6 +52,7 @@
         .status-1 { background: #fef3c7; color: #d97706; }
         .status-2 { background: #e0f2fe; color: #0284c7; }
         .status-3 { background: #e0e7ff; color: #4338ca; }
+        .status-4 { background: #e2e8f0; color: #475569; }
         .status-7 { background: #d1fae5; color: #059669; }
         .status-5 { background: #fee2e2; color: #dc2626; }
         .status-6 { background: #ffedd5; color: #c2410c; }
@@ -154,9 +155,16 @@
                     <div class="info-row"><div class="info-label">Ngày đặt:</div><div class="info-value" th:text="${#temporals.format(bill.createDate, 'dd/MM/yyyy HH:mm')}"></div></div>
                     <div class="info-row"><div class="info-label">Trạng thái:</div>
                         <div class="info-value">
-                            <span class="badge-status"
-                                  th:class="${bill.status == 1 ? 'status-1' : (bill.status == 2 ? 'status-2' : (bill.status == 3 ? 'status-3' : (bill.status == 7 ? 'status-7' : (bill.status == 6 ? 'status-6' : 'status-5'))))}"
-                                  th:text="${bill.status == 1 ? 'Chờ xác nhận' : (bill.status == 2 ? 'Đã xác nhận' : (bill.status == 3 ? 'Đang giao' : (bill.status == 7 ? 'Hoàn thành' : (bill.status == 6 ? 'Trả hàng' : 'Đã hủy'))))}"></span>
+                            <span th:switch="${bill.status}">
+                                <span th:case="1" class="badge-status status-1">Chờ xác nhận</span>
+                                <span th:case="2" class="badge-status status-2">Đã xác nhận</span>
+                                <span th:case="3" class="badge-status status-3">Đang giao</span>
+                                <span th:case="4" class="badge-status status-4">Đã giao</span>
+                                <span th:case="5" class="badge-status status-5">Đã hủy</span>
+                                <span th:case="6" class="badge-status status-6">Trả hàng</span>
+                                <span th:case="7" class="badge-status status-7">Hoàn thành</span>
+                                <span th:case="*" class="badge-status status-5">Không xác định</span>
+                            </span>
                         </div>
                     </div>
                     <div class="info-row"><div class="info-label">Phí vận chuyển:</div><div class="info-value">30,000đ</div></div>

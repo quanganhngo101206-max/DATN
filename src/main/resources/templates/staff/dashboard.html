@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{staff/fragments/layout :: staffHead(~{::title}, ~{::extraHead})}">
-    <title>Dashboard - SkySport Staff</title>
-    <th:block th:fragment="extraHead"><style>
-        .stat-card {
+  <title>Dashboard - SkySport Staff</title>
+  <th:block th:fragment="extraHead"><style>
+    .stat-card {
       background: white; border-radius: 20px; padding: 20px;
       box-shadow: 0 5px 20px rgba(0,0,0,0.05);
       transition: transform 0.3s; border-left: 5px solid;
@@ -12,7 +12,7 @@
     .stat-card .icon { font-size: 40px; opacity: 0.7; }
     .stat-card .value { font-size: 32px; font-weight: 800; }
     .stat-card .label { color: #888; font-size: 14px; }
-    </style></th:block>
+  </style></th:block>
 </head>
 <body>
 
@@ -106,7 +106,9 @@
                                         <span th:case="1" class="badge bg-warning text-dark">Chờ xác nhận</span>
                                         <span th:case="2" class="badge bg-primary">Đã xác nhận</span>
                                         <span th:case="3" class="badge bg-info text-dark">Đang giao</span>
+                                        <span th:case="4" class="badge bg-secondary">Đã giao</span>
                                         <span th:case="5" class="badge bg-danger">Đã hủy</span>
+                                        <span th:case="6" class="badge bg-dark">Trả hàng</span>
                                         <span th:case="7" class="badge bg-success">Hoàn thành</span>
                                     </span>
               </td>

@@ -76,8 +76,10 @@
         .status-1 { background: #fef3c7; color: #d97706; }
         .status-2 { background: #e0f2fe; color: #0284c7; }
         .status-3 { background: #e0e7ff; color: #4338ca; }
+        .status-4 { background: #e2e8f0; color: #475569; }
         .status-7 { background: #d1fae5; color: #059669; }
         .status-5 { background: #fee2e2; color: #dc2626; }
+        .status-6 { background: #ffedd5; color: #c2410c; }
 
         .product-img {
             width: 60px;
@@ -166,9 +168,16 @@
                     </div>
                     <div class="text-end">
                         <div class="order-total" th:text="${#numbers.formatInteger(order.amount, 0, 'COMMA') + 'đ'}"></div>
-                        <span class="badge-status"
-                              th:class="${order.status == 1 ? 'status-1' : (order.status == 2 ? 'status-2' : (order.status == 3 ? 'status-3' : (order.status == 7 ? 'status-7' : 'status-5')))}"
-                              th:text="${order.status == 1 ? 'Chờ xác nhận' : (order.status == 2 ? 'Đã xác nhận' : (order.status == 3 ? 'Đang giao' : (order.status == 7 ? 'Hoàn thành' : 'Đã hủy')))}"></span>
+                        <span th:switch="${order.status}">
+                            <span th:case="1" class="badge-status status-1">Chờ xác nhận</span>
+                            <span th:case="2" class="badge-status status-2">Đã xác nhận</span>
+                            <span th:case="3" class="badge-status status-3">Đang giao</span>
+                            <span th:case="4" class="badge-status status-4">Đã giao</span>
+                            <span th:case="5" class="badge-status status-5">Đã hủy</span>
+                            <span th:case="6" class="badge-status status-6">Trả hàng</span>
+                            <span th:case="7" class="badge-status status-7">Hoàn thành</span>
+                            <span th:case="*" class="badge-status status-5">Không xác định</span>
+                        </span>
                     </div>
                 </div>
 

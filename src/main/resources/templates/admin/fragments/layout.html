@@ -173,6 +173,9 @@
             <div class="nav-section">Kinh doanh</div>
             <a class="nav-item" th:classappend="${activeMenu == 'bill'} ? 'active'" href="/admin/bill">
                 <i class="bi bi-receipt-cutoff"></i> Đơn hàng
+                <span th:if="${newOrderCount > 0}" class="ms-auto badge"
+                      style="background:#ef4444;color:white;font-size:10px;padding:2px 7px;border-radius:10px;"
+                      th:text="${newOrderCount}"></span>
             </a>
             <a class="nav-item" th:classappend="${activeMenu == 'import'} ? 'active'" href="/admin/import">
                 <i class="bi bi-box-arrow-in-down"></i> Phiếu nhập
@@ -187,6 +190,9 @@
             <div class="nav-section">Người dùng</div>
             <a class="nav-item" th:classappend="${activeMenu == 'customer'} ? 'active'" href="/admin/customer">
                 <i class="bi bi-people"></i> Khách hàng
+                <span th:if="${newCustomerCount > 0}" class="ms-auto badge"
+                      style="background:#ef4444;color:white;font-size:10px;padding:2px 7px;border-radius:10px;"
+                      th:text="${newCustomerCount}"></span>
             </a>
             <a class="nav-item" th:classappend="${activeMenu == 'staff'} ? 'active'" href="/admin/staff">
                 <i class="bi bi-person-badge"></i> Nhân viên

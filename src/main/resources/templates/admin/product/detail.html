@@ -22,8 +22,8 @@
             .info-block { margin-bottom: 16px; }
             .variant-qty-low { color: #dc2626; font-weight: 700; }
 
-            /* Bộ lọc size */
-            #sizeFilter { min-width: 160px; }
+            /* Bộ lọc size + màu */
+            #sizeFilter, #colorFilter { min-width: 150px; }
             tr[data-row-type="header"] td {
                 background: #f8fafc;
             }
@@ -160,58 +160,8 @@
 
     <div class="row g-4">
 
-        <!-- Form thêm biến thể -->
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-header"><i class="bi bi-plus-circle"></i> Thêm biến thể</div>
-                <div class="card-body p-4">
-                    <form th:action="@{/admin/product/detail/save}" method="post">
-                        <input type="hidden" name="productId" th:value="${product.id}"/>
-
-                        <div class="mb-3">
-                            <label class="form-label">Size</label>
-                            <select name="sizeId" class="form-select" required>
-                                <option value="">-- Chọn size --</option>
-                                <option th:each="s : ${sizes}" th:value="${s.id}" th:text="${s.name}"></option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Màu sắc</label>
-                            <select name="colorId" class="form-select" required>
-                                <option value="">-- Chọn màu --</option>
-                                <option th:each="c : ${colors}" th:value="${c.id}" th:text="${c.name}"></option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Số lượng</label>
-                            <input type="number" name="quantity" class="form-control" placeholder="VD: 100" min="0" required/>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Giá bán (đ)</label>
-                            <input type="number" name="price" class="form-control" placeholder="VD: 500000" min="0" required/>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Barcode</label>
-                            <input type="text" name="barcode" class="form-control" placeholder="VD: NK-S-DO-001"/>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Trạng thái</label>
-                            <select name="deleteFlag" class="form-select">
-                                <option value="false">Hoạt động</option>
-                                <option value="true">Tắt</option>
-                            </select>
-                        </div>
-
-                        <button type="submit" class="btn btn-purple w-100">
-                            <i class="bi bi-save"></i> Thêm biến thể
-                        </button>
-                    </form>
-                </div>
-            </div>
-        </div>
-
         <!-- Danh sách biến thể -->
-        <div class="col-md-8">
+        <div class="col-12">
             <div class="card">
                 <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
                     <div>
@@ -219,10 +169,19 @@
                         <span class="ms-2" style="font-size:12px;opacity:0.7;"
                               th:text="'(' + ${#lists.size(details)} + ' biến thể)'"></span>
                     </div>
-                    <select id="sizeFilter" class="form-select form-select-sm">
-                        <option value="all">Tất cả size</option>
-                        <option th:each="s : ${sizes}" th:value="${s.id}" th:text="${s.name}"></option>
-                    </select>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <select id="sizeFilter" class="form-select form-select-sm">
+                            <option value="all">Tất cả size</option>
+                            <option th:each="s : ${sizes}" th:value="${s.id}" th:text="${s.name}"></option>
+                        </select>
+                        <select id="colorFilter" class="form-select form-select-sm">
+                            <option value="all">Tất cả màu</option>
+                            <option th:each="c : ${colors}" th:value="${c.id}" th:text="${c.name}"></option>
+                        </select>
+                        <button type="button" class="btn btn-sm btn-purple" data-bs-toggle="modal" data-bs-target="#addDetailModal">
+                            <i class="bi bi-plus-circle"></i> Thêm biến thể
+                        </button>
+                    </div>
                 </div>
                 <div class="card-body p-0">
                     <table class="table table-hover mb-0">
@@ -253,7 +212,7 @@
                                 </td>
                             </tr>
                             <tr data-row-type="data"
-                                th:attr="data-size-id=${d.size != null ? d.size.id : ''}">
+                                th:attr="data-size-id=${d.size != null ? d.size.id : ''}, data-color-id=${d.color != null ? d.color.id : ''}">
                                 <td th:text="${i.count}" class="text-muted"></td>
                                 <td>
                                     <span style="background:#eff6ff;color:#2563eb;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;"
@@ -330,6 +289,62 @@
 
     </div>
 
+    <!-- Modal thêm biến thể -->
+    <div class="modal fade" id="addDetailModal" tabindex="-1" data-bs-backdrop="static">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form th:action="@{/admin/product/detail/save}" method="post">
+                    <input type="hidden" name="productId" th:value="${product.id}"/>
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="bi bi-plus-circle"></i> Thêm biến thể</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Size</label>
+                            <select name="sizeId" class="form-select" required>
+                                <option value="">-- Chọn size --</option>
+                                <option th:each="s : ${sizes}" th:value="${s.id}" th:text="${s.name}"></option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Màu sắc</label>
+                            <select name="colorId" class="form-select" required>
+                                <option value="">-- Chọn màu --</option>
+                                <option th:each="c : ${colors}" th:value="${c.id}" th:text="${c.name}"></option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Số lượng</label>
+                            <input type="number" name="quantity" class="form-control" placeholder="VD: 100" min="0" required/>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Giá bán (đ)</label>
+                            <input type="number" name="price" class="form-control" placeholder="VD: 500000" min="0" required/>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Barcode</label>
+                            <input type="text" name="barcode" class="form-control" placeholder="VD: NK-S-DO-001"/>
+                        </div>
+                        <div class="mb-0">
+                            <label class="form-label">Trạng thái</label>
+                            <select name="deleteFlag" class="form-select">
+                                <option value="false">Hoạt động</option>
+                                <option value="true">Tắt</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                        <button type="submit" class="btn btn-purple">
+                            <i class="bi bi-save"></i> Thêm biến thể
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal áp khuyến mãi (1 modal / biến thể) -->
     <div class="modal fade" th:id="'saleModal' + ${d.id}" tabindex="-1" th:each="d : ${details}">
         <div class="modal-dialog">
@@ -378,43 +393,54 @@
 
 <div th:replace="~{admin/fragments/layout :: adminScripts}"></div>
 
-<!-- Lọc biến thể theo size (client-side, không cần phân trang) -->
+<!-- Lọc biến thể theo size + màu (client-side, không cần phân trang) -->
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        var filterSelect = document.getElementById('sizeFilter');
+        var sizeFilter = document.getElementById('sizeFilter');
+        var colorFilter = document.getElementById('colorFilter');
         var tbody = document.getElementById('detailsBody');
         var emptyMsg = document.getElementById('noVariantForSize');
-        if (!filterSelect || !tbody) return;
+        if (!sizeFilter || !colorFilter || !tbody) return;
 
         function applyFilter() {
-            var selected = filterSelect.value; // 'all' hoặc id size
+            var selSize = sizeFilter.value;   // 'all' hoặc id size
+            var selColor = colorFilter.value; // 'all' hoặc id màu
             var rows = tbody.querySelectorAll('tr[data-row-type]');
             var visibleDataCount = 0;
+            var sizeHasVisible = {};
 
+            // Bước 1: lọc từng dòng dữ liệu theo cả size lẫn màu (AND)
             rows.forEach(function (row) {
-                var rowType = row.getAttribute('data-row-type');
+                if (row.getAttribute('data-row-type') !== 'data') return;
                 var rowSizeId = row.getAttribute('data-size-id');
-
-                if (selected === 'all') {
-                    // Hiện tất cả, giữ nguyên header nhóm theo size
-                    row.classList.remove('d-none-filtered');
-                    if (rowType === 'data') visibleDataCount++;
-                } else if (rowType === 'header') {
-                    // Chọn 1 size cụ thể: ẩn header nhóm vì chỉ còn đúng 1 size, không cần chia nhóm nữa
-                    row.classList.add('d-none-filtered');
-                } else {
-                    var match = rowSizeId === selected;
-                    row.classList.toggle('d-none-filtered', !match);
-                    if (match) visibleDataCount++;
+                var rowColorId = row.getAttribute('data-color-id');
+                var matchSize = (selSize === 'all' || rowSizeId === selSize);
+                var matchColor = (selColor === 'all' || rowColorId === selColor);
+                var visible = matchSize && matchColor;
+                row.classList.toggle('d-none-filtered', !visible);
+                if (visible) {
+                    visibleDataCount++;
+                    sizeHasVisible[rowSizeId] = true;
                 }
             });
 
+            // Bước 2: dòng header nhóm theo size — chỉ hiện khi đang xem "Tất cả size"
+            // và nhóm size đó còn ít nhất 1 biến thể hiển thị sau khi lọc màu
+            rows.forEach(function (row) {
+                if (row.getAttribute('data-row-type') !== 'header') return;
+                var rowSizeId = row.getAttribute('data-size-id');
+                var show = (selSize === 'all') && sizeHasVisible[rowSizeId];
+                row.classList.toggle('d-none-filtered', !show);
+            });
+
+            var filtering = (selSize !== 'all' || selColor !== 'all');
             if (emptyMsg) {
-                emptyMsg.style.display = (selected !== 'all' && visibleDataCount === 0) ? '' : 'none';
+                emptyMsg.style.display = (filtering && visibleDataCount === 0) ? '' : 'none';
             }
         }
 
-        filterSelect.addEventListener('change', applyFilter);
+        sizeFilter.addEventListener('change', applyFilter);
+        colorFilter.addEventListener('change', applyFilter);
         applyFilter();
     });
 </script>

@@ -17,6 +17,9 @@ public interface BillRepository extends JpaRepository<Bill, Integer> {
 
     List<Bill> findByStatusOrderByCreateDateDesc(Integer status);
 
+    // Đếm số đơn hàng theo trạng thái (dùng cho badge "đơn hàng mới" - status=1: Chờ xác nhận)
+    long countByStatus(Integer status);
+
     // Phân trang
     Page<Bill> findAllByOrderByCreateDateDesc(Pageable pageable);
 

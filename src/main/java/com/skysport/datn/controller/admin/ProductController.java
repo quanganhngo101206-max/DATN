@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Controller
 @RequestMapping("/admin/product")
@@ -38,32 +39,45 @@ public class ProductController {
     public String list(@RequestParam(required = false) String keyword,
                        @RequestParam(required = false) Integer categoryId,
                        @RequestParam(required = false) Integer brandId,
+                       @RequestParam(required = false) Integer materialId,
+                       @RequestParam(required = false) Integer sizeId,
+                       @RequestParam(required = false) Integer colorId,
                        @RequestParam(required = false) Integer status,
                        @RequestParam(defaultValue = "0") int page,
                        @RequestParam(defaultValue = "10") int size,
                        Model model) {
-        populateListAttributes(model, keyword, categoryId, brandId, status, page, size);
+        populateListAttributes(model, keyword, categoryId, brandId, materialId, sizeId, colorId, status, page, size);
         model.addAttribute("product", new Product());
         return "admin/product/list";
     }
 
     // Gom logic tìm kiếm/lọc/phân trang dùng chung cho list(), addForm(), edit()
-    private void populateListAttributes(Model model, String keyword, Integer categoryId,
-                                        Integer brandId, Integer status, int page, int size) {
+    private void populateListAttributes(Model model, String keyword, Integer categoryId, Integer brandId,
+                                        Integer materialId, Integer sizeId, Integer colorId,
+                                        Integer status, int page, int size) {
         Pageable pageable = PageRequest.of(Math.max(page, 0), Math.max(size, 1),
                 Sort.by(Sort.Direction.DESC, "id"));
-        Page<Product> productPage = productService.search(keyword, categoryId, brandId, status, pageable);
+        Page<Product> productPage = productService.search(keyword, categoryId, brandId, materialId,
+                sizeId, colorId, status, pageable);
+
+        List<Integer> productIds = productPage.getContent().stream().map(Product::getId).toList();
 
         model.addAttribute("productPage", productPage);
         model.addAttribute("products", productPage.getContent());
+        model.addAttribute("quantities", productService.getQuantityMap(productIds));
         model.addAttribute("categories", productService.findAllCategory());
         model.addAttribute("brands", productService.findAllBrand());
         model.addAttribute("materials", productService.findAllMaterial());
+        model.addAttribute("sizes", productDetailService.findAllSize());
+        model.addAttribute("colors", productDetailService.findAllColor());
 
         // Giữ lại giá trị tìm kiếm/lọc trên form để hiển thị lại sau khi submit
         model.addAttribute("keyword", keyword);
         model.addAttribute("selectedCategoryId", categoryId);
         model.addAttribute("selectedBrandId", brandId);
+        model.addAttribute("selectedMaterialId", materialId);
+        model.addAttribute("selectedSizeId", sizeId);
+        model.addAttribute("selectedColorId", colorId);
         model.addAttribute("selectedStatus", status);
         model.addAttribute("pageSize", size);
     }
@@ -86,9 +100,10 @@ public class ProductController {
 
     @GetMapping("/add")
     public String addForm(Model model) {
-        // Object rỗng cho form
+        // Object rỗng cho form — modal thêm sản phẩm sẽ tự mở khi vào trang này
         model.addAttribute("product", new Product());
-        populateListAttributes(model, null, null, null, null, 0, 10);
+        model.addAttribute("openModal", true);
+        populateListAttributes(model, null, null, null, null, null, null, null, 0, 10);
         return "admin/product/list";
     }
 
@@ -96,7 +111,14 @@ public class ProductController {
     @GetMapping("/detail/{id}")
     public String detail(@PathVariable Integer id, Model model) {
         model.addAttribute("product", productService.findById(id));
-        model.addAttribute("details", productDetailService.findByProduct(id));
+        List<ProductDetail> details = productDetailService.findByProduct(id);
+        model.addAttribute("details", details);
+        // Tổng số lượng tồn kho = tổng quantity của các biến thể đang hoạt động (không tính biến thể đã xóa mềm)
+        int totalQuantity = details.stream()
+                .filter(d -> d.getDeleteFlag() == null || !d.getDeleteFlag())
+                .mapToInt(d -> d.getQuantity() != null ? d.getQuantity() : 0)
+                .sum();
+        model.addAttribute("totalQuantity", totalQuantity);
         model.addAttribute("sizes", productDetailService.findAllSize());
         model.addAttribute("colors", productDetailService.findAllColor());
         model.addAttribute("newDetail", new ProductDetail());
@@ -179,11 +201,12 @@ public class ProductController {
         return "redirect:/admin/product/detail/" + productId;
     }
 
-    // Form sửa sản phẩm
+    // Form sửa sản phẩm — modal sửa sẽ tự mở với dữ liệu đã điền sẵn
     @GetMapping("/edit/{id}")
     public String edit(@PathVariable Integer id, Model model) {
         model.addAttribute("product", productService.findById(id));
-        populateListAttributes(model, null, null, null, null, 0, 10);
+        model.addAttribute("openModal", true);
+        populateListAttributes(model, null, null, null, null, null, null, null, 0, 10);
         return "admin/product/list";
     }
 

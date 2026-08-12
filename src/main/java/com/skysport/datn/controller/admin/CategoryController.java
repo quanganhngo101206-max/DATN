@@ -34,6 +34,7 @@ public class CategoryController {
     public String edit(@PathVariable Integer id, Model model) {
         model.addAttribute("category", categoryService.findById(id));
         model.addAttribute("categories", categoryService.findAll());
+        model.addAttribute("openModal", true);
         return "admin/category/list";
     }
 

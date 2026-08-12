@@ -32,6 +32,7 @@ public class ColorController {
     public String edit(@PathVariable Integer id, Model model) {
         model.addAttribute("color", colorService.findById(id));
         model.addAttribute("colors", colorService.findAll());
+        model.addAttribute("openModal", true);
         return "admin/color/list";
     }
 
@@ -47,4 +48,3 @@ public class ColorController {
         return "redirect:/admin/color";
     }
 }
-

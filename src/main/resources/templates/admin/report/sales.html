@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{admin/fragments/layout :: adminHead(~{::title}, ~{::extraHead})}">
+    <title>Báo cáo doanh thu - SkySport</title>
+    <th:block th:fragment="extraHead">
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <style>
+            .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+            @media (max-width: 992px) { .stat-grid { grid-template-columns: repeat(2, 1fr); } }
+            .stat-box {
+                background: #fff; border: 1px solid var(--border); border-radius: var(--radius);
+                padding: 16px 18px; box-shadow: var(--shadow-sm);
+            }
+            .stat-box .label { font-size: 12px; color: var(--text-secondary); font-weight: 500; margin-bottom: 6px; }
+            .stat-box .value { font-size: 22px; font-weight: 700; color: var(--text-primary); line-height: 1.2; }
+            .stat-box .sub { font-size: 11.5px; color: var(--text-muted); margin-top: 4px; }
+            .stat-box.accent .value { color: #16a34a; }
+            .filter-bar {
+                background: #fff; border: 1px solid var(--border); border-radius: var(--radius);
+                padding: 14px 18px; margin-bottom: 20px; display: flex; flex-wrap: wrap;
+                gap: 10px; align-items: end; box-shadow: var(--shadow-sm);
+            }
+            .filter-bar .preset-btn {
+                border: 1.5px solid var(--border); background: #fff; color: var(--text-secondary);
+                border-radius: 8px; padding: 7px 12px; font-size: 12.5px; font-weight: 500;
+                text-decoration: none; transition: all .15s;
+            }
+            .filter-bar .preset-btn:hover { border-color: var(--brand-primary); color: var(--brand-primary); }
+            .filter-bar .preset-btn.active {
+                background: var(--brand-primary); border-color: var(--brand-primary); color: #fff;
+            }
+            .chart-card {
+                background: #fff; border: 1px solid var(--border); border-radius: var(--radius);
+                box-shadow: var(--shadow-sm); margin-bottom: 20px; overflow: hidden;
+            }
+            .chart-card .card-title {
+                padding: 14px 18px; border-bottom: 1px solid var(--border);
+                font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 8px;
+            }
+            .chart-card .card-body { padding: 16px 18px; }
+            .rank-1 { background: #fef3c7; color: #b45309; }
+            .rank-2 { background: #e2e8f0; color: #475569; }
+            .rank-3 { background: #ffedd5; color: #c2410c; }
+            .rank-other { background: #f1f5f9; color: #64748b; }
+            .rank-num {
+                width: 24px; height: 24px; border-radius: 6px; display: inline-flex;
+                align-items: center; justify-content: center; font-size: 11px; font-weight: 700;
+            }
+        </style>
+    </th:block>
+</head>
+<body>
+
+<div th:replace="~{admin/fragments/layout :: adminSidebar('report')}"></div>
+
+<div class="main-content">
+    <div class="page-header-bar">
+        <div class="page-header" style="margin-bottom:0;">
+            <h4><i class="bi bi-bar-chart-line me-2"></i>Thống kê &amp; Báo cáo</h4>
+            <p th:text="'Từ ' + ${#temporals.format(from, 'dd/MM/yyyy')} + ' đến ' + ${#temporals.format(to, 'dd/MM/yyyy')}">Khoảng thời gian</p>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <a th:href="@{/admin/report/sales/export(from=${from}, to=${to}, preset=${preset})}"
+               class="btn btn-outline-secondary">
+                <i class="bi bi-filetype-csv me-1"></i> Xuất CSV
+            </a>
+            <a th:href="@{/admin/report/sales/export-excel(from=${from}, to=${to}, preset=${preset}, type='all')}"
+               class="btn btn-primary-dark">
+                <i class="bi bi-file-earmark-excel me-1"></i> Xuất Excel
+            </a>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <form class="filter-bar" method="get" th:action="@{/admin/report/sales}">
+        <div>
+            <div class="form-label">Nhanh</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                <a th:href="@{/admin/report/sales(preset='today')}"
+                   th:classappend="${preset == 'today'} ? ' active'" class="preset-btn">Hôm nay</a>
+                <a th:href="@{/admin/report/sales(preset='7d')}"
+                   th:classappend="${preset == '7d'} ? ' active'" class="preset-btn">7 ngày</a>
+                <a th:href="@{/admin/report/sales(preset='30d')}"
+                   th:classappend="${preset == '30d'} ? ' active'" class="preset-btn">30 ngày</a>
+                <a th:href="@{/admin/report/sales(preset='month')}"
+                   th:classappend="${preset == 'month'} ? ' active'" class="preset-btn">Tháng này</a>
+            </div>
+        </div>
+        <div>
+            <label class="form-label" for="from">Từ ngày</label>
+            <input type="date" id="from" name="from" class="form-control"
+                   th:value="${from}" style="min-width:150px;">
+        </div>
+        <div>
+            <label class="form-label" for="to">Đến ngày</label>
+            <input type="date" id="to" name="to" class="form-control"
+                   th:value="${to}" style="min-width:150px;">
+        </div>
+        <button type="submit" class="btn btn-purple text-white" style="padding:8px 16px;">
+            <i class="bi bi-funnel"></i> Lọc
+        </button>
+    </form>
+
+    <!-- KPI cards -->
+    <div class="stat-grid">
+        <div class="stat-box accent">
+            <div class="label">Doanh thu hoàn thành</div>
+            <div class="value" th:text="${#numbers.formatInteger(report.revenue, 0, 'COMMA')} + 'đ'">0đ</div>
+            <div class="sub" th:text="${report.completedCount} + ' đơn hoàn thành'"></div>
+        </div>
+        <div class="stat-box">
+            <div class="label">Tổng đơn trong kỳ</div>
+            <div class="value" th:text="${report.orderCount}">0</div>
+            <div class="sub" th:text="${report.cancelledCount} + ' đơn hủy'"></div>
+        </div>
+        <div class="stat-box">
+            <div class="label">Giá trị đơn TB</div>
+            <div class="value" th:text="${#numbers.formatInteger(report.avgOrderValue, 0, 'COMMA')} + 'đ'">0đ</div>
+            <div class="sub">Theo đơn hoàn thành</div>
+        </div>
+        <div class="stat-box">
+            <div class="label">Chi phí nhập hàng</div>
+            <div class="value" th:text="${#numbers.formatInteger(report.importCost, 0, 'COMMA')} + 'đ'">0đ</div>
+            <div class="sub"
+                 th:text="'Chênh lệch thu - chi: ' + ${#numbers.formatInteger(report.estimatedNetRevenue, 0, 'COMMA')} + 'đ'"></div>
+        </div>
+    </div>
+
+    <div class="stat-grid">
+        <div class="stat-box">
+            <div class="label">Doanh thu Online</div>
+            <div class="value" th:text="${#numbers.formatInteger(report.onlineRevenue, 0, 'COMMA')} + 'đ'">0đ</div>
+            <div class="sub" th:text="${report.onlineOrders} + ' đơn'"></div>
+        </div>
+        <div class="stat-box">
+            <div class="label">Doanh thu tại quầy</div>
+            <div class="value" th:text="${#numbers.formatInteger(report.posRevenue, 0, 'COMMA')} + 'đ'">0đ</div>
+            <div class="sub" th:text="${report.posOrders} + ' đơn'"></div>
+        </div>
+        <div class="stat-box">
+            <div class="label">Tỷ lệ hoàn thành</div>
+            <div class="value text-success"
+                 th:text="${#numbers.formatDecimal(report.completionRate, 1, 1)} + '%'">0%</div>
+            <div class="sub" th:text="|${report.completedCount}/${report.orderCount} đơn|"></div>
+        </div>
+        <div class="stat-box">
+            <div class="label">Tỷ lệ hủy</div>
+            <div class="value text-danger"
+                 th:text="${#numbers.formatDecimal(report.cancellationRate, 1, 1)} + '%'">0%</div>
+            <div class="sub"
+                 th:text="|${report.cancelledCount} đơn hủy · ${report.returningCount} đơn trả|"></div>
+        </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="row g-3 mb-1">
+        <div class="col-lg-8">
+            <div class="chart-card">
+                <div class="card-title"><i class="bi bi-graph-up"></i> Doanh thu theo ngày</div>
+                <div class="card-body">
+                    <canvas id="revenueChart" height="120"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="chart-card">
+                <div class="card-title"><i class="bi bi-pie-chart"></i> Kênh bán hàng</div>
+                <div class="card-body">
+                    <canvas id="channelChart" height="180"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-1">
+        <div class="col-lg-5">
+            <div class="chart-card">
+                <div class="card-title"><i class="bi bi-diagram-3"></i> Trạng thái đơn</div>
+                <div class="card-body">
+                    <canvas id="statusChart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-7">
+            <div class="chart-card">
+                <div class="card-title">
+                    <i class="bi bi-trophy"></i> Top sản phẩm bán chạy
+                    <a class="ms-auto btn btn-sm btn-outline-success"
+                       th:href="@{/admin/report/sales/export-excel(from=${from},to=${to},preset=${preset},type='products')}">
+                        <i class="bi bi-file-earmark-excel"></i> Excel
+                    </a>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                        <tr>
+                            <th style="width:50px;">#</th>
+                            <th>Sản phẩm</th>
+                            <th>Đã bán</th>
+                            <th>Doanh thu</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="p, st : ${report.topProducts}">
+                            <td>
+                                <span th:class="${st.index == 0 ? 'rank-num rank-1' : (st.index == 1 ? 'rank-num rank-2' : (st.index == 2 ? 'rank-num rank-3' : 'rank-num rank-other'))}"
+                                      th:text="${st.count}">1</span>
+                            </td>
+                            <td th:text="${p.productName}">SP</td>
+                            <td th:text="${p.totalSold}">0</td>
+                            <td class="fw-semibold text-success" th:text="${#numbers.formatInteger(p.revenue, 0, 'COMMA')} + 'đ'">0đ</td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(report.topProducts)}">
+                            <td colspan="4" class="text-center text-muted py-4">Chưa có dữ liệu trong kỳ</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-1">
+        <div class="col-lg-6">
+            <div class="chart-card">
+                <div class="card-title">
+                    <i class="bi bi-grid"></i> Top danh mục
+                    <a class="ms-auto btn btn-sm btn-outline-success"
+                       th:href="@{/admin/report/sales/export-excel(from=${from},to=${to},preset=${preset},type='categories')}">
+                        <i class="bi bi-file-earmark-excel"></i> Excel
+                    </a>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                        <tr>
+                            <th>Danh mục</th>
+                            <th>SL</th>
+                            <th>Doanh thu</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="c : ${report.topCategories}">
+                            <td th:text="${c.categoryName}">DM</td>
+                            <td th:text="${c.totalSold}">0</td>
+                            <td th:text="${#numbers.formatInteger(c.revenue, 0, 'COMMA')} + 'đ'">0đ</td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(report.topCategories)}">
+                            <td colspan="3" class="text-center text-muted py-4">Chưa có dữ liệu</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="chart-card">
+                <div class="card-title">
+                    <i class="bi bi-people"></i> Khách hàng nổi bật
+                    <a class="ms-auto btn btn-sm btn-outline-success"
+                       th:href="@{/admin/report/sales/export-excel(from=${from},to=${to},preset=${preset},type='customers')}">
+                        <i class="bi bi-file-earmark-excel"></i> Excel
+                    </a>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                        <tr>
+                            <th>Khách hàng</th>
+                            <th>Đơn hoàn thành</th>
+                            <th>Doanh thu</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="customer : ${report.topCustomers}">
+                            <td class="fw-semibold" th:text="${customer.customerName}">Khách hàng</td>
+                            <td th:text="${customer.orderCount}">0</td>
+                            <td class="text-success"
+                                th:text="${#numbers.formatInteger(customer.revenue, 0, 'COMMA')} + 'đ'">0đ</td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(report.topCustomers)}">
+                            <td colspan="3" class="text-center text-muted py-4">Chưa có dữ liệu</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-1">
+        <div class="col-12">
+            <div class="chart-card">
+                <div class="card-title">
+                    <i class="bi bi-receipt"></i> Đơn hàng trong kỳ
+                    <span style="font-size:12px;font-weight:400;color:var(--text-muted);"
+                          th:text="|${orderPage.totalElements} kết quả|">0 kết quả</span>
+                    <a class="ms-auto btn btn-sm btn-outline-success"
+                       th:href="@{/admin/report/sales/export-excel(from=${from},to=${to},preset=${preset},type='orders',status=${statusFilter},channel=${channelFilter},q=${keyword})}">
+                        <i class="bi bi-file-earmark-excel"></i> Excel
+                    </a>
+                </div>
+                <form method="get" th:action="@{/admin/report/sales}"
+                      style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                    <input type="hidden" name="from" th:value="${from}">
+                    <input type="hidden" name="to" th:value="${to}">
+                    <input type="hidden" name="preset" th:value="${preset}">
+                    <input class="form-control" type="search" name="q" th:value="${keyword}"
+                           placeholder="Mã đơn hoặc khách hàng" style="max-width:230px;">
+                    <select class="form-select" name="status" style="max-width:170px;">
+                        <option value="">Tất cả trạng thái</option>
+                        <option value="1" th:selected="${statusFilter == 1}">Chờ xác nhận</option>
+                        <option value="2" th:selected="${statusFilter == 2}">Đã xác nhận</option>
+                        <option value="3" th:selected="${statusFilter == 3}">Đang giao</option>
+                        <option value="4" th:selected="${statusFilter == 4}">Đã giao</option>
+                        <option value="5" th:selected="${statusFilter == 5}">Đã hủy</option>
+                        <option value="6" th:selected="${statusFilter == 6}">Trả hàng</option>
+                        <option value="7" th:selected="${statusFilter == 7}">Hoàn thành</option>
+                    </select>
+                    <select class="form-select" name="channel" style="max-width:150px;">
+                        <option value="">Tất cả kênh</option>
+                        <option value="online" th:selected="${channelFilter == 'online'}">Online</option>
+                        <option value="pos" th:selected="${channelFilter == 'pos'}">Tại quầy</option>
+                    </select>
+                    <select class="form-select" name="size" style="max-width:115px;">
+                        <option value="5" th:selected="${pageSize == 5}">5 dòng</option>
+                        <option value="10" th:selected="${pageSize == 10}">10 dòng</option>
+                        <option value="20" th:selected="${pageSize == 20}">20 dòng</option>
+                        <option value="50" th:selected="${pageSize == 50}">50 dòng</option>
+                    </select>
+                    <button class="btn btn-primary-dark" type="submit">
+                        <i class="bi bi-search"></i> Tìm
+                    </button>
+                    <a class="btn btn-outline-secondary"
+                       th:href="@{/admin/report/sales(from=${from},to=${to},preset=${preset})}">
+                        Xóa lọc
+                    </a>
+                </form>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                            <tr>
+                                <th>Mã đơn</th>
+                                <th>Khách hàng</th>
+                                <th>Ngày</th>
+                                <th>Kênh</th>
+                                <th>Trạng thái</th>
+                                <th>Tổng tiền</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="o : ${orderPage.content}">
+                                <td>
+                                    <a th:href="@{/admin/bill/detail/{id}(id=${o.id})}" class="fw-semibold text-decoration-none"
+                                       th:text="${o.code}">#</a>
+                                </td>
+                                <td th:text="${o.customerName}">KH</td>
+                                <td th:text="${o.createDate}">-</td>
+                                <td th:text="${o.channel}">Online</td>
+                                <td th:text="${o.statusText}">-</td>
+                                <td class="fw-semibold" th:text="${#numbers.formatInteger(o.amount, 0, 'COMMA')} + 'đ'">0đ</td>
+                            </tr>
+                            <tr th:if="${orderPage.empty}">
+                                <td colspan="6" class="text-center text-muted py-4">Không có đơn trong khoảng thời gian này</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div th:if="${orderPage.totalPages > 1}"
+                     style="padding:12px 16px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+                    <span class="text-muted" style="font-size:12px;"
+                          th:text="|Trang ${orderPage.number + 1}/${orderPage.totalPages}|">Trang 1/1</span>
+                    <nav aria-label="Phân trang đơn hàng">
+                        <ul class="pagination pagination-sm mb-0">
+                            <li class="page-item" th:classappend="${orderPage.first} ? 'disabled'">
+                                <a class="page-link"
+                                   th:href="@{/admin/report/sales(from=${from},to=${to},preset=${preset},status=${statusFilter},channel=${channelFilter},q=${keyword},size=${pageSize},page=${orderPage.number - 1})}">
+                                    Trước
+                                </a>
+                            </li>
+                            <li class="page-item"
+                                th:each="p : ${#numbers.sequence(startPage, endPage)}"
+                                th:classappend="${p == orderPage.number} ? 'active'">
+                                <a class="page-link"
+                                   th:href="@{/admin/report/sales(from=${from},to=${to},preset=${preset},status=${statusFilter},channel=${channelFilter},q=${keyword},size=${pageSize},page=${p})}"
+                                   th:text="${p + 1}">1</a>
+                            </li>
+                            <li class="page-item" th:classappend="${orderPage.last} ? 'disabled'">
+                                <a class="page-link"
+                                   th:href="@{/admin/report/sales(from=${from},to=${to},preset=${preset},status=${statusFilter},channel=${channelFilter},q=${keyword},size=${pageSize},page=${orderPage.number + 1})}">
+                                    Sau
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div th:replace="~{admin/fragments/layout :: adminScripts}"></div>
+<script th:inline="javascript">
+    const revenueLabels = /*[[${report.revenueLabels}]]*/ [];
+    const revenueData = /*[[${report.revenueData}]]*/ [];
+    const statusLabels = /*[[${report.statusLabels}]]*/ [];
+    const statusData = /*[[${report.statusData}]]*/ [];
+    const channelLabels = /*[[${report.channelLabels}]]*/ [];
+    const channelData = /*[[${report.channelData}]]*/ [];
+
+    new Chart(document.getElementById('revenueChart'), {
+        type: 'line',
+        data: {
+            labels: revenueLabels,
+            datasets: [{
+                label: 'Doanh thu',
+                data: revenueData,
+                borderColor: '#2563eb',
+                backgroundColor: 'rgba(37,99,235,0.08)',
+                borderWidth: 2.5,
+                pointRadius: revenueLabels.length > 31 ? 0 : 3,
+                tension: 0.35,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: { label: ctx => ' ' + ctx.parsed.y.toLocaleString('vi') + 'đ' }
+                }
+            },
+            scales: {
+                x: { grid: { display: false }, ticks: { maxTicksLimit: 12, color: '#94a3b8' } },
+                y: {
+                    beginAtZero: true,
+                    grid: { color: '#f1f5f9' },
+                    ticks: {
+                        color: '#94a3b8',
+                        callback: v => v >= 1000000 ? (v / 1000000).toFixed(1) + 'tr' : v.toLocaleString('vi')
+                    }
+                }
+            }
+        }
+    });
+
+    new Chart(document.getElementById('channelChart'), {
+        type: 'doughnut',
+        data: {
+            labels: channelLabels,
+            datasets: [{
+                data: channelData,
+                backgroundColor: ['#2563eb', '#10b981'],
+                borderWidth: 0,
+                hoverOffset: 6
+            }]
+        },
+        options: {
+            cutout: '65%',
+            plugins: {
+                legend: { position: 'bottom', labels: { usePointStyle: true, padding: 14 } },
+                tooltip: {
+                    callbacks: { label: ctx => ' ' + ctx.parsed.toLocaleString('vi') + 'đ' }
+                }
+            }
+        }
+    });
+
+    new Chart(document.getElementById('statusChart'), {
+        type: 'bar',
+        data: {
+            labels: statusLabels,
+            datasets: [{
+                data: statusData,
+                backgroundColor: ['#f59e0b', '#3b82f6', '#06b6d4', '#8b5cf6', '#10b981', '#ef4444', '#64748b'],
+                borderRadius: 6,
+                borderSkipped: false
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { ticks: { font: { size: 10 }, color: '#64748b' }, grid: { display: false } },
+                y: { beginAtZero: true, ticks: { stepSize: 1, color: '#94a3b8' }, grid: { color: '#f1f5f9' } }
+            }
+        }
+    });
+</script>
+</body>
+</html>

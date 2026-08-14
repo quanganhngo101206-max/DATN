@@ -396,6 +396,9 @@
         <a class="nav-item active" href="/admin/dashboard">
             <i class="bi bi-speedometer2"></i> Dashboard
         </a>
+        <a class="nav-item" href="/admin/report/sales">
+            <i class="bi bi-bar-chart-line"></i> Báo cáo doanh thu
+        </a>
 
         <div class="nav-section">Danh mục</div>
         <a class="nav-item" href="/admin/product"><i class="bi bi-box-seam"></i> Sản phẩm</a>
@@ -456,21 +459,12 @@
             <div class="stat-card">
                 <div class="stat-header">
                     <div class="stat-icon icon-blue"><i class="bi bi-currency-dollar"></i></div>
-                    <span class="stat-badge badge-up">↑ Hôm nay</span>
+                    <span class="stat-badge badge-neutral">Tổng cộng</span>
                 </div>
                 <div class="stat-value" th:text="${#numbers.formatInteger(totalRevenue, 0, 'COMMA')}">0</div>
-                <div class="stat-label">Doanh thu (VNĐ)</div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="stat-card">
-                <div class="stat-header">
-                    <div class="stat-icon icon-green"><i class="bi bi-graph-up"></i></div>
-                    <span class="stat-badge badge-neutral">Lợi nhuận ròng</span>
-                </div>
-                <div class="stat-value" th:text="${#numbers.formatInteger(totalProfit, 0, 'COMMA')}"
-                     th:style="${totalProfit >= 0} ? 'color:#16a34a' : 'color:#dc2626'">0</div>
-                <div class="stat-label">Thu nhập (Doanh thu - Giá vốn)</div>
+                <div class="stat-label">Doanh thu hoàn thành (VNĐ)</div>
+                <div style="font-size:11.5px;color:var(--text-muted);margin-top:6px;"
+                     th:text="'Hôm nay: ' + ${#numbers.formatInteger(todayRevenue, 0, 'COMMA')} + 'đ'">Hôm nay: 0đ</div>
             </div>
         </div>
         <div class="col-md-3">
@@ -545,7 +539,6 @@
                         <th>Sản phẩm</th>
                         <th>Đã bán</th>
                         <th>Doanh thu</th>
-                        <th>Lợi nhuận</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -563,15 +556,10 @@
                             </div>
                         </td>
                         <td><span style="font-weight:600;" th:text="${product.totalSold}">0</span> sản phẩm</td>
-                        <td>
-                            <div style="font-weight:600;color:#16a34a;" th:text="${#numbers.formatInteger(product.revenue, 0, 'COMMA') + 'đ'}">0đ</div>
-                            <div style="font-size:11px;color:#94a3b8;" th:text="'Giá bán TB: ' + ${#numbers.formatInteger(product.avgSellingPrice, 0, 'COMMA')} + 'đ'"></div>
-                        </td>
-                        <td style="font-weight:600;" th:text="${#numbers.formatInteger(product.profit, 0, 'COMMA') + 'đ'}"
-                            th:style="${product.profit >= 0} ? 'color:#16a34a' : 'color:#dc2626'">0đ</td>
+                        <td style="font-weight:600;color:#16a34a;" th:text="${#numbers.formatInteger(product.revenue, 0, 'COMMA') + 'đ'}">0đ</td>
                     </tr>
                     <tr th:if="${topProducts == null || #lists.isEmpty(topProducts)}">
-                        <td colspan="5">
+                        <td colspan="4">
                             <div class="empty-state">
                                 <i class="bi bi-box-seam"></i>
                                 <p>Chưa có dữ liệu sản phẩm</p>
@@ -784,10 +772,10 @@
     new Chart(statusCtx, {
         type: 'doughnut',
         data: {
-            labels: statusLabels || ['Chờ xác nhận','Đang giao','Hoàn thành','Đã hủy'],
+            labels: statusLabels || ['Chờ xác nhận','Đã xác nhận','Đang giao','Đã giao','Hoàn thành','Đã hủy','Trả hàng'],
             datasets: [{
-                data: statusData || [0,0,0,0],
-                backgroundColor: ['#f59e0b','#3b82f6','#10b981','#ef4444'],
+                data: statusData || [0,0,0,0,0,0,0],
+                backgroundColor: ['#f59e0b','#3b82f6','#06b6d4','#8b5cf6','#10b981','#ef4444','#64748b'],
                 borderWidth: 0,
                 hoverOffset: 6
             }]

@@ -52,8 +52,7 @@ public class ChatbotController {
         // Nếu AI phát hiện người dùng muốn tìm hàng, tiến hành query Database
         if (aiResponse.getSearchKeyword() != null && !aiResponse.getSearchKeyword().isEmpty()) {
             // Tìm kiếm sản phẩm (tăng lên 5 sản phẩm)
-            Page<Product> products = productService.search(aiResponse.getSearchKeyword(), null, null, 1, PageRequest.of(0, 5));
-            
+            Page<Product> products = productService.search(aiResponse.getSearchKeyword(), null, null, null, null, null, 1, PageRequest.of(0, 5));
             // Nếu không tìm thấy cả cụm từ (ví dụ "áo adidas"), thử tìm bằng từ dài nhất (ví dụ "adidas")
             if ((products == null || products.isEmpty()) && aiResponse.getSearchKeyword().contains(" ")) {
                 String[] words = aiResponse.getSearchKeyword().split(" ");
@@ -64,8 +63,7 @@ public class ChatbotController {
                     }
                 }
                 if (!bestWord.isEmpty()) {
-                    products = productService.search(bestWord, null, null, 1, PageRequest.of(0, 5));
-                }
+                    products = productService.search(bestWord, null, null, null, null, null, 1, PageRequest.of(0, 5));                }
             }
 
             if (products != null && !products.isEmpty()) {
@@ -76,7 +74,7 @@ public class ChatbotController {
                 }
             } else {
                 // FALLBACK: Nếu không tìm thấy, lấy 5 sản phẩm bất kỳ để gợi ý
-                Page<Product> defaultProducts = productService.search("", null, null, 1, PageRequest.of(0, 5));
+                Page<Product> defaultProducts = productService.search("", null, null, null, null, null, 1, PageRequest.of(0, 5));
                 if (defaultProducts != null && !defaultProducts.isEmpty()) {
                     response.put("products", mapProducts(defaultProducts));
 //                    response.put("reply", aiResponse.getReply() + "\n\n(Dạ rất tiếc shop không tìm thấy chính xác '" + aiResponse.getSearchKeyword() + "', nhưng bạn có thể tham khảo các mẫu hot này nhé:)");

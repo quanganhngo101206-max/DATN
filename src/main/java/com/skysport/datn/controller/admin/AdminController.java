@@ -1,11 +1,11 @@
 package com.skysport.datn.controller.admin;
 
 import com.skysport.datn.entity.Bill;
-import com.skysport.datn.enums.OrderStatus;
 import com.skysport.datn.repository.BillRepository;
 import com.skysport.datn.repository.CustomerRepository;
 import com.skysport.datn.repository.ProductDetailRepository;
 import com.skysport.datn.repository.ProductRepository;
+import com.skysport.datn.service.StatisticsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -33,43 +33,27 @@ public class AdminController {
     @Autowired
     private ProductDetailRepository productDetailRepository;
 
+    @Autowired
+    private StatisticsService statisticsService;
+
     @GetMapping("/dashboard")
     public String dashboard(Model model) {
 
         List<Bill> allBills = billRepository.findAll();
 
         // ===== STAT CARDS =====
-        double totalRevenue = allBills.stream()
-                .filter(b -> b.getStatus() != null && OrderStatus.COMPLETED.matches(b.getStatus()))
-                .mapToDouble(b -> b.getAmount() != null ? b.getAmount() : 0)
-                .sum();
-        model.addAttribute("totalRevenue", (long) totalRevenue);
+        StatisticsService.RevenueSummary summary = statisticsService.summarize(allBills);
+        model.addAttribute("totalRevenue", (long) summary.revenue());
+        model.addAttribute("totalCost", (long) summary.cost());
+        model.addAttribute("totalProfit", (long) summary.profit());
         model.addAttribute("totalOrders", allBills.size());
         model.addAttribute("totalProducts", productRepository.count());
         model.addAttribute("totalCustomers", customerRepository.count());
 
         // ===== BIỂU ĐỒ DOANH THU 7 NGÀY QUA =====
-        LocalDate today = LocalDate.now();
-        DateTimeFormatter labelFormatter = DateTimeFormatter.ofPattern("dd/MM");
-
-        List<String> revenueLabels = new ArrayList<>();
-        List<Long> revenueData = new ArrayList<>();
-
-        for (int i = 6; i >= 0; i--) {
-            LocalDate date = today.minusDays(i);
-            revenueLabels.add(date.format(labelFormatter));
-
-            double dayRevenue = allBills.stream()
-                    .filter(b -> b.getStatus() != null && OrderStatus.COMPLETED.matches(b.getStatus()))
-                    .filter(b -> b.getCreateDate() != null
-                            && b.getCreateDate().toLocalDate().equals(date))
-                    .mapToDouble(b -> b.getAmount() != null ? b.getAmount() : 0)
-                    .sum();
-            revenueData.add((long) dayRevenue);
-        }
-
-        model.addAttribute("revenueLabels", revenueLabels);
-        model.addAttribute("revenueData", revenueData);
+        List<StatisticsService.RevenueChartPoint> chart = statisticsService.getRevenueChart(allBills, 7);
+        model.addAttribute("revenueLabels", chart.stream().map(StatisticsService.RevenueChartPoint::label).toList());
+        model.addAttribute("revenueData", chart.stream().map(StatisticsService.RevenueChartPoint::revenue).toList());
 
         // ===== BIỂU ĐỒ TRẠNG THÁI ĐƠN HÀNG =====
         Map<Integer, Long> statusCount = allBills.stream()
@@ -86,32 +70,16 @@ public class AdminController {
                 statusCount.getOrDefault(5, 0L)
         ));
 
-        // ===== TOP 5 SẢN PHẨM BÁN CHẠY =====
-        Map<String, long[]> productStats = new LinkedHashMap<>();
-
-        allBills.stream()
-                .filter(b -> b.getStatus() != null && OrderStatus.COMPLETED.matches(b.getStatus()))
-                .forEach(bill -> {
-                    try {
-                        bill.getBillDetails().forEach(detail -> {
-                            String name = detail.getProductDetail().getProduct().getName();
-                            long qty = detail.getQuantity() != null ? detail.getQuantity() : 0;
-                            long rev = detail.getMomentPrice() != null
-                                    ? (long) (detail.getMomentPrice() * qty) : 0;
-                            productStats.merge(name, new long[]{qty, rev},
-                                    (a, b) -> new long[]{a[0] + b[0], a[1] + b[1]});
-                        });
-                    } catch (Exception ignored) {}
-                });
-
-        List<Map<String, Object>> topProducts = productStats.entrySet().stream()
-                .sorted((a, b) -> Long.compare(b.getValue()[0], a.getValue()[0]))
-                .limit(5)
-                .map(e -> {
+        // ===== TOP 5 SẢN PHẨM BÁN CHẠY (kèm giá bán bình quân + giá vốn + lợi nhuận) =====
+        List<Map<String, Object>> topProducts = statisticsService.getTopProducts(allBills, 5).stream()
+                .map(p -> {
                     Map<String, Object> m = new HashMap<>();
-                    m.put("productName", e.getKey());
-                    m.put("totalSold", e.getValue()[0]);
-                    m.put("revenue", e.getValue()[1]);
+                    m.put("productName", p.productName());
+                    m.put("totalSold", p.totalSold());
+                    m.put("revenue", (long) p.revenue());
+                    m.put("avgSellingPrice", (long) p.avgSellingPrice());
+                    m.put("cost", (long) p.cost());
+                    m.put("profit", (long) p.profit());
                     return m;
                 })
                 .collect(Collectors.toList());

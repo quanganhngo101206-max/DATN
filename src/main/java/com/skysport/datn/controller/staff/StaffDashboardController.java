@@ -2,13 +2,13 @@ package com.skysport.datn.controller.staff;
 
 import com.skysport.datn.entity.Account;
 import com.skysport.datn.entity.Bill;
-import com.skysport.datn.entity.ProductDetail;
 import com.skysport.datn.enums.OrderStatus;
 import jakarta.servlet.http.HttpSession;
 import com.skysport.datn.entity.Staff;
 import com.skysport.datn.repository.BillRepository;
 import com.skysport.datn.repository.ProductDetailRepository;
 import com.skysport.datn.repository.StaffRepository;
+import com.skysport.datn.service.StatisticsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -33,6 +33,9 @@ public class StaffDashboardController {
 
     @Autowired
     private StaffRepository staffRepository;
+
+    @Autowired
+    private StatisticsService statisticsService;
 
     @GetMapping("/dashboard")
     public String dashboard(HttpSession session,Model model) {
@@ -67,6 +70,30 @@ public class StaffDashboardController {
         model.addAttribute("shippingOrders", shippingOrders);
         model.addAttribute("todayOrders", todayOrders);
         model.addAttribute("todayRevenue", (long) todayRevenue);
+
+        // ===== DOANH THU / LỢI NHUẬN (toàn thời gian, đơn đã hoàn thành) =====
+        StatisticsService.RevenueSummary summary = statisticsService.summarize(allBills);
+        model.addAttribute("totalRevenue", (long) summary.revenue());
+        model.addAttribute("totalProfit", (long) summary.profit());
+
+        // ===== BIỂU ĐỒ DOANH THU 7 NGÀY QUA =====
+        List<StatisticsService.RevenueChartPoint> chart = statisticsService.getRevenueChart(allBills, 7);
+        model.addAttribute("revenueLabels", chart.stream().map(StatisticsService.RevenueChartPoint::label).toList());
+        model.addAttribute("revenueData", chart.stream().map(StatisticsService.RevenueChartPoint::revenue).toList());
+
+        // ===== TOP 5 SẢN PHẨM BÁN CHẠY =====
+        List<Map<String, Object>> topProducts = statisticsService.getTopProducts(allBills, 5).stream()
+                .map(p -> {
+                    Map<String, Object> m = new HashMap<>();
+                    m.put("productName", p.productName());
+                    m.put("totalSold", p.totalSold());
+                    m.put("revenue", (long) p.revenue());
+                    m.put("avgSellingPrice", (long) p.avgSellingPrice());
+                    m.put("profit", (long) p.profit());
+                    return m;
+                })
+                .collect(Collectors.toList());
+        model.addAttribute("topProducts", topProducts);
 
         // ===== 5 ĐƠN HÀNG MỚI NHẤT =====
         List<Map<String, Object>> recentOrders = allBills.stream()

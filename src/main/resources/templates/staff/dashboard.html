@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{staff/fragments/layout :: staffHead(~{::title}, ~{::extraHead})}">
   <title>Dashboard - SkySport Staff</title>
-  <th:block th:fragment="extraHead"><style>
+  <th:block th:fragment="extraHead"><script src="https://cdn.jsdelivr.net/npm/chart.js"></script><style>
     .stat-card {
       background: white; border-radius: 20px; padding: 20px;
       box-shadow: 0 5px 20px rgba(0,0,0,0.05);
@@ -75,6 +75,73 @@
             <small class="text-muted">đơn hoàn thành</small>
           </div>
           <div class="icon text-success"><i class="bi bi-cash-stack"></i></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="stat-card" style="border-color: #0ea5e9;">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <div class="label">Tổng doanh thu (toàn thời gian)</div>
+            <div class="value" style="color:#0ea5e9;font-size:26px"
+                 th:text="${#numbers.formatInteger(totalRevenue, 0, 'COMMA') + 'đ'}">0đ</div>
+            <small class="text-muted">tổng các đơn đã hoàn thành</small>
+          </div>
+          <div class="icon" style="color:#0ea5e9"><i class="bi bi-graph-up-arrow"></i></div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="stat-card" style="border-color: #16a34a;">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <div class="label">Thu nhập (Doanh thu - Giá vốn)</div>
+            <div class="value" style="font-size:26px"
+                 th:style="${totalProfit >= 0} ? 'color:#16a34a' : 'color:#dc2626'"
+                 th:text="${#numbers.formatInteger(totalProfit, 0, 'COMMA') + 'đ'}">0đ</div>
+            <small class="text-muted">lợi nhuận ròng</small>
+          </div>
+          <div class="icon text-success"><i class="bi bi-piggy-bank"></i></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Doanh thu 7 ngày qua + Sản phẩm bán chạy -->
+  <div class="row g-4 mb-4">
+    <div class="col-md-7">
+      <div class="card">
+        <div class="card-header"><i class="bi bi-graph-up-arrow me-2"></i>Doanh thu 7 ngày qua</div>
+        <div class="card-body">
+          <canvas id="revenueChart" height="220"></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-5">
+      <div class="card">
+        <div class="card-header"><i class="bi bi-trophy me-2"></i>Sản phẩm bán chạy</div>
+        <div class="card-body p-0">
+          <table class="table table-hover mb-0">
+            <thead class="table-light">
+            <tr>
+              <th>Sản phẩm</th>
+              <th>Đã bán</th>
+              <th>Lợi nhuận</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="p : ${topProducts}">
+              <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" th:text="${p.productName}"></td>
+              <td th:text="${p.totalSold}"></td>
+              <td style="font-weight:600;"
+                  th:style="${p.profit >= 0} ? 'color:#16a34a' : 'color:#dc2626'"
+                  th:text="${#numbers.formatInteger(p.profit, 0, 'COMMA') + 'đ'}"></td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(topProducts)}">
+              <td colspan="3" class="text-center text-muted py-3">Chưa có dữ liệu</td>
+            </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -169,5 +236,30 @@
 </div>
 
 <div th:replace="~{staff/fragments/layout :: staffScripts}"></div>
+<script th:inline="javascript">
+  var revenueLabels = /*[[${revenueLabels}]]*/ null;
+  var revenueData   = /*[[${revenueData}]]*/ null;
+
+  const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+  new Chart(revenueCtx, {
+    type: 'line',
+    data: {
+      labels: revenueLabels || ['T2','T3','T4','T5','T6','T7','CN'],
+      datasets: [{
+        label: 'Doanh thu (VNĐ)',
+        data: revenueData || [0,0,0,0,0,0,0],
+        borderColor: '#7c3aed',
+        backgroundColor: 'rgba(124,58,237,0.1)',
+        tension: 0.35,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, ticks: { callback: v => v.toLocaleString('vi-VN') } } }
+    }
+  });
+</script>
 </body>
 </html>

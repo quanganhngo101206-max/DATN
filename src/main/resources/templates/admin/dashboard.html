@@ -465,6 +465,17 @@
         <div class="col-md-3">
             <div class="stat-card">
                 <div class="stat-header">
+                    <div class="stat-icon icon-green"><i class="bi bi-graph-up"></i></div>
+                    <span class="stat-badge badge-neutral">Lợi nhuận ròng</span>
+                </div>
+                <div class="stat-value" th:text="${#numbers.formatInteger(totalProfit, 0, 'COMMA')}"
+                     th:style="${totalProfit >= 0} ? 'color:#16a34a' : 'color:#dc2626'">0</div>
+                <div class="stat-label">Thu nhập (Doanh thu - Giá vốn)</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-header">
                     <div class="stat-icon icon-amber"><i class="bi bi-cart-check"></i></div>
                     <span class="stat-badge badge-neutral">Tổng cộng</span>
                 </div>
@@ -534,6 +545,7 @@
                         <th>Sản phẩm</th>
                         <th>Đã bán</th>
                         <th>Doanh thu</th>
+                        <th>Lợi nhuận</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -551,10 +563,15 @@
                             </div>
                         </td>
                         <td><span style="font-weight:600;" th:text="${product.totalSold}">0</span> sản phẩm</td>
-                        <td style="font-weight:600;color:#16a34a;" th:text="${#numbers.formatInteger(product.revenue, 0, 'COMMA') + 'đ'}">0đ</td>
+                        <td>
+                            <div style="font-weight:600;color:#16a34a;" th:text="${#numbers.formatInteger(product.revenue, 0, 'COMMA') + 'đ'}">0đ</div>
+                            <div style="font-size:11px;color:#94a3b8;" th:text="'Giá bán TB: ' + ${#numbers.formatInteger(product.avgSellingPrice, 0, 'COMMA')} + 'đ'"></div>
+                        </td>
+                        <td style="font-weight:600;" th:text="${#numbers.formatInteger(product.profit, 0, 'COMMA') + 'đ'}"
+                            th:style="${product.profit >= 0} ? 'color:#16a34a' : 'color:#dc2626'">0đ</td>
                     </tr>
                     <tr th:if="${topProducts == null || #lists.isEmpty(topProducts)}">
-                        <td colspan="4">
+                        <td colspan="5">
                             <div class="empty-state">
                                 <i class="bi bi-box-seam"></i>
                                 <p>Chưa có dữ liệu sản phẩm</p>

@@ -47,17 +47,29 @@ public class HomeController {
 
         // Lấy giá từ ProductDetail (giá thấp nhất của mỗi sản phẩm)
         Map<Integer, Double> productPrices = new HashMap<>();
+        Map<Integer, Double> productFinalPrices = new HashMap<>();
+        Map<Integer, Boolean> productOnSale = new HashMap<>();
         Map<Integer, String> productImages = new HashMap<>();
 
         for (Product p : allProducts) {
-            // Lấy giá thấp nhất từ các biến thể - SỬA LỖI Ở ĐÂY
+            // Lấy giá thấp nhất từ các biến thể
             List<ProductDetail> details = productDetailRepository.findByProductIdAndDeleteFlagFalse(p.getId());
             Double minPrice = details.stream()
                     .filter(d -> d.getPrice() != null)
-                    .mapToDouble(ProductDetail::getPrice)  // ✅ Dùng mapToDouble
-                    .min()  // ✅ Trả về OptionalDouble
-                    .orElse(0.0);  // ✅ Lấy giá trị hoặc 0
+                    .mapToDouble(ProductDetail::getPrice)
+                    .min()
+                    .orElse(0.0);
             productPrices.put(p.getId(), minPrice);
+            
+            Double minFinalPrice = details.stream()
+                    .filter(d -> d.getFinalPrice() != null)
+                    .mapToDouble(ProductDetail::getFinalPrice)
+                    .min()
+                    .orElse(minPrice);
+            productFinalPrices.put(p.getId(), minFinalPrice);
+            
+            boolean onSale = details.stream().anyMatch(ProductDetail::isOnSale);
+            productOnSale.put(p.getId(), onSale);
 
             // Lấy ảnh
             List<Image> imgs = imageRepository.findByProductId(p.getId());
@@ -82,6 +94,8 @@ public class HomeController {
         model.addAttribute("featuredProducts", featured);
         model.addAttribute("newProducts", newProducts);
         model.addAttribute("productPrices", productPrices);
+        model.addAttribute("productFinalPrices", productFinalPrices);
+        model.addAttribute("productOnSale", productOnSale);
         model.addAttribute("productImages", productImages);
 
         return "home";

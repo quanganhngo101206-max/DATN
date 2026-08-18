@@ -386,7 +386,14 @@
                     <div class="card-body">
                         <p class="product-brand" th:text="${p.brand != null ? p.brand.name : ''}"></p>
                         <p class="product-name" th:text="${p.name}"></p>
-                        <span class="product-price" th:text="${#numbers.formatInteger(productPrices[p.id], 0, 'COMMA') + 'đ'}">0đ</span>
+                        <div th:if="${productOnSale[p.id] != null and productOnSale[p.id]}">
+                            <span class="text-muted text-decoration-line-through" style="font-size:13px;"
+                                  th:text="${#numbers.formatInteger(productPrices[p.id], 0, 'COMMA') + 'đ'}"></span>
+                            <span class="product-price ms-1" th:text="${#numbers.formatInteger(productFinalPrices[p.id], 0, 'COMMA') + 'đ'}"></span>
+                        </div>
+                        <div th:unless="${productOnSale[p.id] != null and productOnSale[p.id]}">
+                            <span class="product-price" th:text="${#numbers.formatInteger(productPrices[p.id], 0, 'COMMA') + 'đ'}">0đ</span>
+                        </div>
                         <a th:href="@{/products/{id}(id=${p.id})}" class="btn-view">
                             <i class="bi bi-eye"></i> Xem chi tiết
                         </a>
@@ -413,7 +420,14 @@
                     <div class="card-body">
                         <p class="product-brand" th:text="${p.brand != null ? p.brand.name : ''}"></p>
                         <p class="product-name" th:text="${p.name}"></p>
-                        <span class="product-price" th:text="${#numbers.formatInteger(productPrices[p.id], 0, 'COMMA') + 'đ'}">0đ</span>
+                        <div th:if="${productOnSale[p.id] != null and productOnSale[p.id]}">
+                            <span class="text-muted text-decoration-line-through" style="font-size:13px;"
+                                  th:text="${#numbers.formatInteger(productPrices[p.id], 0, 'COMMA') + 'đ'}"></span>
+                            <span class="product-price ms-1" th:text="${#numbers.formatInteger(productFinalPrices[p.id], 0, 'COMMA') + 'đ'}"></span>
+                        </div>
+                        <div th:unless="${productOnSale[p.id] != null and productOnSale[p.id]}">
+                            <span class="product-price" th:text="${#numbers.formatInteger(productPrices[p.id], 0, 'COMMA') + 'đ'}">0đ</span>
+                        </div>
                         <a th:href="@{/products/{id}(id=${p.id})}" class="btn-view">
                             <i class="bi bi-eye"></i> Xem chi tiết
                         </a>

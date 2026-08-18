@@ -30,14 +30,7 @@ public class WebConfig implements WebMvcConfigurer {
                         // vì chúng trả JSON (không redirect được), Spring Security đã bảo vệ qua hasRole
                         "/staff/order/search-customer",
                         "/staff/order/product-variants/**",
-                        "/staff/order/validate-discount",
-                        "/uploads/**"
+                        "/staff/order/validate-discount"
                 );
-    }
-
-    @Override
-    public void addResourceHandlers(org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry registry) {
-        registry.addResourceHandler("/uploads/**")
-                .addResourceLocations("file:uploads/");
     }
 }

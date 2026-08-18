@@ -7,6 +7,7 @@ import com.skysport.datn.entity.Product;
 import com.skysport.datn.repository.BrandRepository;
 import com.skysport.datn.repository.CategoryRepository;
 import com.skysport.datn.repository.MaterialRepository;
+import com.skysport.datn.repository.ProductDetailRepository;
 import com.skysport.datn.repository.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -14,7 +15,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class ProductService {
@@ -31,16 +34,33 @@ public class ProductService {
     @Autowired
     private MaterialRepository materialRepository;
 
+    @Autowired
+    private ProductDetailRepository productDetailRepository;
+
     // Lấy tất cả sản phẩm
     public List<Product> findAll() {
         return productRepository.findByDeleteFlag(false);
     }
 
-    // Tìm kiếm + lọc + phân trang (dùng cho trang danh sách admin)
-    public Page<Product> search(String keyword, Integer categoryId, Integer brandId,
-                                Integer status, Pageable pageable) {
+    // Tìm kiếm + lọc (danh mục, thương hiệu, chất liệu, size, màu, trạng thái) + phân trang (dùng cho trang danh sách admin)
+    public Page<Product> search(String keyword, Integer categoryId, Integer brandId, Integer materialId,
+                                Integer sizeId, Integer colorId, Integer status, Pageable pageable) {
         String kw = (keyword == null || keyword.isBlank()) ? null : keyword.trim();
-        return productRepository.search(kw, categoryId, brandId, status, pageable);
+        return productRepository.search(kw, categoryId, brandId, materialId, sizeId, colorId, status, pageable);
+    }
+
+    // Tổng tồn kho của từng sản phẩm trong danh sách id truyền vào, để hiển thị ngay ở bảng danh sách
+    public Map<Integer, Integer> getQuantityMap(List<Integer> productIds) {
+        Map<Integer, Integer> result = new HashMap<>();
+        if (productIds == null || productIds.isEmpty()) {
+            return result;
+        }
+        for (Object[] row : productDetailRepository.sumQuantityByProductIds(productIds)) {
+            Integer productId = (Integer) row[0];
+            Long total = ((Number) row[1]).longValue();
+            result.put(productId, total.intValue());
+        }
+        return result;
     }
 
     // Tìm theo id

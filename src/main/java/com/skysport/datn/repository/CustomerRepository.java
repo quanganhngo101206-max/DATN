@@ -28,4 +28,8 @@ public interface CustomerRepository extends JpaRepository<Customer, Integer> {
 
     @Query("SELECT c FROM Customer c WHERE c.name LIKE %:kw% OR c.email LIKE %:kw% OR c.phoneNumber LIKE %:kw% OR c.code LIKE %:kw%")
     List<Customer> searchByKeyword(@Param("kw") String keyword);
+
+    // Đếm số khách hàng có tài khoản tạo sau một mốc thời gian cho trước
+    // (dùng account.createDate có sẵn, không cần thêm cột mới cho Customer)
+    long countByAccount_CreateDateAfter(java.time.LocalDateTime time);
 }

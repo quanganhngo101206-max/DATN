@@ -264,17 +264,16 @@ public class StaffOrderController {
             if (customer == null && customerPhone != null && !customerPhone.isBlank()) {
                 customer = customerRepository.findByPhoneNumber(customerPhone).orElse(null);
             }
-            if (customer == null && ((customerPhone != null && !customerPhone.isBlank()) || (customerName != null && !customerName.isBlank()))) {
-                // Chỉ tạo khách lẻ mới nếu có nhập tên hoặc sđt
+            if (customer == null && customerPhone != null && !customerPhone.isBlank()) {
+                // Tạo khách lẻ mới
                 customer = new Customer();
                 customer.setName(customerName != null && !customerName.isBlank() ? customerName : "Khách lẻ");
-                customer.setPhoneNumber(customerPhone != null && !customerPhone.isBlank() ? customerPhone : null);
-                customer.setEmail("khachle" + System.currentTimeMillis() + "@datn.com");
+                customer.setPhoneNumber(customerPhone);
                 customer.setCode("KH" + UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase());
                 customer = customerRepository.save(customer);
             }
             if (customer == null) {
-                throw new RuntimeException("Vui lòng nhập thông tin khách hàng (SĐT hoặc Họ tên)!");
+                throw new RuntimeException("Vui lòng nhập SĐT khách hàng (hoặc chọn khách hàng có sẵn)!");
             }
 
             // 2. Khóa & kiểm tra tồn kho — dùng PESSIMISTIC_WRITE để tránh race condition

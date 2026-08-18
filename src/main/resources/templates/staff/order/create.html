@@ -124,56 +124,6 @@
             }
 
             .discount-suggest-item:hover { background: #d8fbe9; }
-
-            .bill-tabs {
-                display: flex;
-                gap: 5px;
-                overflow-x: auto;
-                margin-bottom: 15px;
-                padding-bottom: 5px;
-            }
-            .bill-tab {
-                background: #f1f5f9;
-                border: 1px solid var(--border);
-                border-radius: var(--radius-sm);
-                padding: 8px 15px;
-                cursor: pointer;
-                font-weight: 600;
-                font-size: 14px;
-                white-space: nowrap;
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                color: #64748b;
-            }
-            .bill-tab.active {
-                background: white;
-                border-color: var(--brand-primary);
-                color: var(--brand-primary);
-                border-bottom-width: 2px;
-            }
-            .bill-tab .close-tab {
-                font-size: 16px;
-                line-height: 1;
-                cursor: pointer;
-            }
-            .bill-tab .close-tab:hover {
-                color: #ef4444;
-            }
-            .btn-add-tab {
-                background: white;
-                border: 1px dashed var(--brand-primary);
-                color: var(--brand-primary);
-                border-radius: var(--radius-sm);
-                padding: 8px 15px;
-                cursor: pointer;
-                font-weight: 600;
-                font-size: 14px;
-                white-space: nowrap;
-            }
-            .btn-add-tab:hover {
-                background: #f0fdf8;
-            }
         </style>
     </th:block>
 </head>
@@ -194,9 +144,6 @@
     <div th:if="${successMsg}" class="alert alert-success"><i class="bi bi-check-circle me-2"></i><span
             th:text="${successMsg}"></span></div>
 
-    <!-- Tabs hóa đơn chờ -->
-    <div class="bill-tabs" id="billTabsContainer"></div>
-
     <div class="row g-4">
 
         <!-- CỘT TRÁI: Chọn sản phẩm -->
@@ -206,15 +153,29 @@
             <div class="card mb-3">
                 <div class="card-header"><i class="bi bi-person me-2"></i>Thông tin khách hàng</div>
                 <div class="card-body">
-                    <div class="row g-2">
-                        <div class="col-md-6">
-                            <label class="form-label">Họ tên khách hàng <span class="text-danger">*</span></label>
-                            <input type="text" id="customerName" class="form-control" placeholder="Nhập họ tên khách hàng..." oninput="updateCustomerInfo()">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-7">
+                            <label class="form-label">Tìm khách hàng (SĐT / Tên / Mã KH)</label>
+                            <div class="field-wrapper">
+                                <input type="text" id="searchPhone" class="form-control" autocomplete="off"
+                                       placeholder="Nhập SĐT, tên hoặc mã khách hàng...">
+                                <div id="customerSuggest" class="suggest-dropdown"></div>
+                            </div>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Số điện thoại <span class="text-danger">*</span></label>
-                            <input type="text" id="searchPhone" class="form-control" placeholder="Nhập số điện thoại..." oninput="updateCustomerInfo()">
+                        <div class="col-md-3">
+                            <label class="form-label">Họ tên</label>
+                            <input type="text" id="customerName" class="form-control" placeholder="Tên khách hàng">
                         </div>
+                        <div class="col-md-2">
+                            <button class="btn btn-outline-danger w-100" type="button" onclick="clearCustomer()">
+                                <i class="bi bi-x"></i> Xóa
+                            </button>
+                        </div>
+                    </div>
+                    <div id="customerInfo" class="mt-2 d-none">
+                        <span class="badge bg-success"><i
+                                class="bi bi-check-circle me-1"></i>Khách hàng đã tìm thấy</span>
+                        <span id="customerInfoText" class="ms-2 text-muted" style="font-size:13px;"></span>
                     </div>
                     <input type="hidden" id="customerId">
                 </div>
@@ -303,7 +264,7 @@
                     <!-- Phương thức thanh toán -->
                     <div class="mb-3">
                         <label class="form-label">Phương thức thanh toán <span class="text-danger">*</span></label>
-                        <select id="paymentMethodId" class="form-select" onchange="updatePaymentMethod()">
+                        <select id="paymentMethodId" class="form-select">
                             <option th:each="pm : ${paymentMethods}" th:value="${pm.id}" th:text="${pm.name}"></option>
                         </select>
                     </div>
@@ -359,122 +320,67 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     // ===== STATE =====
-    let bills = [
-        {
-            id: 1,
-            name: 'Hóa đơn 1',
-            orderItems: [],
-            discountAmount: 0,
-            discountCode: '',
-            discountMsg: '',
-            customer: { id: '', name: '', phone: '' },
-            paymentMethodId: ''
-        }
-    ];
-    let activeBillId = 1;
-    let nextBillId = 2;
-
+    let orderItems = []; // [{productDetailId, productName, size, color, price, quantity, stock}]
+    let discountAmount = 0;
     let currentProductId = null;
     let currentVariants = [];
     let selectedVariant = null;
 
-    function getActiveBill() {
-        return bills.find(b => b.id === activeBillId);
-    }
+    // ===== TÌM KHÁCH HÀNG (gợi ý theo SĐT / Tên / Mã KH) =====
+    let customerSearchTimer = null;
 
-    function renderTabs() {
-        const container = document.getElementById('billTabsContainer');
-        let html = '';
-        bills.forEach(b => {
-            html += `<div class="bill-tab ${b.id === activeBillId ? 'active' : ''}" onclick="switchBill(${b.id})">
-                ${b.name}
-                ${bills.length > 1 ? `<span class="close-tab" onclick="event.stopPropagation(); closeBill(${b.id})">&times;</span>` : ''}
-            </div>`;
-        });
-        html += `<div class="btn-add-tab" onclick="addBill()">+ Thêm hóa đơn</div>`;
-        container.innerHTML = html;
-    }
-
-    function addBill() {
-        if(bills.length >= 10) { alert('Tối đa 10 hóa đơn chờ!'); return; }
-        const newBill = {
-            id: nextBillId++,
-            name: 'Hóa đơn ' + nextBillId,
-            orderItems: [],
-            discountAmount: 0,
-            discountCode: '',
-            discountMsg: '',
-            customer: { id: '', name: '', phone: '' },
-            paymentMethodId: document.getElementById('paymentMethodId').options[0]?.value || ''
-        };
-        bills.push(newBill);
-        switchBill(newBill.id);
-    }
-
-    function closeBill(id) {
-        if(bills.length <= 1) return;
-        if(!confirm('Bạn có chắc muốn xóa hóa đơn này? Mọi dữ liệu sẽ bị mất.')) return;
-        const idx = bills.findIndex(b => b.id === id);
-        bills.splice(idx, 1);
-        if(activeBillId === id) {
-            activeBillId = bills[Math.max(0, idx - 1)].id;
+    document.getElementById('searchPhone').addEventListener('input', function () {
+        const kw = this.value.trim();
+        clearTimeout(customerSearchTimer);
+        const dropdown = document.getElementById('customerSuggest');
+        if (!kw) {
+            dropdown.classList.remove('show');
+            dropdown.innerHTML = '';
+            return;
         }
-        switchBill(activeBillId);
-    }
-
-    function switchBill(id) {
-        activeBillId = id;
-        renderTabs();
-        
-        const newBill = getActiveBill();
-        
-        // Restore customer
-        document.getElementById('customerId').value = newBill.customer.id || '';
-        document.getElementById('customerName').value = newBill.customer.name || '';
-        document.getElementById('searchPhone').value = newBill.customer.phone || '';
-        
-        // Restore discount
-        document.getElementById('discountInput').value = newBill.discountCode || '';
-        const msg = document.getElementById('discountMsg');
-        if(newBill.discountMsg) {
-             msg.innerHTML = newBill.discountMsg;
-             document.getElementById('discountRow').style.removeProperty('display');
-        } else {
-             msg.innerHTML = '';
-             document.getElementById('discountRow').style.display = 'none';
-        }
-        
-        // Restore payment method
-        if(newBill.paymentMethodId) {
-             document.getElementById('paymentMethodId').value = newBill.paymentMethodId;
-        }
-        
-        renderOrderItems();
-        recalcTotal();
-    }
-
-    // Initialize tabs
-    document.addEventListener('DOMContentLoaded', () => {
-        const defaultPm = document.getElementById('paymentMethodId').options[0];
-        if (defaultPm) bills[0].paymentMethodId = defaultPm.value;
-        renderTabs();
+        customerSearchTimer = setTimeout(() => {
+            fetch('/staff/order/search-customer?keyword=' + encodeURIComponent(kw))
+                .then(r => r.json())
+                .then(data => renderCustomerSuggest(data, kw));
+        }, 300);
     });
 
-    // ===== CẬP NHẬT THÔNG TIN KHÁCH HÀNG =====
-    function updateCustomerInfo() {
-        const bill = getActiveBill();
-        if (bill) {
-            bill.customer.id = document.getElementById('customerId').value;
-            bill.customer.name = document.getElementById('customerName').value.trim();
-            bill.customer.phone = document.getElementById('searchPhone').value.trim();
+    function renderCustomerSuggest(customers, kw) {
+        const dropdown = document.getElementById('customerSuggest');
+        if (!customers || customers.length === 0) {
+            dropdown.innerHTML = `<div class="suggest-item text-muted">
+                Không tìm thấy khách hàng. Nhấn "Áp dụng" hoặc tạo đơn để tạo khách lẻ mới với SĐT "${escapeHtml(kw)}".
+            </div>`;
+            dropdown.classList.add('show');
+            return;
         }
+        let html = '';
+        customers.forEach(c => {
+            html += `<div class="suggest-item" onclick='selectCustomer(${JSON.stringify(c).replace(/'/g, "&#39;")})'>
+                <strong>${escapeHtml(c.name || 'Khách lẻ')}</strong>
+                ${c.code ? ' <span class="text-muted">(' + escapeHtml(c.code) + ')</span>' : ''}<br>
+                <span class="text-muted">${escapeHtml(c.phone || '')}${c.email ? ' • ' + escapeHtml(c.email) : ''}</span>
+            </div>`;
+        });
+        dropdown.innerHTML = html;
+        dropdown.classList.add('show');
     }
 
-    function updatePaymentMethod() {
-        const bill = getActiveBill();
-        if (bill) {
-            bill.paymentMethodId = document.getElementById('paymentMethodId').value;
-        }
+    function selectCustomer(c) {
+        document.getElementById('customerId').value = c.id;
+        document.getElementById('customerName').value = c.name || '';
+        document.getElementById('searchPhone').value = c.phone || '';
+        document.getElementById('customerInfo').classList.remove('d-none');
+        document.getElementById('customerInfoText').textContent = (c.name || 'Khách lẻ') + ' — ' + (c.phone || '');
+        document.getElementById('customerSuggest').classList.remove('show');
+    }
+
+    function clearCustomer() {
+        document.getElementById('customerId').value = '';
+        document.getElementById('customerName').value = '';
+        document.getElementById('searchPhone').value = '';
+        document.getElementById('customerInfo').classList.add('d-none');
+        document.getElementById('customerSuggest').classList.remove('show');
     }
 
     function escapeHtml(str) {
@@ -485,9 +391,11 @@
 
     // Ẩn dropdown khi click ra ngoài
     document.addEventListener('click', function (e) {
+        if (!e.target.closest('#searchPhone') && !e.target.closest('#customerSuggest')) {
+            document.getElementById('customerSuggest').classList.remove('show');
+        }
         if (!e.target.closest('#productSearch') && !e.target.closest('#productSuggest')) {
-            const ps = document.getElementById('productSuggest');
-            if(ps) ps.classList.remove('show');
+            document.getElementById('productSuggest').classList.remove('show');
         }
     });
 
@@ -542,9 +450,8 @@
             return;
         }
 
-        const bill = getActiveBill();
-
-        const existing = bill.orderItems.find(i => i.productDetailId === selectedVariant.id);
+        // Nếu đã có trong đơn thì cộng thêm
+        const existing = orderItems.find(i => i.productDetailId === selectedVariant.id);
         if (existing) {
             const newQty = existing.quantity + qty;
             if (newQty > selectedVariant.quantity) {
@@ -553,7 +460,7 @@
             }
             existing.quantity = newQty;
         } else {
-            bill.orderItems.push({
+            orderItems.push({
                 productDetailId: selectedVariant.id,
                 productName: document.getElementById('modalProductName').textContent,
                 size: selectedVariant.size,
@@ -571,13 +478,13 @@
 
     // ===== RENDER GIỎ HÀNG =====
     function renderOrderItems() {
-        const bill = getActiveBill();
         const container = document.getElementById('orderItems');
-        document.getElementById('emptyCart').style.display = bill.orderItems.length === 0 ? 'block' : 'none';
+        document.getElementById('emptyCart').style.display = orderItems.length === 0 ? 'block' : 'none';
 
+        // Xóa các item cũ (giữ lại emptyCart)
         container.querySelectorAll('.order-item').forEach(el => el.remove());
 
-        bill.orderItems.forEach((item, idx) => {
+        orderItems.forEach((item, idx) => {
             const div = document.createElement('div');
             div.className = 'order-item';
             div.innerHTML = `
@@ -602,44 +509,38 @@
             container.appendChild(div);
         });
 
-        document.getElementById('submitBtn').disabled = bill.orderItems.length === 0;
+        document.getElementById('submitBtn').disabled = orderItems.length === 0;
     }
 
     function updateQty(idx, val) {
-        const bill = getActiveBill();
         const qty = parseInt(val);
-        if (qty < 1 || qty > bill.orderItems[idx].stock) {
-            alert('Số lượng không hợp lệ! Tồn kho: ' + bill.orderItems[idx].stock);
+        if (qty < 1 || qty > orderItems[idx].stock) {
+            alert('Số lượng không hợp lệ! Tồn kho: ' + orderItems[idx].stock);
             renderOrderItems();
             return;
         }
-        bill.orderItems[idx].quantity = qty;
+        orderItems[idx].quantity = qty;
         renderOrderItems();
         recalcTotal();
     }
 
     function removeItem(idx) {
-        const bill = getActiveBill();
-        bill.orderItems.splice(idx, 1);
-        bill.discountAmount = 0;
-        bill.discountCode = '';
-        bill.discountMsg = '';
+        orderItems.splice(idx, 1);
+        discountAmount = 0;
         document.getElementById('discountInput').value = '';
         document.getElementById('discountMsg').textContent = '';
         document.getElementById('discountRow').style.display = 'none';
         renderOrderItems();
         recalcTotal();
-        document.getElementById('submitBtn').disabled = bill.orderItems.length === 0;
     }
 
     // ===== TÍNH TIỀN =====
     function recalcTotal() {
-        const bill = getActiveBill();
-        const subtotal = bill.orderItems.reduce((s, i) => s + i.price * i.quantity, 0);
-        const total = subtotal - bill.discountAmount;
+        const subtotal = orderItems.reduce((s, i) => s + i.price * i.quantity, 0);
+        const total = subtotal - discountAmount;
         document.getElementById('subtotalDisplay').textContent = fmt(subtotal);
-        document.getElementById('totalDisplay').textContent = fmt(Math.max(0, total));
-        document.getElementById('discountDisplay').textContent = '-' + fmt(bill.discountAmount);
+        document.getElementById('totalDisplay').textContent = fmt(total);
+        document.getElementById('discountDisplay').textContent = '-' + fmt(discountAmount);
     }
 
     function fmt(n) {
@@ -648,18 +549,9 @@
 
     // ===== MÃ GIẢM GIÁ =====
     function applyDiscount() {
-        const bill = getActiveBill();
         const code = document.getElementById('discountInput').value.trim();
-        if (!code) {
-            bill.discountCode = '';
-            bill.discountAmount = 0;
-            bill.discountMsg = '';
-            document.getElementById('discountMsg').innerHTML = '';
-            document.getElementById('discountRow').style.display = 'none';
-            recalcTotal();
-            return;
-        }
-        const subtotal = bill.orderItems.reduce((s, i) => s + i.price * i.quantity, 0);
+        if (!code) return;
+        const subtotal = orderItems.reduce((s, i) => s + i.price * i.quantity, 0);
         if (subtotal === 0) {
             alert('Vui lòng thêm sản phẩm trước!');
             return;
@@ -670,17 +562,13 @@
             .then(data => {
                 const msg = document.getElementById('discountMsg');
                 if (data.success) {
-                    bill.discountAmount = data.discountAmount;
-                    bill.discountCode = code;
-                    bill.discountMsg = '<span class="text-success">✓ Áp dụng thành công! Giảm ' + fmt(bill.discountAmount) + '</span>';
-                    msg.innerHTML = bill.discountMsg;
+                    discountAmount = data.discountAmount;
+                    msg.innerHTML = '<span class="text-success">✓ Áp dụng thành công! Giảm ' + fmt(discountAmount) + '</span>';
                     document.getElementById('discountRow').style.removeProperty('display');
                     recalcTotal();
                 } else {
-                    bill.discountAmount = 0;
-                    bill.discountCode = '';
-                    bill.discountMsg = '<span class="text-danger">✗ ' + data.message + '</span>';
-                    msg.innerHTML = bill.discountMsg;
+                    discountAmount = 0;
+                    msg.innerHTML = '<span class="text-danger">✗ ' + data.message + '</span>';
                     document.getElementById('discountRow').style.display = 'none';
                     recalcTotal();
                 }
@@ -689,40 +577,45 @@
 
     // ===== SUBMIT ĐƠN =====
     function submitOrder() {
-        const bill = getActiveBill();
-        if (bill.orderItems.length === 0) {
+        if (orderItems.length === 0) {
             alert('Vui lòng chọn sản phẩm!');
             return;
         }
 
-        const customerNameCheck = document.getElementById('customerName').value.trim();
+        const customerIdCheck = document.getElementById('customerId').value;
         const customerPhoneCheck = document.getElementById('searchPhone').value.trim();
-        if (!customerNameCheck || !customerPhoneCheck) {
-            alert('Vui lòng nhập họ tên và số điện thoại khách hàng!');
+        if (!customerIdCheck && !customerPhoneCheck) {
+            alert('Vui lòng nhập số điện thoại khách hàng (hoặc tìm khách hàng có sẵn)!');
             return;
         }
 
         const form = document.getElementById('orderForm');
-        const csrfInput = form.querySelector('input[name="_csrf"]');
         form.innerHTML = '';
-        if (csrfInput) {
-            form.appendChild(csrfInput);
-        }
+
+        // CSRF token
         const csrfToken = document.cookie.split(';').find(c => c.trim().startsWith('XSRF-TOKEN='));
         if (csrfToken) {
             const token = decodeURIComponent(csrfToken.split('=')[1]);
             addHidden(form, '_csrf', token);
         }
 
-        if (bill.customer.id) addHidden(form, 'customerId', bill.customer.id);
-        if (bill.customer.name) addHidden(form, 'customerName', bill.customer.name);
-        if (bill.customer.phone) addHidden(form, 'customerPhone', bill.customer.phone);
+        // Khách hàng
+        const customerId = document.getElementById('customerId').value;
+        const customerName = document.getElementById('customerName').value.trim();
+        const customerPhone = document.getElementById('searchPhone').value.trim();
+        if (customerId) addHidden(form, 'customerId', customerId);
+        if (customerName) addHidden(form, 'customerName', customerName);
+        if (customerPhone) addHidden(form, 'customerPhone', customerPhone);
 
-        addHidden(form, 'paymentMethodId', bill.paymentMethodId || document.getElementById('paymentMethodId').value);
+        // Thanh toán
+        addHidden(form, 'paymentMethodId', document.getElementById('paymentMethodId').value);
 
-        if (bill.discountCode) addHidden(form, 'discountCode', bill.discountCode);
+        // Mã giảm giá
+        const dc = document.getElementById('discountInput').value.trim();
+        if (dc) addHidden(form, 'discountCode', dc);
 
-        bill.orderItems.forEach(item => {
+        // Sản phẩm
+        orderItems.forEach(item => {
             addHidden(form, 'productDetailIds', item.productDetailId);
             addHidden(form, 'quantities', item.quantity);
         });
@@ -771,7 +664,7 @@
             if (p.isOnSale) tags += '<span class="product-tag tag-sale">Đang sale</span>';
             if (p.isNew) tags += '<span class="product-tag tag-new">Mới</span>';
             html += `<div class="suggest-item d-flex align-items-center gap-2"
-                          onclick="openVariantModal(${p.id}, '${escapeHtml(p.name).replace(/'/g, "\\\\'")}')">
+                          onclick="openVariantModal(${p.id}, '${escapeHtml(p.name).replace(/'/g, "\\'")}'); document.getElementById('productSuggest').classList.remove('show');">
                 <img src="${p.image}" onerror="this.src='/images/no-image.png'" style="width:32px;height:32px;object-fit:cover;border-radius:4px;">
                 <div class="flex-grow-1">
                     <div>${escapeHtml(p.name)}</div>

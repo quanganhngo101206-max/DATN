@@ -71,15 +71,14 @@ public class BillService {
         boolean valid = switch (current) {
             case PENDING   -> next == OrderStatus.CONFIRMED || next == OrderStatus.CANCELLED;
             case CONFIRMED -> next == OrderStatus.SHIPPING  || next == OrderStatus.CANCELLED;
-            case SHIPPING  -> next == OrderStatus.DELIVERED || next == OrderStatus.CANCELLED;
-            case DELIVERED -> next == OrderStatus.COMPLETED || next == OrderStatus.RETURNING;
+            case SHIPPING  -> next == OrderStatus.COMPLETED;
             default        -> false;
         };
 
         if (!valid) return false;
 
-        if (next == OrderStatus.COMPLETED) {
-            deductBillItems(bill);
+        if (next == OrderStatus.CANCELLED) {
+            restockBillItems(bill);
         }
 
         bill.setStatus(next.getValue());
@@ -102,13 +101,13 @@ public class BillService {
         return true;
     }
 
-    private void deductBillItems(Bill bill) {
+    private void restockBillItems(Bill bill) {
         List<BillDetail> details = billDetailRepository.findByBillId(bill.getId());
         for (BillDetail detail : details) {
             if (detail.getProductDetail() == null || detail.getQuantity() == null) continue;
             ProductDetail pd = productDetailRepository.findById(detail.getProductDetail().getId()).orElse(null);
             if (pd != null) {
-                pd.setQuantity((pd.getQuantity() != null ? pd.getQuantity() : 0) - detail.getQuantity());
+                pd.setQuantity((pd.getQuantity() != null ? pd.getQuantity() : 0) + detail.getQuantity());
                 productDetailRepository.save(pd);
             }
         }

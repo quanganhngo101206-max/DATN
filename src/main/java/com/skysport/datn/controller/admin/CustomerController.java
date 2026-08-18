@@ -40,6 +40,8 @@ public class CustomerController {
         model.addAttribute("currentPage", page);
         model.addAttribute("totalPages", customerPage.getTotalPages());
         model.addAttribute("totalItems", customerPage.getTotalElements());
+        // Admin đã vào xem danh sách -> tắt badge "khách hàng mới"
+        customerService.markAllCustomersViewed();
         return "admin/customer/list";
     }
     // 2. CHI TIẾT KHÁCH HÀNG

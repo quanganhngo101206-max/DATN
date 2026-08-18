@@ -1,6 +1,8 @@
 package com.skysport.datn.controller.staff;
 
 import com.skysport.datn.entity.*;
+import com.skysport.datn.enums.OrderStatus;
+import com.skysport.datn.enums.ReturnRequestStatus;
 import com.skysport.datn.repository.*;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -70,7 +72,7 @@ public class StaffReturnController {
                           HttpSession session,
                           RedirectAttributes redirectAttributes) {
         ReturnRequest request = requestRepository.findById(id).orElse(null);
-        if (request == null || request.getStatus() != 1) {
+        if (request == null || !ReturnRequestStatus.PENDING.matches(request.getStatus())) {
             redirectAttributes.addFlashAttribute("errorMsg", "Yêu cầu không hợp lệ!");
             return "redirect:/staff/return";
         }
@@ -115,13 +117,13 @@ public class StaffReturnController {
                 .build();
         billReturnRepository.save(billReturn);
 
-        // Cập nhật bill status = 6 (trả hàng)
+        // Cập nhật bill status = trả hàng
         Bill bill = request.getBill();
-        bill.setStatus(6);
+        bill.setStatus(OrderStatus.RETURNING.getValue());
         billRepository.save(bill);
 
-        // Cập nhật request status = 2 (đã duyệt)
-        request.setStatus(2);
+        // Cập nhật request status = đã duyệt
+        request.setStatus(ReturnRequestStatus.APPROVED.getValue());
         requestRepository.save(request);
 
         redirectAttributes.addFlashAttribute("successMsg",
@@ -135,8 +137,8 @@ public class StaffReturnController {
     public String reject(@PathVariable Integer id,
                          RedirectAttributes redirectAttributes) {
         ReturnRequest request = requestRepository.findById(id).orElse(null);
-        if (request != null && request.getStatus() == 1) {
-            request.setStatus(3); // 3 = từ chối
+        if (request != null && ReturnRequestStatus.PENDING.matches(request.getStatus())) {
+            request.setStatus(ReturnRequestStatus.REJECTED.getValue());
             requestRepository.save(request);
             redirectAttributes.addFlashAttribute("successMsg", "Đã từ chối yêu cầu hoàn trả.");
         } else {

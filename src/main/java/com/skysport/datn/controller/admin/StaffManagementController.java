@@ -43,6 +43,7 @@ public class StaffManagementController {
     public String edit(@PathVariable Integer id, Model model) {
         model.addAttribute("staff", staffService.findById(id));
         model.addAttribute("staffs", staffService.findAll());
+        model.addAttribute("openModal", true);
         return "admin/staff/list";
     }
 

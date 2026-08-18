@@ -1,11 +1,13 @@
 package com.skysport.datn.controller.customer;
 
 import com.skysport.datn.dto.CheckoutRequest;
+import com.skysport.datn.dto.ShippingFeeResponse;
 import com.skysport.datn.entity.*;
 import com.skysport.datn.enums.OrderStatus;
 import com.skysport.datn.repository.*;
 import com.skysport.datn.service.CartService;
 import com.skysport.datn.service.DiscountCodeService;
+import com.skysport.datn.service.ShippingFeeService;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +19,7 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -34,6 +37,7 @@ public class CheckoutController {
     @Autowired private OrderStatusHistoryRepository orderStatusHistoryRepository;
     @Autowired private ProductDetailRepository productDetailRepository;
     @Autowired private DiscountCodeRepository discountCodeRepository;
+    @Autowired private ShippingFeeService shippingFeeService;
 
     @Autowired private ProvinceRepository provinceRepository;
 
@@ -41,8 +45,7 @@ public class CheckoutController {
     @Autowired private WardRepository wardRepository;
 
     private static final String CART_KEY = "cart";
-    private static final double FREE_SHIP_THRESHOLD = 500000;
-    private static final double SHIPPING_FEE = 30000;
+    private static final double FREE_SHIP_THRESHOLD = 800000;
 
     private Map<Integer, CartController.CartItem> getCart(HttpSession session) {
         Map<Integer, CartController.CartItem> cart =
@@ -59,9 +62,6 @@ public class CheckoutController {
 
         double subtotal = cart.values().stream()
                 .mapToDouble(i -> i.getPrice() * i.getQuantity()).sum();
-        double shipping = subtotal >= FREE_SHIP_THRESHOLD ? 0 : SHIPPING_FEE;
-        double total = subtotal + shipping;
-
         // Tự điền thông tin nếu đã đăng nhập
         Account account = (Account) session.getAttribute("account");
         CheckoutRequest req = new CheckoutRequest();
@@ -80,6 +80,11 @@ public class CheckoutController {
                 }
             }
         }
+
+        // Nếu đã có tỉnh trong địa chỉ lưu sẵn thì tính phí theo khu vực.
+        // Khách mới chưa chọn tỉnh sẽ thấy yêu cầu chọn tỉnh trên giao diện.
+        double shipping = calculateShipping(subtotal, req.getProvinceId());
+        double total = subtotal + shipping;
 
         // Danh sách mã giảm giá đang khả dụng với đơn hàng hiện tại
         LocalDateTime now = LocalDateTime.now();
@@ -122,10 +127,11 @@ public class CheckoutController {
     public ResponseEntity<Map<String, Object>> applyDiscount(
             @RequestParam String code,
             @RequestParam double subtotal,
+            @RequestParam(required = false) Integer provinceId,
             HttpSession session) {
 
         Map<String, Object> result = new LinkedHashMap<>();
-        double shipping = subtotal >= FREE_SHIP_THRESHOLD ? 0 : SHIPPING_FEE;
+        double shipping = calculateShipping(subtotal, provinceId);
         double total = subtotal + shipping;
 
         Integer customerId = null;
@@ -185,7 +191,7 @@ public class CheckoutController {
             // Tính tiền
             double subtotal = cart.values().stream()
                     .mapToDouble(i -> i.getPrice() * i.getQuantity()).sum();
-            double shipping = subtotal >= FREE_SHIP_THRESHOLD ? 0 : SHIPPING_FEE;
+            double shipping = calculateShipping(subtotal, request.getProvinceId());
             double total = subtotal + shipping;
 
             // Khách hàng — xác định trước để dùng cho validate mã giảm giá
@@ -312,7 +318,7 @@ public class CheckoutController {
             session.setAttribute("lastOrderId", bill.getId());
             session.setAttribute("lastOrderPhone", request.getPhoneNumber());
 
-            // Tạo BillDetail (không trừ tồn kho lúc đặt hàng)
+            // Tạo BillDetail + trừ tồn kho
             for (CartController.CartItem item : cart.values()) {
                 ProductDetail productDetail = lockedDetails.get(item.getProductDetailId());
 
@@ -322,6 +328,9 @@ public class CheckoutController {
                 detail.setMomentPrice(item.getPrice().floatValue());
                 detail.setQuantity(item.getQuantity());
                 billDetailRepository.save(detail);
+
+                productDetail.setQuantity(productDetail.getQuantity() - item.getQuantity());
+                cartService.updateProductDetail(productDetail);
             }
 
             // Ghi lịch sử
@@ -390,4 +399,21 @@ public class CheckoutController {
         int next = (maxId == null ? 0 : maxId) + 1;
         return "KH" + String.format("%03d", next);
     }
+
+    /**
+     * Phí vận chuyển phải được tính lại ở backend từ tỉnh nhận hàng và
+     * subtotal được tính từ giỏ hàng, không lấy phí do frontend gửi lên.
+     */
+    private double calculateShipping(double subtotal, Integer provinceId) {
+        if (provinceId == null) {
+            return 0;
+        }
+
+        ShippingFeeResponse response = shippingFeeService.calculate(
+                provinceId,
+                BigDecimal.valueOf(subtotal)
+        );
+        return response.getShippingFee().doubleValue();
+    }
 }
+ 

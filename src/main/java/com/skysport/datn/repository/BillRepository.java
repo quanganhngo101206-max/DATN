@@ -17,12 +17,15 @@ public interface BillRepository extends JpaRepository<Bill, Integer> {
 
     List<Bill> findByStatusOrderByCreateDateDesc(Integer status);
 
+    // Đếm số đơn hàng theo trạng thái (dùng cho badge "đơn hàng mới" - status=1: Chờ xác nhận)
+    long countByStatus(Integer status);
+
     // Phân trang
     Page<Bill> findAllByOrderByCreateDateDesc(Pageable pageable);
 
     Page<Bill> findByStatusOrderByCreateDateDesc(Integer status, Pageable pageable);
 
-    @Query("SELECT DISTINCT b FROM Bill b WHERE b.customer.id = :customerId ORDER BY b.createDate DESC")
+    @Query("SELECT b FROM Bill b WHERE b.customer.id = :customerId ORDER BY b.createDate DESC")
     List<Bill> findByCustomerId(@Param("customerId") Integer customerId);
 
     @Query("SELECT MAX(b.id) FROM Bill b")

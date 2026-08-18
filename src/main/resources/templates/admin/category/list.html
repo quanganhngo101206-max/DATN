@@ -9,77 +9,107 @@
 <div th:replace="~{admin/fragments/layout :: adminSidebar('category')}"></div>
 
 <div class="main-content">
-    <h4 class="fw-bold mb-4">Quản lý danh mục</h4>
-    <div class="row g-4">
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-header">
-                    <i class="bi bi-plus-circle"></i>
-                    <span th:text="${category.id != null} ? 'Sửa danh mục' : 'Thêm danh mục'"></span>
-                </div>
-                <div class="card-body p-4">
-                    <form th:action="${category.id != null} ? '/admin/category/update' : '/admin/category/save'" method="post">
-                        <input type="hidden" name="id" th:value="${category.id}"/>
-                        <input type="hidden" name="deleteFlag" th:value="${category.deleteFlag}"/>
-                        <input type="hidden" name="status" th:value="${category.status}"/>
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Mã danh mục</label>
-                            <input type="text" name="code" class="form-control" th:value="${category.code}" placeholder="VD: AO, QUAN..." required/>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Tên danh mục</label>
-                            <input type="text" name="name" class="form-control" th:value="${category.name}" placeholder="VD: Áo thể thao..." required/>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Trạng thái</label>
-                            <select name="status" class="form-select">
-                                <option value="1" th:selected="${category.status == 1}">Hoạt động</option>
-                                <option value="0" th:selected="${category.status == 0}">Tắt</option>
-                            </select>
-                        </div>
-                        <button type="submit" class="btn btn-purple w-100">
-                            <i class="bi bi-save"></i>
-                            <span th:text="${category.id != null} ? 'Cập nhật' : 'Thêm mới'"></span>
-                        </button>
-                        <a th:if="${category.id != null}" href="/admin/category" class="btn btn-secondary w-100 mt-2">Hủy</a>
-                    </form>
-                </div>
-            </div>
-        </div>
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <h4 class="fw-bold mb-0">Quản lý danh mục</h4>
+        <button type="button" class="btn btn-purple" data-bs-toggle="modal" data-bs-target="#categoryModal"
+                onclick="openCreateModal()">
+            <i class="bi bi-plus-circle"></i> Thêm danh mục
+        </button>
+    </div>
 
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-header"><i class="bi bi-list-ul"></i> Danh sách danh mục</div>
-                <div class="card-body p-0">
-                    <table class="table table-hover mb-0">
-                        <thead class="table-light">
-                        <tr><th>#</th><th>Mã</th><th>Tên</th><th>Trạng thái</th><th>Thao tác</th></tr>
-                        </thead>
-                        <tbody>
-                        <tr th:each="cat, i : ${categories}">
-                            <td th:text="${i.count}"></td>
-                            <td><span class="badge bg-secondary" th:text="${cat.code}"></span></td>
-                            <td th:text="${cat.name}"></td>
-                            <td>
-                                <span class="badge bg-success" th:if="${cat.status == 1}">Hoạt động</span>
-                                <span class="badge bg-danger" th:if="${cat.status == 0}">Tắt</span>
-                            </td>
-                            <td>
-                                <a th:href="@{/admin/category/edit/{id}(id=${cat.id})}" class="btn btn-sm btn-warning"><i class="bi bi-pencil"></i></a>
-                                <a th:href="@{/admin/category/delete/{id}(id=${cat.id})}" class="btn btn-sm btn-danger" onclick="return confirm('Xóa danh mục này?')"><i class="bi bi-trash"></i></a>
-                            </td>
-                        </tr>
-                        <tr th:if="${#lists.isEmpty(categories)}">
-                            <td colspan="5" class="text-center text-muted py-4">Chưa có danh mục nào</td>
-                        </tr>
-                        </tbody>
-                    </table>
+    <div class="card">
+        <div class="card-header"><i class="bi bi-list-ul"></i> Danh sách danh mục</div>
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                <tr><th>#</th><th>Mã</th><th>Tên</th><th>Trạng thái</th><th>Thao tác</th></tr>
+                </thead>
+                <tbody>
+                <tr th:each="cat, i : ${categories}">
+                    <td th:text="${i.count}"></td>
+                    <td><span class="badge bg-secondary" th:text="${cat.code}"></span></td>
+                    <td th:text="${cat.name}"></td>
+                    <td>
+                        <span class="badge bg-success" th:if="${cat.status == 1}">Hoạt động</span>
+                        <span class="badge bg-danger" th:if="${cat.status == 0}">Tắt</span>
+                    </td>
+                    <td>
+                        <a th:href="@{/admin/category/edit/{id}(id=${cat.id})}" class="btn btn-sm btn-warning"><i class="bi bi-pencil"></i></a>
+                        <a th:href="@{/admin/category/delete/{id}(id=${cat.id})}" class="btn btn-sm btn-danger" onclick="return confirm('Xóa danh mục này?')"><i class="bi bi-trash"></i></a>
+                    </td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(categories)}">
+                    <td colspan="5" class="text-center text-muted py-4">Chưa có danh mục nào</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal thêm / sửa danh mục -->
+<div class="modal fade" id="categoryModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form th:action="${category.id != null} ? '/admin/category/update' : '/admin/category/save'" method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-plus-circle"></i>
+                        <span th:text="${category.id != null} ? 'Sửa danh mục' : 'Thêm danh mục'"></span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-            </div>
+                <div class="modal-body">
+                    <input type="hidden" name="id" th:value="${category.id}"/>
+                    <input type="hidden" name="deleteFlag" th:value="${category.deleteFlag}"/>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Mã danh mục</label>
+                        <input type="text" name="code" class="form-control" th:value="${category.code}" placeholder="VD: AO, QUAN..." required/>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Tên danh mục</label>
+                        <input type="text" name="name" class="form-control" th:value="${category.name}" placeholder="VD: Áo thể thao..." required/>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label fw-bold">Trạng thái</label>
+                        <select name="status" class="form-select">
+                            <option value="1" th:selected="${category.status == 1}">Hoạt động</option>
+                            <option value="0" th:selected="${category.status == 0}">Tắt</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
+                            th:onclick="${category.id != null} ? 'window.location=\'/admin/category\'' : ''">Hủy</button>
+                    <button type="submit" class="btn btn-purple">
+                        <i class="bi bi-save"></i>
+                        <span th:text="${category.id != null} ? 'Cập nhật' : 'Thêm mới'"></span>
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
 
 <div th:replace="~{admin/fragments/layout :: adminScripts}"></div>
+<script th:inline="javascript">
+    function openCreateModal() {
+        var form = document.querySelector('#categoryModal form');
+        form.reset();
+        form.setAttribute('action', '/admin/category/save');
+        form.querySelector('input[name=id]').value = '';
+        document.querySelector('#categoryModal .modal-title span').textContent = 'Thêm danh mục';
+    }
+
+    /*<![CDATA[*/
+    var shouldOpenModal = /*[[${openModal != null && openModal}]]*/ false;
+    /*]]>*/
+    if (shouldOpenModal) {
+        document.addEventListener('DOMContentLoaded', function () {
+            new bootstrap.Modal(document.getElementById('categoryModal')).show();
+        });
+    }
+</script>
 </body>
 </html>

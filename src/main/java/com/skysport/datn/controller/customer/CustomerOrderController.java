@@ -147,7 +147,16 @@ public class CustomerOrderController {
         bill.setStatus(OrderStatus.CANCELLED.getValue());
         billRepository.save(bill);
 
-        // Không hoàn lại số lượng tồn kho vì không trừ khi đặt hàng
+        List<BillDetail> details = billDetailRepository.findByBillId(bill.getId());
+        for (BillDetail detail : details) {
+            if (detail.getProductDetail() != null) {
+                ProductDetail pd = productDetailRepository.findById(detail.getProductDetail().getId()).orElse(null);
+                if (pd != null) {
+                    pd.setQuantity((pd.getQuantity() != null ? pd.getQuantity() : 0) + detail.getQuantity());
+                    productDetailRepository.save(pd);
+                }
+            }
+        }
 
         result.put("success", true);
         result.put("message", "Đã hủy đơn hàng thành công!");

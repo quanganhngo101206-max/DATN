@@ -31,6 +31,7 @@ public class BrandController {
     public String edit(@PathVariable Integer id, Model model) {
         model.addAttribute("brand", brandService.findById(id));
         model.addAttribute("brands", brandService.findAll());
+        model.addAttribute("openModal", true);
         return "admin/brand/list";
     }
 
@@ -50,4 +51,3 @@ public class BrandController {
         return "redirect:/admin/brand";
     }
 }
-

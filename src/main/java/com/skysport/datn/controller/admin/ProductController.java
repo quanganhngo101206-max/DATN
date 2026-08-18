@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Controller
 @RequestMapping("/admin/product")
@@ -38,32 +39,45 @@ public class ProductController {
     public String list(@RequestParam(required = false) String keyword,
                        @RequestParam(required = false) Integer categoryId,
                        @RequestParam(required = false) Integer brandId,
+                       @RequestParam(required = false) Integer materialId,
+                       @RequestParam(required = false) Integer sizeId,
+                       @RequestParam(required = false) Integer colorId,
                        @RequestParam(required = false) Integer status,
                        @RequestParam(defaultValue = "0") int page,
                        @RequestParam(defaultValue = "10") int size,
                        Model model) {
-        populateListAttributes(model, keyword, categoryId, brandId, status, page, size);
+        populateListAttributes(model, keyword, categoryId, brandId, materialId, sizeId, colorId, status, page, size);
         model.addAttribute("product", new Product());
         return "admin/product/list";
     }
 
     // Gom logic tìm kiếm/lọc/phân trang dùng chung cho list(), addForm(), edit()
-    private void populateListAttributes(Model model, String keyword, Integer categoryId,
-                                        Integer brandId, Integer status, int page, int size) {
+    private void populateListAttributes(Model model, String keyword, Integer categoryId, Integer brandId,
+                                        Integer materialId, Integer sizeId, Integer colorId,
+                                        Integer status, int page, int size) {
         Pageable pageable = PageRequest.of(Math.max(page, 0), Math.max(size, 1),
                 Sort.by(Sort.Direction.DESC, "id"));
-        Page<Product> productPage = productService.search(keyword, categoryId, brandId, status, pageable);
+        Page<Product> productPage = productService.search(keyword, categoryId, brandId, materialId,
+                sizeId, colorId, status, pageable);
+
+        List<Integer> productIds = productPage.getContent().stream().map(Product::getId).toList();
 
         model.addAttribute("productPage", productPage);
         model.addAttribute("products", productPage.getContent());
+        model.addAttribute("quantities", productService.getQuantityMap(productIds));
         model.addAttribute("categories", productService.findAllCategory());
         model.addAttribute("brands", productService.findAllBrand());
         model.addAttribute("materials", productService.findAllMaterial());
+        model.addAttribute("sizes", productDetailService.findAllSize());
+        model.addAttribute("colors", productDetailService.findAllColor());
 
         // Giữ lại giá trị tìm kiếm/lọc trên form để hiển thị lại sau khi submit
         model.addAttribute("keyword", keyword);
         model.addAttribute("selectedCategoryId", categoryId);
         model.addAttribute("selectedBrandId", brandId);
+        model.addAttribute("selectedMaterialId", materialId);
+        model.addAttribute("selectedSizeId", sizeId);
+        model.addAttribute("selectedColorId", colorId);
         model.addAttribute("selectedStatus", status);
         model.addAttribute("pageSize", size);
     }
@@ -86,9 +100,10 @@ public class ProductController {
 
     @GetMapping("/add")
     public String addForm(Model model) {
-        // Object rỗng cho form
+        // Object rỗng cho form — modal thêm sản phẩm sẽ tự mở khi vào trang này
         model.addAttribute("product", new Product());
-        populateListAttributes(model, null, null, null, null, 0, 10);
+        model.addAttribute("openModal", true);
+        populateListAttributes(model, null, null, null, null, null, null, null, 0, 10);
         return "admin/product/list";
     }
 
@@ -96,7 +111,14 @@ public class ProductController {
     @GetMapping("/detail/{id}")
     public String detail(@PathVariable Integer id, Model model) {
         model.addAttribute("product", productService.findById(id));
-        model.addAttribute("details", productDetailService.findByProduct(id));
+        List<ProductDetail> details = productDetailService.findByProduct(id);
+        model.addAttribute("details", details);
+        // Tổng số lượng tồn kho = tổng quantity của các biến thể đang hoạt động (không tính biến thể đã xóa mềm)
+        int totalQuantity = details.stream()
+                .filter(d -> d.getDeleteFlag() == null || !d.getDeleteFlag())
+                .mapToInt(d -> d.getQuantity() != null ? d.getQuantity() : 0)
+                .sum();
+        model.addAttribute("totalQuantity", totalQuantity);
         model.addAttribute("sizes", productDetailService.findAllSize());
         model.addAttribute("colors", productDetailService.findAllColor());
         model.addAttribute("newDetail", new ProductDetail());
@@ -104,14 +126,14 @@ public class ProductController {
         return "admin/product/detail";
     }
 
-    // Thêm ảnh sản phẩm (upload file)
+    // Thêm ảnh sản phẩm (theo link URL)
     @PostMapping("/{productId}/image/add")
     public String addImage(@PathVariable Integer productId,
-                           @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
+                           @RequestParam String link,
                            @RequestParam(required = false) String name,
                            RedirectAttributes ra) {
-        if (file == null || file.isEmpty()) {
-            ra.addFlashAttribute("errorMsg", "Vui lòng chọn ảnh!");
+        if (link == null || link.isBlank()) {
+            ra.addFlashAttribute("errorMsg", "Vui lòng nhập link ảnh!");
             return "redirect:/admin/product/detail/" + productId;
         }
         Product product = productService.findById(productId);
@@ -120,36 +142,24 @@ public class ProductController {
             return "redirect:/admin/product";
         }
 
-        try {
-            String uploadDir = "uploads/";
-            java.io.File dir = new java.io.File(uploadDir);
-            if (!dir.exists()) dir.mkdirs();
-
-            String originalName = file.getOriginalFilename();
-            String ext = "";
-            if (originalName != null && originalName.contains(".")) {
-                ext = originalName.substring(originalName.lastIndexOf(".") + 1);
-            }
-            String fileName = java.util.UUID.randomUUID().toString() + (ext.isEmpty() ? "" : "." + ext);
-            java.nio.file.Path path = java.nio.file.Paths.get(uploadDir + fileName);
-            java.nio.file.Files.copy(file.getInputStream(), path, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-
-            String fileUrl = "/uploads/" + fileName;
-
-            Image image = Image.builder()
-                    .createDate(LocalDateTime.now())
-                    .updateDate(LocalDateTime.now())
-                    .fileType(ext.isBlank() ? "jpg" : ext)
-                    .link(fileUrl)
-                    .name(name != null && !name.isBlank() ? name.trim() : product.getName())
-                    .product(product)
-                    .build();
-            imageRepository.save(image);
-
-            ra.addFlashAttribute("successMsg", "Đã thêm ảnh sản phẩm.");
-        } catch (java.io.IOException e) {
-            ra.addFlashAttribute("errorMsg", "Lỗi lưu file ảnh: " + e.getMessage());
+        String link2 = link.trim();
+        String ext = "";
+        int dot = link2.lastIndexOf('.');
+        if (dot >= 0 && dot < link2.length() - 1) {
+            ext = link2.substring(dot + 1).split("[?#]")[0];
         }
+
+        Image image = Image.builder()
+                .createDate(LocalDateTime.now())
+                .updateDate(LocalDateTime.now())
+                .fileType(ext.isBlank() ? "jpg" : ext)
+                .link(link2)
+                .name(name != null && !name.isBlank() ? name.trim() : product.getName())
+                .product(product)
+                .build();
+        imageRepository.save(image);
+
+        ra.addFlashAttribute("successMsg", "Đã thêm ảnh sản phẩm.");
         return "redirect:/admin/product/detail/" + productId;
     }
 
@@ -191,11 +201,12 @@ public class ProductController {
         return "redirect:/admin/product/detail/" + productId;
     }
 
-    // Form sửa sản phẩm
+    // Form sửa sản phẩm — modal sửa sẽ tự mở với dữ liệu đã điền sẵn
     @GetMapping("/edit/{id}")
     public String edit(@PathVariable Integer id, Model model) {
         model.addAttribute("product", productService.findById(id));
-        populateListAttributes(model, null, null, null, null, 0, 10);
+        model.addAttribute("openModal", true);
+        populateListAttributes(model, null, null, null, null, null, null, null, 0, 10);
         return "admin/product/list";
     }
 

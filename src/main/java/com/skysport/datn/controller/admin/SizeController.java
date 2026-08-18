@@ -32,6 +32,7 @@ public class SizeController {
     public String edit(@PathVariable Integer id, Model model) {
         model.addAttribute("size", sizeService.findById(id));
         model.addAttribute("sizes", sizeService.findAll());
+        model.addAttribute("openModal", true);
         return "admin/size/list";
     }
 

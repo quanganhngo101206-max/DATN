@@ -25,6 +25,11 @@ public interface ProductDetailRepository extends JpaRepository<ProductDetail, In
     @Query("SELECT pd FROM ProductDetail pd WHERE pd.id = :id")
     Optional<ProductDetail> findByIdForUpdate(@Param("id") Integer id);
 
+    // Tổng tồn kho theo từng sản phẩm (chỉ tính biến thể chưa xóa mềm) — dùng cho cột "Tồn kho" ở trang danh sách admin
+    @Query("SELECT pd.product.id, COALESCE(SUM(pd.quantity), 0) FROM ProductDetail pd " +
+            "WHERE pd.deleteFlag = false AND pd.product.id IN :productIds GROUP BY pd.product.id")
+    List<Object[]> sumQuantityByProductIds(@Param("productIds") List<Integer> productIds);
+
     // Lấy id sản phẩm đang có khuyến mãi (sale) còn hiệu lực, dùng cho gợi ý bán tại quầy
     @Query("SELECT DISTINCT pd.product.id FROM ProductDetail pd " +
             "WHERE pd.deleteFlag = false " +

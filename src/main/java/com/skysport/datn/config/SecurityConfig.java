@@ -28,7 +28,7 @@ public class SecurityConfig {
 
         // CSRF: bật lại, dùng Cookie (Thymeleaf tự thêm token qua th:action)
         CsrfTokenRequestAttributeHandler csrfHandler = new CsrfTokenRequestAttributeHandler();
-        csrfHandler.setCsrfRequestAttributeName(null); // cần cho Spring Boot 3+
+        csrfHandler.setCsrfRequestAttributeName(null); //cần cho Spring Boot 3+
 
         http
                 .csrf(csrf -> csrf
@@ -39,7 +39,8 @@ public class SecurityConfig {
                                 "/checkout/apply-discount",
                                 "/cart/**",
                                 "/wishlist/**",
-                                "/customer/review/**"
+                                "/customer/review/**",
+                                "/api/chatbot/**"
                         )
                 )
 
@@ -57,7 +58,8 @@ public class SecurityConfig {
                                 "/order/**",
                                 "/track-order/**",
                                 "/guest/**",
-                                "/wishlist/toggle/**", "/wishlist/add/**", "/wishlist/remove/**"
+                                "/wishlist/toggle/**", "/wishlist/add/**", "/wishlist/remove/**",
+                                "/api/chatbot/**"
                         ).permitAll()
 
                         // Chỉ Admin

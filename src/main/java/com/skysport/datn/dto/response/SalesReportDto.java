@@ -23,6 +23,11 @@ public class SalesReportDto {
     private double completionRate;
     private double cancellationRate;
     private long estimatedNetRevenue;
+    private long cogs;
+    private long grossProfit;
+    private double profitMargin;
+    private long avgProfitPerOrder;
+    private List<Long> profitData;
     private long onlineRevenue;
     private long posRevenue;
     private long onlineOrders;

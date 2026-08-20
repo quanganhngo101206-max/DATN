@@ -12,6 +12,10 @@ public class DashboardStatsDto {
 
     private long totalRevenue;
     private long todayRevenue;
+    private long grossProfit;
+    private long todayProfit;
+    private double profitMargin;
+    private List<Long> profitData;
     private long totalOrders;
     private long todayOrders;
     private long totalProducts;

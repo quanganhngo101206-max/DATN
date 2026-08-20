@@ -7,6 +7,7 @@ import com.skysport.datn.entity.BillDetail;
 import com.skysport.datn.enums.OrderStatus;
 import com.skysport.datn.repository.BillRepository;
 import com.skysport.datn.repository.CustomerRepository;
+import com.skysport.datn.repository.ImportOrderDetailRepository;
 import com.skysport.datn.repository.ImportOrderRepository;
 import com.skysport.datn.repository.ProductDetailRepository;
 import com.skysport.datn.repository.ProductRepository;
@@ -56,6 +57,7 @@ public class StatisticsService {
     private final ProductRepository productRepository;
     private final ProductDetailRepository productDetailRepository;
     private final ImportOrderRepository importOrderRepository;
+    private final ImportOrderDetailRepository importOrderDetailRepository;
 
     public DashboardStatsDto getAdminDashboardStats() {
         List<Bill> allBills = billRepository.findAll();
@@ -63,6 +65,10 @@ public class StatisticsService {
 
         long totalRevenue = sumCompletedRevenue(allBills, null, null);
         long todayRevenue = sumCompletedRevenue(allBills, today, today);
+        Map<Integer, Long> costMap = loadAverageImportCosts();
+        long grossProfit = totalRevenue - sumCompletedCogs(allBills, null, null, costMap);
+        long todayProfit = todayRevenue - sumCompletedCogs(allBills, today, today, costMap);
+        double profitMargin = totalRevenue > 0 ? grossProfit * 100.0 / totalRevenue : 0;
         long todayOrders = allBills.stream()
                 .filter(b -> isOnDate(b.getCreateDate(), today))
                 .count();
@@ -72,6 +78,9 @@ public class StatisticsService {
         return DashboardStatsDto.builder()
                 .totalRevenue(totalRevenue)
                 .todayRevenue(todayRevenue)
+                .grossProfit(grossProfit)
+                .todayProfit(todayProfit)
+                .profitMargin(profitMargin)
                 .totalOrders(allBills.size())
                 .todayOrders(todayOrders)
                 .totalProducts(productRepository.count())
@@ -81,6 +90,7 @@ public class StatisticsService {
                 .lowStockCount(lowStockList.size())
                 .revenueLabels(buildRevenueLabels(today.minusDays(6), today))
                 .revenueData(buildDailyRevenue(allBills, today.minusDays(6), today))
+                .profitData(buildDailyProfit(allBills, today.minusDays(6), today, costMap))
                 .statusLabels(List.of(
                         OrderStatus.PENDING.getLabel(),
                         OrderStatus.CONFIRMED.getLabel(),
@@ -99,7 +109,7 @@ public class StatisticsService {
                         countByStatus(allBills, OrderStatus.CANCELLED),
                         countByStatus(allBills, OrderStatus.RETURNING)
                 ))
-                .topProducts(buildTopProducts(allBills, null, null, 5))
+                .topProducts(buildTopProducts(allBills, null, null, 5, costMap))
                 .recentOrders(buildRecentOrders(allBills, 5))
                 .lowStockList(lowStockList)
                 .build();
@@ -166,6 +176,12 @@ public class StatisticsService {
                 .mapToLong(io -> io.getTotalAmount() != null ? io.getTotalAmount().longValue() : 0L)
                 .sum();
 
+        Map<Integer, Long> costMap = loadAverageImportCosts();
+        long cogs = sumCompletedCogs(periodBills, from, to, costMap);
+        long grossProfit = revenue - cogs;
+        double profitMargin = revenue > 0 ? grossProfit * 100.0 / revenue : 0;
+        long avgProfitPerOrder = completedCount > 0 ? grossProfit / completedCount : 0;
+
         long newCustomers = customerRepository.findAll().stream()
                 .filter(c -> c.getAccount() != null && c.getAccount().getCreateDate() != null)
                 .filter(c -> {
@@ -186,6 +202,10 @@ public class StatisticsService {
                 .completionRate(completionRate)
                 .cancellationRate(cancellationRate)
                 .estimatedNetRevenue(revenue - importCost)
+                .cogs(cogs)
+                .grossProfit(grossProfit)
+                .profitMargin(profitMargin)
+                .avgProfitPerOrder(avgProfitPerOrder)
                 .onlineRevenue(onlineRevenue)
                 .posRevenue(posRevenue)
                 .onlineOrders(onlineOrders)
@@ -194,6 +214,7 @@ public class StatisticsService {
                 .newCustomers(newCustomers)
                 .revenueLabels(buildRevenueLabels(from, to))
                 .revenueData(buildDailyRevenue(allBills, from, to))
+                .profitData(buildDailyProfit(allBills, from, to, costMap))
                 .statusLabels(List.of(
                         OrderStatus.PENDING.getLabel(),
                         OrderStatus.CONFIRMED.getLabel(),
@@ -214,7 +235,7 @@ public class StatisticsService {
                 ))
                 .channelLabels(List.of("Online", "Tại quầy"))
                 .channelData(List.of(onlineRevenue, posRevenue))
-                .topProducts(buildTopProducts(periodBills, from, to, 10))
+                .topProducts(buildTopProducts(periodBills, from, to, 10, costMap))
                 .topCategories(buildTopCategories(periodBills, 5))
                 .topCustomers(buildTopCustomers(periodBills, 5))
                 .orders(buildOrderRows(periodBills, Integer.MAX_VALUE))
@@ -315,7 +336,12 @@ public class StatisticsService {
             if ("all".equals(exportType) || "products".equals(exportType)) {
                 writeProductSheet(
                         workbook,
-                        buildTopProducts(periodBills, report.getFromDate(), report.getToDate(), 100),
+                        buildTopProducts(
+                                periodBills,
+                                report.getFromDate(),
+                                report.getToDate(),
+                                100,
+                                loadAverageImportCosts()),
                         headerStyle,
                         moneyStyle);
             }
@@ -404,6 +430,10 @@ public class StatisticsService {
                 {"Doanh thu Online", String.valueOf(report.getOnlineRevenue())},
                 {"Doanh thu tại quầy", String.valueOf(report.getPosRevenue())},
                 {"Chi phí nhập hàng", String.valueOf(report.getImportCost())},
+                {"Giá vốn hàng bán (COGS)", String.valueOf(report.getCogs())},
+                {"Lời (doanh thu - giá vốn)", String.valueOf(report.getGrossProfit())},
+                {"Tỷ suất lãi (%)", String.format("%.1f", report.getProfitMargin())},
+                {"Lời TB / đơn", String.valueOf(report.getAvgProfitPerOrder())},
                 {"Chênh lệch thu - chi", String.valueOf(report.getEstimatedNetRevenue())},
                 {"Khách mới", String.valueOf(report.getNewCustomers())}
         };
@@ -426,6 +456,8 @@ public class StatisticsService {
                 if (kpis[i][0].contains("Doanh thu")
                         || kpis[i][0].contains("Giá trị")
                         || kpis[i][0].contains("Chi phí")
+                        || kpis[i][0].contains("Giá vốn")
+                        || kpis[i][0].contains("Lời")
                         || kpis[i][0].contains("Chênh lệch")) {
                     valueCell.setCellStyle(moneyStyle);
                 }
@@ -442,7 +474,7 @@ public class StatisticsService {
             CellStyle headerStyle,
             CellStyle moneyStyle) {
         Sheet sheet = workbook.createSheet("Top san pham");
-        writeHeader(sheet, headerStyle, "#", "Sản phẩm", "Đã bán", "Doanh thu");
+        writeHeader(sheet, headerStyle, "#", "Sản phẩm", "Đã bán", "Doanh thu", "Giá vốn", "Lời", "Lãi (%)");
         int rowIdx = 1;
         for (Map<String, Object> p : products) {
             Row row = sheet.createRow(rowIdx);
@@ -452,9 +484,16 @@ public class StatisticsService {
             Cell rev = row.createCell(3);
             rev.setCellValue(toLong(p.get("revenue")));
             rev.setCellStyle(moneyStyle);
+            Cell cost = row.createCell(4);
+            cost.setCellValue(toLong(p.get("cost")));
+            cost.setCellStyle(moneyStyle);
+            Cell profit = row.createCell(5);
+            profit.setCellValue(toLong(p.get("profit")));
+            profit.setCellStyle(moneyStyle);
+            row.createCell(6).setCellValue(toDouble(p.get("margin")));
             rowIdx++;
         }
-        autosize(sheet, 4);
+        autosize(sheet, 7);
     }
 
     private void writeCategorySheet(
@@ -568,6 +607,16 @@ public class StatisticsService {
         }
     }
 
+    private double toDouble(Object value) {
+        if (value == null) return 0d;
+        if (value instanceof Number number) return number.doubleValue();
+        try {
+            return Double.parseDouble(String.valueOf(value));
+        } catch (NumberFormatException ex) {
+            return 0d;
+        }
+    }
+
     // ===== helpers =====
 
     private List<Bill> filterByDateRange(List<Bill> bills, LocalDate from, LocalDate to) {
@@ -623,7 +672,35 @@ public class StatisticsService {
         return new ArrayList<>(byDay.values());
     }
 
-    private List<Map<String, Object>> buildTopProducts(List<Bill> bills, LocalDate from, LocalDate to, int limit) {
+    private List<Long> buildDailyProfit(
+            List<Bill> bills,
+            LocalDate from,
+            LocalDate to,
+            Map<Integer, Long> costMap) {
+        Map<LocalDate, Long> byDay = new LinkedHashMap<>();
+        for (LocalDate d = from; !d.isAfter(to); d = d.plusDays(1)) {
+            byDay.put(d, 0L);
+            if (byDay.size() > 90) break;
+        }
+        bills.stream()
+                .filter(b -> OrderStatus.COMPLETED.matches(b.getStatus()))
+                .filter(b -> b.getCreateDate() != null)
+                .forEach(b -> {
+                    LocalDate d = b.getCreateDate().toLocalDate();
+                    if (byDay.containsKey(d)) {
+                        long profit = amountOf(b) - cogsOf(b, costMap);
+                        byDay.merge(d, profit, Long::sum);
+                    }
+                });
+        return new ArrayList<>(byDay.values());
+    }
+
+    private List<Map<String, Object>> buildTopProducts(
+            List<Bill> bills,
+            LocalDate from,
+            LocalDate to,
+            int limit,
+            Map<Integer, Long> costMap) {
         Map<String, long[]> productStats = new LinkedHashMap<>();
 
         bills.stream()
@@ -643,11 +720,11 @@ public class StatisticsService {
                             continue;
                         }
                         String name = detail.getProductDetail().getProduct().getName();
-                        long qty = detail.getQuantity() != null ? detail.getQuantity() : 0;
-                        long rev = detail.getMomentPrice() != null
-                                ? (long) (detail.getMomentPrice() * qty) : 0;
-                        productStats.merge(name, new long[]{qty, rev},
-                                (a, b) -> new long[]{a[0] + b[0], a[1] + b[1]});
+                        long qty = soldQty(detail);
+                        long rev = lineRevenue(detail);
+                        long cost = lineCogs(detail, costMap);
+                        productStats.merge(name, new long[]{qty, rev, cost},
+                                (a, b) -> new long[]{a[0] + b[0], a[1] + b[1], a[2] + b[2]});
                     }
                 });
 
@@ -655,10 +732,17 @@ public class StatisticsService {
                 .sorted((a, b) -> Long.compare(b.getValue()[0], a.getValue()[0]))
                 .limit(limit)
                 .map(e -> {
+                    long qty = e.getValue()[0];
+                    long rev = e.getValue()[1];
+                    long cost = e.getValue()[2];
+                    long profit = rev - cost;
                     Map<String, Object> m = new HashMap<>();
                     m.put("productName", e.getKey());
-                    m.put("totalSold", e.getValue()[0]);
-                    m.put("revenue", e.getValue()[1]);
+                    m.put("totalSold", qty);
+                    m.put("revenue", rev);
+                    m.put("cost", cost);
+                    m.put("profit", profit);
+                    m.put("margin", rev > 0 ? profit * 100.0 / rev : 0);
                     return m;
                 })
                 .collect(Collectors.toList());
@@ -782,6 +866,62 @@ public class StatisticsService {
 
     private long amountOf(Bill b) {
         return b.getAmount() != null ? b.getAmount().longValue() : 0L;
+    }
+
+    private Map<Integer, Long> loadAverageImportCosts() {
+        Map<Integer, Long> costs = new HashMap<>();
+        for (Object[] row : importOrderDetailRepository.findAverageImportPriceByProductDetail()) {
+            if (row == null || row.length < 2 || row[0] == null || row[1] == null) continue;
+            Integer id = (Integer) row[0];
+            costs.put(id, ((Number) row[1]).longValue());
+        }
+        return costs;
+    }
+
+    private long sumCompletedCogs(
+            List<Bill> bills,
+            LocalDate from,
+            LocalDate to,
+            Map<Integer, Long> costMap) {
+        return bills.stream()
+                .filter(b -> OrderStatus.COMPLETED.matches(b.getStatus()))
+                .filter(b -> {
+                    if (from == null && to == null) return true;
+                    if (b.getCreateDate() == null) return false;
+                    LocalDate d = b.getCreateDate().toLocalDate();
+                    if (from != null && d.isBefore(from)) return false;
+                    if (to != null && d.isAfter(to)) return false;
+                    return true;
+                })
+                .mapToLong(b -> cogsOf(b, costMap))
+                .sum();
+    }
+
+    private long cogsOf(Bill bill, Map<Integer, Long> costMap) {
+        if (bill.getBillDetails() == null) return 0L;
+        long total = 0L;
+        for (BillDetail detail : bill.getBillDetails()) {
+            total += lineCogs(detail, costMap);
+        }
+        return total;
+    }
+
+    private long soldQty(BillDetail detail) {
+        long qty = detail.getQuantity() != null ? detail.getQuantity() : 0L;
+        long returned = detail.getReturnQuantity() != null ? detail.getReturnQuantity() : 0L;
+        return Math.max(0L, qty - returned);
+    }
+
+    private long lineRevenue(BillDetail detail) {
+        long qty = soldQty(detail);
+        if (detail.getMomentPrice() == null) return 0L;
+        return (long) (detail.getMomentPrice() * qty);
+    }
+
+    private long lineCogs(BillDetail detail, Map<Integer, Long> costMap) {
+        if (detail.getProductDetail() == null || detail.getProductDetail().getId() == null) return 0L;
+        long unitCost = costMap.getOrDefault(detail.getProductDetail().getId(), 0L);
+        return unitCost * soldQty(detail);
     }
 
     private boolean isPos(Bill b) {

@@ -21,12 +21,16 @@ public class AdminController {
 
         model.addAttribute("totalRevenue", stats.getTotalRevenue());
         model.addAttribute("todayRevenue", stats.getTodayRevenue());
+        model.addAttribute("grossProfit", stats.getGrossProfit());
+        model.addAttribute("todayProfit", stats.getTodayProfit());
+        model.addAttribute("profitMargin", stats.getProfitMargin());
         model.addAttribute("totalOrders", stats.getTotalOrders());
         model.addAttribute("todayOrders", stats.getTodayOrders());
         model.addAttribute("totalProducts", stats.getTotalProducts());
         model.addAttribute("totalCustomers", stats.getTotalCustomers());
         model.addAttribute("revenueLabels", stats.getRevenueLabels());
         model.addAttribute("revenueData", stats.getRevenueData());
+        model.addAttribute("profitData", stats.getProfitData());
         model.addAttribute("statusLabels", stats.getStatusLabels());
         model.addAttribute("statusData", stats.getStatusData());
         model.addAttribute("topProducts", stats.getTopProducts());

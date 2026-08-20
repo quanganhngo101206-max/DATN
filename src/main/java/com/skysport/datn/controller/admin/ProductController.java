@@ -126,14 +126,14 @@ public class ProductController {
         return "admin/product/detail";
     }
 
-    // Thêm ảnh sản phẩm (theo link URL)
+    // Thêm ảnh sản phẩm (upload file)
     @PostMapping("/{productId}/image/add")
     public String addImage(@PathVariable Integer productId,
-                           @RequestParam String link,
+                           @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
                            @RequestParam(required = false) String name,
                            RedirectAttributes ra) {
-        if (link == null || link.isBlank()) {
-            ra.addFlashAttribute("errorMsg", "Vui lòng nhập link ảnh!");
+        if (file.isEmpty()) {
+            ra.addFlashAttribute("errorMsg", "Vui lòng chọn ảnh!");
             return "redirect:/admin/product/detail/" + productId;
         }
         Product product = productService.findById(productId);
@@ -142,24 +142,39 @@ public class ProductController {
             return "redirect:/admin/product";
         }
 
-        String link2 = link.trim();
-        String ext = "";
-        int dot = link2.lastIndexOf('.');
-        if (dot >= 0 && dot < link2.length() - 1) {
-            ext = link2.substring(dot + 1).split("[?#]")[0];
+        try {
+            java.nio.file.Path uploadPath = java.nio.file.Paths.get("uploads");
+            if (!java.nio.file.Files.exists(uploadPath)) {
+                java.nio.file.Files.createDirectories(uploadPath);
+            }
+
+            String originalFilename = file.getOriginalFilename();
+            String ext = "";
+            if (originalFilename != null && originalFilename.contains(".")) {
+                ext = originalFilename.substring(originalFilename.lastIndexOf("."));
+            }
+            String newFilename = java.util.UUID.randomUUID().toString() + ext;
+            
+            java.nio.file.Path filePath = uploadPath.resolve(newFilename);
+            java.nio.file.Files.copy(file.getInputStream(), filePath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+
+            String linkUrl = "/uploads/" + newFilename;
+
+            Image image = Image.builder()
+                    .createDate(LocalDateTime.now())
+                    .updateDate(LocalDateTime.now())
+                    .fileType(ext.replace(".", "").isEmpty() ? "jpg" : ext.replace(".", ""))
+                    .link(linkUrl)
+                    .name(name != null && !name.isBlank() ? name.trim() : product.getName())
+                    .product(product)
+                    .build();
+            imageRepository.save(image);
+
+            ra.addFlashAttribute("successMsg", "Đã thêm ảnh sản phẩm.");
+        } catch (java.io.IOException e) {
+            ra.addFlashAttribute("errorMsg", "Lỗi khi lưu ảnh: " + e.getMessage());
         }
 
-        Image image = Image.builder()
-                .createDate(LocalDateTime.now())
-                .updateDate(LocalDateTime.now())
-                .fileType(ext.isBlank() ? "jpg" : ext)
-                .link(link2)
-                .name(name != null && !name.isBlank() ? name.trim() : product.getName())
-                .product(product)
-                .build();
-        imageRepository.save(image);
-
-        ra.addFlashAttribute("successMsg", "Đã thêm ảnh sản phẩm.");
         return "redirect:/admin/product/detail/" + productId;
     }
 

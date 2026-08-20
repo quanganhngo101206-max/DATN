@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <title>Đăng nhập - SkySport</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            width: 420px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo h1 {
+            font-size: 32px;
+            font-weight: 800;
+            color: #667eea;
+            letter-spacing: 2px;
+        }
+
+        .logo p {
+            color: #999;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        .tab-container {
+            display: flex;
+            background: #f5f5f5;
+            border-radius: 10px;
+            padding: 4px;
+            margin-bottom: 25px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 10px;
+            text-align: center;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            color: #999;
+            border: none;
+            background: transparent;
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            background: white;
+            color: #667eea;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 8px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #eee;
+            border-radius: 10px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            border-color: #667eea;
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: opacity 0.3s;
+            letter-spacing: 1px;
+        }
+
+        .btn-login:hover {
+            opacity: 0.9;
+        }
+
+        .error {
+            background: #ffe0e0;
+            color: #e53935;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            margin-bottom: 15px;
+            border-left: 4px solid #e53935;
+        }
+
+        .register-link {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 13px;
+            color: #999;
+        }
+
+        .register-link a {
+            color: #667eea;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .register-link a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Logo -->
+    <div class="logo">
+        <h1> SKYSPORT</h1>
+        <p>Thể thao đỉnh cao - Phong cách riêng bạn</p>
+    </div>
+
+    <!-- Tab chọn loại đăng nhập -->
+    <div class="tab-container">
+        <button class="tab active" id="tab-customer" onclick="switchTab('customer')">
+            👤 Khách hàng
+        </button>
+        <button class="tab" id="tab-admin" onclick="switchTab('admin')">
+            🔧 Quản lý / NV
+        </button>
+    </div>
+
+    <!-- Thông báo lỗi -->
+    <div class="error" th:if="${error}" th:text="${error}"></div>
+
+    <!-- Form đăng nhập -->
+    <form method="post" action="/login">
+        <input type="hidden" name="type" id="loginType" value="customer"/>
+
+        <div class="form-group">
+            <label>Tên đăng nhập</label>
+            <input type="text" name="username" placeholder="Nhập tên đăng nhập..." required/>
+        </div>
+
+        <div class="form-group">
+            <label>Mật khẩu</label>
+            <input type="password" name="password" placeholder="Nhập mật khẩu..." required/>
+        </div>
+
+        <button type="submit" class="btn-login">ĐĂNG NHẬP</button>
+    </form>
+
+    <!-- Link đăng ký (chỉ hiện với khách hàng) -->
+    <div class="register-link" id="registerLink">
+        Chưa có tài khoản?
+        <a href="/register">Đăng ký ngay</a>
+    </div>
+
+    <!-- Thêm nút bỏ qua cho Guest -->
+    <div style="text-align:center; margin-top:10px;">
+        <a href="/home" style="color:#999; font-size:13px;">
+            Bỏ qua, tiếp tục xem hàng →
+        </a>
+    </div>
+
+</div>
+
+<script>
+    function switchTab(type) {
+        document.getElementById('loginType').value = type;
+
+        document.getElementById('tab-customer').classList.remove('active');
+        document.getElementById('tab-admin').classList.remove('active');
+        document.getElementById('tab-' + type).classList.add('active');
+
+        if (type === 'admin') {
+            document.getElementById('registerLink').style.display = 'none';
+            document.getElementById('guestLink').style.display = 'none';
+        } else {
+            document.getElementById('registerLink').style.display = 'block';
+            document.getElementById('guestLink').style.display = 'block';
+        }
+    }
+</script>
+</body>
+</html>

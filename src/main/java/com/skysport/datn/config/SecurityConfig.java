@@ -39,13 +39,14 @@ public class SecurityConfig {
                                 "/checkout/apply-discount",
                                 "/cart/**",
                                 "/wishlist/**",
-                                "/customer/review/**"
+                                "/customer/review/**",
+                                "/api/chatbot/**"
                         )
                 )
 
                 .authorizeHttpRequests(auth -> auth
                         // Static resources
-                        .requestMatchers("/css/**", "/js/**", "/images/**", "/favicon.ico").permitAll()
+                        .requestMatchers("/css/**", "/js/**", "/images/**", "/favicon.ico", "/uploads/**").permitAll()
 
                         // Trang công khai
                         .requestMatchers(
@@ -57,7 +58,8 @@ public class SecurityConfig {
                                 "/order/**",
                                 "/track-order/**",
                                 "/guest/**",
-                                "/wishlist/toggle/**", "/wishlist/add/**", "/wishlist/remove/**"
+                                "/wishlist/toggle/**", "/wishlist/add/**", "/wishlist/remove/**",
+                                "/api/chatbot/**"
                         ).permitAll()
 
                         // Chỉ Admin

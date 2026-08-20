@@ -153,29 +153,15 @@
             <div class="card mb-3">
                 <div class="card-header"><i class="bi bi-person me-2"></i>Thông tin khách hàng</div>
                 <div class="card-body">
-                    <div class="row g-2 align-items-end">
-                        <div class="col-md-7">
-                            <label class="form-label">Tìm khách hàng (SĐT / Tên / Mã KH)</label>
-                            <div class="field-wrapper">
-                                <input type="text" id="searchPhone" class="form-control" autocomplete="off"
-                                       placeholder="Nhập SĐT, tên hoặc mã khách hàng...">
-                                <div id="customerSuggest" class="suggest-dropdown"></div>
-                            </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Số điện thoại</label>
+                            <input type="text" id="searchPhone" class="form-control" placeholder="Nhập số điện thoại khách hàng...">
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-6">
                             <label class="form-label">Họ tên</label>
-                            <input type="text" id="customerName" class="form-control" placeholder="Tên khách hàng">
+                            <input type="text" id="customerName" class="form-control" placeholder="Nhập tên khách hàng...">
                         </div>
-                        <div class="col-md-2">
-                            <button class="btn btn-outline-danger w-100" type="button" onclick="clearCustomer()">
-                                <i class="bi bi-x"></i> Xóa
-                            </button>
-                        </div>
-                    </div>
-                    <div id="customerInfo" class="mt-2 d-none">
-                        <span class="badge bg-success"><i
-                                class="bi bi-check-circle me-1"></i>Khách hàng đã tìm thấy</span>
-                        <span id="customerInfoText" class="ms-2 text-muted" style="font-size:13px;"></span>
                     </div>
                     <input type="hidden" id="customerId">
                 </div>
@@ -326,62 +312,7 @@
     let currentVariants = [];
     let selectedVariant = null;
 
-    // ===== TÌM KHÁCH HÀNG (gợi ý theo SĐT / Tên / Mã KH) =====
-    let customerSearchTimer = null;
 
-    document.getElementById('searchPhone').addEventListener('input', function () {
-        const kw = this.value.trim();
-        clearTimeout(customerSearchTimer);
-        const dropdown = document.getElementById('customerSuggest');
-        if (!kw) {
-            dropdown.classList.remove('show');
-            dropdown.innerHTML = '';
-            return;
-        }
-        customerSearchTimer = setTimeout(() => {
-            fetch('/staff/order/search-customer?keyword=' + encodeURIComponent(kw))
-                .then(r => r.json())
-                .then(data => renderCustomerSuggest(data, kw));
-        }, 300);
-    });
-
-    function renderCustomerSuggest(customers, kw) {
-        const dropdown = document.getElementById('customerSuggest');
-        if (!customers || customers.length === 0) {
-            dropdown.innerHTML = `<div class="suggest-item text-muted">
-                Không tìm thấy khách hàng. Nhấn "Áp dụng" hoặc tạo đơn để tạo khách lẻ mới với SĐT "${escapeHtml(kw)}".
-            </div>`;
-            dropdown.classList.add('show');
-            return;
-        }
-        let html = '';
-        customers.forEach(c => {
-            html += `<div class="suggest-item" onclick='selectCustomer(${JSON.stringify(c).replace(/'/g, "&#39;")})'>
-                <strong>${escapeHtml(c.name || 'Khách lẻ')}</strong>
-                ${c.code ? ' <span class="text-muted">(' + escapeHtml(c.code) + ')</span>' : ''}<br>
-                <span class="text-muted">${escapeHtml(c.phone || '')}${c.email ? ' • ' + escapeHtml(c.email) : ''}</span>
-            </div>`;
-        });
-        dropdown.innerHTML = html;
-        dropdown.classList.add('show');
-    }
-
-    function selectCustomer(c) {
-        document.getElementById('customerId').value = c.id;
-        document.getElementById('customerName').value = c.name || '';
-        document.getElementById('searchPhone').value = c.phone || '';
-        document.getElementById('customerInfo').classList.remove('d-none');
-        document.getElementById('customerInfoText').textContent = (c.name || 'Khách lẻ') + ' — ' + (c.phone || '');
-        document.getElementById('customerSuggest').classList.remove('show');
-    }
-
-    function clearCustomer() {
-        document.getElementById('customerId').value = '';
-        document.getElementById('customerName').value = '';
-        document.getElementById('searchPhone').value = '';
-        document.getElementById('customerInfo').classList.add('d-none');
-        document.getElementById('customerSuggest').classList.remove('show');
-    }
 
     function escapeHtml(str) {
         return String(str).replace(/[&<>"']/g, c => ({
@@ -582,10 +513,10 @@
             return;
         }
 
-        const customerIdCheck = document.getElementById('customerId').value;
         const customerPhoneCheck = document.getElementById('searchPhone').value.trim();
-        if (!customerIdCheck && !customerPhoneCheck) {
-            alert('Vui lòng nhập số điện thoại khách hàng (hoặc tìm khách hàng có sẵn)!');
+        const customerNameCheck = document.getElementById('customerName').value.trim();
+        if (!customerPhoneCheck && !customerNameCheck) {
+            alert('Vui lòng nhập số điện thoại hoặc tên khách hàng!');
             return;
         }
 

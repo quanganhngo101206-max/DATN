@@ -470,6 +470,29 @@
         <div class="col-md-3">
             <div class="stat-card">
                 <div class="stat-header">
+                    <div class="stat-icon icon-green"><i class="bi bi-graph-up-arrow"></i></div>
+                    <span class="stat-badge badge-up">Lời</span>
+                </div>
+                <div class="stat-value" th:text="${#numbers.formatInteger(grossProfit, 0, 'COMMA')}">0</div>
+                <div class="stat-label">Lời gộp (VNĐ)</div>
+                <div style="font-size:11.5px;color:var(--text-muted);margin-top:6px;"
+                     th:text="'Hôm nay: ' + ${#numbers.formatInteger(todayProfit, 0, 'COMMA')} + 'đ'">Hôm nay: 0đ</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-header">
+                    <div class="stat-icon icon-amber"><i class="bi bi-percent"></i></div>
+                    <span class="stat-badge badge-neutral">Lãi</span>
+                </div>
+                <div class="stat-value" th:text="${#numbers.formatDecimal(profitMargin, 1, 1)} + '%'">0%</div>
+                <div class="stat-label">Tỷ suất lãi</div>
+                <div style="font-size:11.5px;color:var(--text-muted);margin-top:6px;">Lời / doanh thu hoàn thành</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-header">
                     <div class="stat-icon icon-amber"><i class="bi bi-cart-check"></i></div>
                     <span class="stat-badge badge-neutral">Tổng cộng</span>
                 </div>
@@ -477,7 +500,9 @@
                 <div class="stat-label">Tổng đơn hàng</div>
             </div>
         </div>
-        <div class="col-md-3">
+    </div>
+    <div class="row g-3 mb-4">
+        <div class="col-md-6">
             <div class="stat-card">
                 <div class="stat-header">
                     <div class="stat-icon icon-green"><i class="bi bi-box-seam"></i></div>
@@ -487,7 +512,7 @@
                 <div class="stat-label">Sản phẩm</div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-6">
             <div class="stat-card">
                 <div class="stat-header">
                     <div class="stat-icon icon-violet"><i class="bi bi-people"></i></div>
@@ -504,7 +529,7 @@
         <div class="col-md-8">
             <div class="section-card" style="height:100%;">
                 <div class="section-header">
-                    <span class="section-title"><i class="bi bi-graph-up-arrow"></i> Doanh thu 7 ngày qua</span>
+                    <span class="section-title"><i class="bi bi-graph-up-arrow"></i> Doanh thu &amp; lời 7 ngày qua</span>
                 </div>
                 <div class="chart-body">
                     <canvas id="revenueChart" height="220"></canvas>
@@ -539,6 +564,7 @@
                         <th>Sản phẩm</th>
                         <th>Đã bán</th>
                         <th>Doanh thu</th>
+                        <th>Lời</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -557,9 +583,11 @@
                         </td>
                         <td><span style="font-weight:600;" th:text="${product.totalSold}">0</span> sản phẩm</td>
                         <td style="font-weight:600;color:#16a34a;" th:text="${#numbers.formatInteger(product.revenue, 0, 'COMMA') + 'đ'}">0đ</td>
+                        <td style="font-weight:600;color:#2563eb;"
+                            th:text="${#numbers.formatInteger(product.profit, 0, 'COMMA') + 'đ'}">0đ</td>
                     </tr>
                     <tr th:if="${topProducts == null || #lists.isEmpty(topProducts)}">
-                        <td colspan="4">
+                        <td colspan="5">
                             <div class="empty-state">
                                 <i class="bi bi-box-seam"></i>
                                 <p>Chưa có dữ liệu sản phẩm</p>
@@ -710,6 +738,7 @@
 <script th:inline="javascript">
     var revenueLabels = /*[[${revenueLabels}]]*/ null;
     var revenueData   = /*[[${revenueData}]]*/ null;
+    var profitData    = /*[[${profitData}]]*/ null;
     var statusLabels  = /*[[${statusLabels}]]*/ null;
     var statusData    = /*[[${statusData}]]*/ null;
 
@@ -731,13 +760,25 @@
                 pointBorderWidth: 2,
                 tension: 0.4,
                 fill: true
+            }, {
+                label: 'Lời (VNĐ)',
+                data: profitData || [0,0,0,0,0,0,0],
+                borderColor: '#10b981',
+                backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                borderWidth: 2.5,
+                pointRadius: 4,
+                pointBackgroundColor: '#10b981',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                tension: 0.4,
+                fill: true
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: true,
             plugins: {
-                legend: { display: false },
+                legend: { display: true, position: 'bottom', labels: { usePointStyle: true, padding: 14 } },
                 tooltip: {
                     backgroundColor: '#0f172a',
                     titleColor: '#94a3b8',

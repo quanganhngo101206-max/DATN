@@ -119,10 +119,33 @@
             <div class="sub">Theo đơn hoàn thành</div>
         </div>
         <div class="stat-box">
-            <div class="label">Chi phí nhập hàng</div>
+            <div class="label">Chi phí nhập hàng trong kỳ</div>
             <div class="value" th:text="${#numbers.formatInteger(report.importCost, 0, 'COMMA')} + 'đ'">0đ</div>
-            <div class="sub"
-                 th:text="'Chênh lệch thu - chi: ' + ${#numbers.formatInteger(report.estimatedNetRevenue, 0, 'COMMA')} + 'đ'"></div>
+            <div class="sub">Theo phiếu nhập đã duyệt</div>
+        </div>
+    </div>
+
+    <div class="stat-grid">
+        <div class="stat-box accent">
+            <div class="label">Lời gộp</div>
+            <div class="value" th:text="${#numbers.formatInteger(report.grossProfit, 0, 'COMMA')} + 'đ'">0đ</div>
+            <div class="sub" th:text="'Giá vốn: ' + ${#numbers.formatInteger(report.cogs, 0, 'COMMA')} + 'đ'"></div>
+        </div>
+        <div class="stat-box">
+            <div class="label">Tỷ suất lãi</div>
+            <div class="value text-success"
+                 th:text="${#numbers.formatDecimal(report.profitMargin, 1, 1)} + '%'">0%</div>
+            <div class="sub">Lời / doanh thu hoàn thành</div>
+        </div>
+        <div class="stat-box">
+            <div class="label">Lời TB / đơn</div>
+            <div class="value" th:text="${#numbers.formatInteger(report.avgProfitPerOrder, 0, 'COMMA')} + 'đ'">0đ</div>
+            <div class="sub">Theo đơn hoàn thành</div>
+        </div>
+        <div class="stat-box">
+            <div class="label">Thu - chi nhập hàng</div>
+            <div class="value" th:text="${#numbers.formatInteger(report.estimatedNetRevenue, 0, 'COMMA')} + 'đ'">0đ</div>
+            <div class="sub">Doanh thu − tiền nhập trong kỳ</div>
         </div>
     </div>
 
@@ -156,7 +179,7 @@
     <div class="row g-3 mb-1">
         <div class="col-lg-8">
             <div class="chart-card">
-                <div class="card-title"><i class="bi bi-graph-up"></i> Doanh thu theo ngày</div>
+                <div class="card-title"><i class="bi bi-graph-up"></i> Doanh thu &amp; lời theo ngày</div>
                 <div class="card-body">
                     <canvas id="revenueChart" height="120"></canvas>
                 </div>
@@ -198,6 +221,8 @@
                             <th>Sản phẩm</th>
                             <th>Đã bán</th>
                             <th>Doanh thu</th>
+                            <th>Lời</th>
+                            <th>Lãi</th>
                         </tr>
                         </thead>
                         <tbody>
@@ -209,9 +234,11 @@
                             <td th:text="${p.productName}">SP</td>
                             <td th:text="${p.totalSold}">0</td>
                             <td class="fw-semibold text-success" th:text="${#numbers.formatInteger(p.revenue, 0, 'COMMA')} + 'đ'">0đ</td>
+                            <td class="fw-semibold" th:text="${#numbers.formatInteger(p.profit, 0, 'COMMA')} + 'đ'">0đ</td>
+                            <td th:text="${#numbers.formatDecimal(p.margin, 1, 1)} + '%'">0%</td>
                         </tr>
                         <tr th:if="${#lists.isEmpty(report.topProducts)}">
-                            <td colspan="4" class="text-center text-muted py-4">Chưa có dữ liệu trong kỳ</td>
+                            <td colspan="6" class="text-center text-muted py-4">Chưa có dữ liệu trong kỳ</td>
                         </tr>
                         </tbody>
                     </table>
@@ -405,6 +432,7 @@
 <script th:inline="javascript">
     const revenueLabels = /*[[${report.revenueLabels}]]*/ [];
     const revenueData = /*[[${report.revenueData}]]*/ [];
+    const profitData = /*[[${report.profitData}]]*/ [];
     const statusLabels = /*[[${report.statusLabels}]]*/ [];
     const statusData = /*[[${report.statusData}]]*/ [];
     const channelLabels = /*[[${report.channelLabels}]]*/ [];
@@ -423,12 +451,21 @@
                 pointRadius: revenueLabels.length > 31 ? 0 : 3,
                 tension: 0.35,
                 fill: true
+            }, {
+                label: 'Lời',
+                data: profitData,
+                borderColor: '#10b981',
+                backgroundColor: 'rgba(16,185,129,0.08)',
+                borderWidth: 2.5,
+                pointRadius: revenueLabels.length > 31 ? 0 : 3,
+                tension: 0.35,
+                fill: true
             }]
         },
         options: {
             responsive: true,
             plugins: {
-                legend: { display: false },
+                legend: { display: true, position: 'bottom', labels: { usePointStyle: true, padding: 14 } },
                 tooltip: {
                     callbacks: { label: ctx => ' ' + ctx.parsed.y.toLocaleString('vi') + 'đ' }
                 }

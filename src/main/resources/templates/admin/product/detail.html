@@ -169,14 +169,6 @@
                               th:text="'(' + ${#lists.size(details)} + ' biến thể)'"></span>
                     </div>
                     <div class="d-flex gap-2 flex-wrap">
-                        <select id="sizeFilter" class="form-select form-select-sm">
-                            <option value="all">Tất cả size</option>
-                            <option th:each="s : ${sizes}" th:value="${s.id}" th:text="${s.name}"></option>
-                        </select>
-                        <select id="colorFilter" class="form-select form-select-sm">
-                            <option value="all">Tất cả màu</option>
-                            <option th:each="c : ${colors}" th:value="${c.id}" th:text="${c.name}"></option>
-                        </select>
                         <button type="button" class="btn btn-sm btn-purple" data-bs-toggle="modal" data-bs-target="#addDetailModal">
                             <i class="bi bi-plus-circle"></i> Thêm biến thể
                         </button>

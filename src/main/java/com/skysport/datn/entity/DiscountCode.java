@@ -2,6 +2,7 @@ package com.skysport.datn.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.format.annotation.DateTimeFormat;
 import java.time.LocalDateTime;
 
 @Entity
@@ -24,6 +25,7 @@ public class DiscountCode {
 
     private Double discountAmount;
 
+    @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm")
     private LocalDateTime endDate;
 
     private Double maximumAmount;
@@ -36,6 +38,7 @@ public class DiscountCode {
 
     private Double percentage;
 
+    @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm")
     private LocalDateTime startDate;
 
     private Integer status;

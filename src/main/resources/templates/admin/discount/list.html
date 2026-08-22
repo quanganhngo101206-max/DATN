@@ -129,13 +129,13 @@
           <div class="row">
             <div class="col-md-6 mb-3">
               <label class="form-label fw-bold">Ngày bắt đầu</label>
-              <input type="date" name="startDate" class="form-control"
-                     th:value="${discount.startDate != null ? #temporals.format(discount.startDate, 'yyyy-MM-dd') : ''}" required/>
+              <input type="datetime-local" name="startDate" class="form-control"
+                     th:value="${discount.startDate != null ? #temporals.format(discount.startDate, 'yyyy-MM-dd''T''HH:mm') : ''}" required/>
             </div>
             <div class="col-md-6 mb-3">
               <label class="form-label fw-bold">Ngày kết thúc</label>
-              <input type="date" name="endDate" class="form-control"
-                     th:value="${discount.endDate != null ? #temporals.format(discount.endDate, 'yyyy-MM-dd') : ''}" required/>
+              <input type="datetime-local" name="endDate" class="form-control"
+                     th:value="${discount.endDate != null ? #temporals.format(discount.endDate, 'yyyy-MM-dd''T''HH:mm') : ''}" required/>
             </div>
           </div>
 

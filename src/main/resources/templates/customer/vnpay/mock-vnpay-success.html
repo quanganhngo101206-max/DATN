@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Thanh toán thành công</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background: #f5f5f5; font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .success-container { width: 100%; max-width: 750px; background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); overflow: hidden; }
+        .success-header { background: #71c64e; padding: 60px 20px 50px; text-align: center; color: white; position: relative; }
+        .icon-check { width: 70px; height: 70px; background: rgba(255,255,255,0.3); border-radius: 50%; display: flex; justify-content: center; align-items: center; margin: 0 auto 20px; font-size: 36px; font-weight: bold; }
+        .success-title { font-size: 32px; font-weight: bold; margin-bottom: 8px; }
+        .success-sub { font-size: 18px; opacity: 0.9; }
+        
+        .success-body { padding: 50px; }
+        .total-row { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 25px; margin-bottom: 30px; }
+        .total-label { font-size: 20px; font-weight: bold; color: #333; }
+        .total-value { font-size: 30px; font-weight: bold; color: #dc3545; }
+        
+        .info-row { display: flex; justify-content: space-between; margin-bottom: 25px; font-size: 18px; }
+        .info-label { color: #666; }
+        .info-value { color: #333; font-weight: 600; text-align: right; }
+        .info-value-border { border-bottom: 1px dashed #eee; padding-bottom: 5px; flex-grow: 1; margin: 0 15px; }
+        
+        .btn-home { display: block; width: 100%; padding: 16px; background: #e33539; color: white; text-align: center; border-radius: 8px; font-size: 18px; font-weight: bold; text-decoration: none; margin-top: 40px; }
+        .btn-home:hover { background: #c82333; color: white; }
+    </style>
+</head>
+<body>
+
+<div class="success-container">
+    <div class="success-header">
+        <div class="icon-check">✓</div>
+        <div class="success-title">Thanh toán thành công!</div>
+        <div class="success-sub">Cảm ơn bạn đã mua hàng tại SkySport</div>
+    </div>
+    
+    <div class="success-body">
+        <div class="total-row">
+            <div class="total-label">Tổng thanh toán</div>
+            <div class="total-value" th:text="${#numbers.formatInteger(bill.amount, 0, 'COMMA')} + ' đ'"></div>
+        </div>
+        
+        <div class="info-row">
+            <div class="info-label">Mã đơn hàng</div>
+            <div class="info-value-border"></div>
+            <div class="info-value" th:text="'#' + ${bill.code}"></div>
+        </div>
+        
+        <div class="info-row">
+            <div class="info-label">Mã giao dịch</div>
+            <div class="info-value-border"></div>
+            <div class="info-value" th:text="${transactionNo}"></div>
+        </div>
+        
+        <div class="info-row">
+            <div class="info-label">Thời gian</div>
+            <div class="info-value-border"></div>
+            <div class="info-value" th:text="${payDate}"></div>
+        </div>
+        
+        <a th:href="@{'/order/success/' + ${bill.id}}" class="btn-home">
+            <i class="bi bi-house"></i> Về chi tiết đơn hàng
+        </a>
+    </div>
+</div>
+
+</body>
+</html>

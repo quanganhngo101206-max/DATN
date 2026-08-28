@@ -351,6 +351,10 @@ public class CheckoutController {
             session.removeAttribute("appliedDiscountCode");
             session.removeAttribute("appliedDiscountAmount");
             session.setAttribute("cartCount", 0);
+            
+            if ("BANKING".equals(requestedMethod)) {
+                return "redirect:/mock-vnpay?billId=" + bill.getId() + "&amount=" + (long)finalAmount;
+            }
 
             redirectAttributes.addFlashAttribute("successMsg", "Đặt hàng thành công! Mã đơn: " + bill.getCode());
             return "redirect:/order/success/" + bill.getId();
@@ -387,6 +391,7 @@ public class CheckoutController {
         model.addAttribute("successMsg", successMsg);
         return "customer/order/success";
     }
+
 
     private String generateBillCode() {
         Integer maxId = billRepository.findMaxId();

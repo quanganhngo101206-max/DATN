@@ -171,11 +171,20 @@
                 th:text="${#numbers.formatInteger(bill.amount, 0, 'COMMA') + 'đ'}"></span>
         </div>
 
-        <div class="alert alert-warning mt-3 small" th:if="${bill.paymentMethod != null && bill.paymentMethod.name.contains('BANK')}">
+        <div class="alert alert-warning mt-3 small" th:if="${bill.paymentMethod != null && (bill.paymentMethod.name.toUpperCase().contains('CHUY') || bill.paymentMethod.name.toUpperCase().contains('BANK')) && bill.status == 1}">
           <i class="bi bi-info-circle"></i>
-          Vui lòng chuyển khoản để xác nhận đơn hàng!
+          Vui lòng quét mã QR dưới đây hoặc chuyển khoản để hoàn tất đơn hàng!
+          <div class="text-center mt-3">
+             <img th:src="@{'https://img.vietqr.io/image/970419-0123456789-compact2.png?amount=' + ${bill.amount} + '&addInfo=Thanh toan don ' + ${bill.code} + '&accountName=SKYSPORT'}" alt="QR Code Thanh Toán" class="img-fluid rounded shadow-sm" style="max-width: 300px;"/>
+             <p class="mt-2 mb-0 fw-bold">Ngân hàng NCB - STK: 0123456789</p>
+             <p class="mb-0 text-muted">Chủ tài khoản: SKYSPORT</p>
+          </div>
         </div>
-        <div class="alert alert-success mt-3 small" th:if="${bill.paymentMethod == null || bill.paymentMethod.name.contains('COD')}">
+        <div class="alert alert-success mt-3 small" th:if="${bill.paymentMethod != null && (bill.paymentMethod.name.toUpperCase().contains('CHUY') || bill.paymentMethod.name.toUpperCase().contains('BANK')) && bill.status == 2}">
+          <i class="bi bi-check-circle"></i>
+          Đã thanh toán thành công!
+        </div>
+        <div class="alert alert-success mt-3 small" th:if="${bill.paymentMethod == null || (!bill.paymentMethod.name.toUpperCase().contains('CHUY') && !bill.paymentMethod.name.toUpperCase().contains('BANK'))}">
           <i class="bi bi-check-circle"></i>
           Thanh toán khi nhận hàng — đơn hàng sẽ được xử lý sớm nhất!
         </div>

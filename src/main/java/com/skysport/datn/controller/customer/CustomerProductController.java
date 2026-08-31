@@ -92,31 +92,19 @@ public class CustomerProductController {
                 .distinct()
                 .collect(Collectors.toList());
 
-        // Lấy giá thấp nhất để hiển thị (chỉ tính biến thể CÒN HÀNG, đã áp khuyến mãi nếu có)
-        Double minPrice = details.stream()
+        // Chọn biến thể đại diện (có giá final thấp nhất)
+        ProductDetail representativeDetail = details.stream()
                 .filter(d -> d.getQuantity() != null && d.getQuantity() > 0)
                 .filter(d -> d.getFinalPrice() != null)
-                .mapToDouble(ProductDetail::getFinalPrice)
-                .min()
+                .min(Comparator.comparing(ProductDetail::getFinalPrice))
                 .orElseGet(() -> details.stream()
                         .filter(d -> d.getFinalPrice() != null)
-                        .mapToDouble(ProductDetail::getFinalPrice)
-                        .min()
-                        .orElse(0.0));
+                        .min(Comparator.comparing(ProductDetail::getFinalPrice))
+                        .orElse(null));
 
-        // Giá gốc thấp nhất (chỉ tính biến thể CÒN HÀNG)
-        Double minOriginalPrice = details.stream()
-                .filter(d -> d.getQuantity() != null && d.getQuantity() > 0)
-                .filter(d -> d.getPrice() != null)
-                .mapToDouble(ProductDetail::getPrice)
-                .min()
-                .orElseGet(() -> details.stream()
-                        .filter(d -> d.getPrice() != null)
-                        .mapToDouble(ProductDetail::getPrice)
-                        .min()
-                        .orElse(0.0));
-
-        boolean hasActiveSale = details.stream().anyMatch(ProductDetail::isOnSale);
+        Double minPrice = representativeDetail != null && representativeDetail.getFinalPrice() != null ? (double) representativeDetail.getFinalPrice() : 0.0;
+        Double minOriginalPrice = representativeDetail != null && representativeDetail.getPrice() != null ? (double) representativeDetail.getPrice() : 0.0;
+        boolean hasActiveSale = representativeDetail != null && representativeDetail.isOnSale();
 
         model.addAttribute("product", product);
         model.addAttribute("details", details);
@@ -210,32 +198,23 @@ public class CustomerProductController {
         for (Product p : products) {
             List<ProductDetail> details = productDetailRepository.findByProductIdAndDeleteFlagFalse(p.getId());
 
-            // Giá hiển thị: giá thấp nhất SAU khi áp khuyến mãi (nếu đang sale) CÒN HÀNG
-            Double minPrice = details.stream()
+            // Chọn biến thể đại diện (có giá final thấp nhất)
+            ProductDetail representativeDetail = details.stream()
                     .filter(d -> d.getQuantity() != null && d.getQuantity() > 0)
                     .filter(d -> d.getFinalPrice() != null)
-                    .mapToDouble(ProductDetail::getFinalPrice)
-                    .min()
+                    .min(Comparator.comparing(ProductDetail::getFinalPrice))
                     .orElseGet(() -> details.stream()
                             .filter(d -> d.getFinalPrice() != null)
-                            .mapToDouble(ProductDetail::getFinalPrice)
-                            .min()
-                            .orElse(0.0));
+                            .min(Comparator.comparing(ProductDetail::getFinalPrice))
+                            .orElse(null));
+
+            Double minPrice = representativeDetail != null && representativeDetail.getFinalPrice() != null ? (double) representativeDetail.getFinalPrice() : 0.0;
             productPrices.put(p.getId(), minPrice);
 
-            Double minOriginalPrice = details.stream()
-                    .filter(d -> d.getQuantity() != null && d.getQuantity() > 0)
-                    .filter(d -> d.getPrice() != null)
-                    .mapToDouble(ProductDetail::getPrice)
-                    .min()
-                    .orElseGet(() -> details.stream()
-                            .filter(d -> d.getPrice() != null)
-                            .mapToDouble(ProductDetail::getPrice)
-                            .min()
-                            .orElse(0.0));
+            Double minOriginalPrice = representativeDetail != null && representativeDetail.getPrice() != null ? (double) representativeDetail.getPrice() : 0.0;
             productOriginalPrices.put(p.getId(), minOriginalPrice);
 
-            productOnSale.put(p.getId(), details.stream().anyMatch(ProductDetail::isOnSale));
+            productOnSale.put(p.getId(), representativeDetail != null && representativeDetail.isOnSale());
 
             List<Image> imgs = imageRepository.findByProductId(p.getId());
             if (!imgs.isEmpty()) {

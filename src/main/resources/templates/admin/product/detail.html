@@ -252,6 +252,11 @@
                                            onclick="return confirm('Tắt khuyến mãi này?')" title="Tắt khuyến mãi">
                                             <i class="bi bi-tag-fill"></i>
                                         </a>
+                                        <button type="button" class="btn btn-sm btn-outline-info"
+                                                data-bs-toggle="modal" th:data-bs-target="'#editDetailModal' + ${d.id}"
+                                                title="Chỉnh sửa biến thể">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
                                         <a th:href="@{/admin/product/detail/delete/{id}(id=${d.id})}"
                                            class="btn btn-sm btn-outline-danger"
                                            onclick="return confirm('Xóa biến thể này?')" title="Xóa biến thể">
@@ -330,6 +335,60 @@
                         <button type="submit" class="btn btn-purple">
                             <i class="bi bi-save"></i> Thêm biến thể
                         </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal chỉnh sửa biến thể -->
+    <div class="modal fade" th:id="'editDetailModal' + ${d.id}" tabindex="-1" th:each="d : ${details}">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form th:action="@{/admin/product/detail/update/{id}(id=${d.id})}" method="post">
+                    <input type="hidden" name="productId" th:value="${product.id}"/>
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="bi bi-pencil"></i> Chỉnh sửa biến thể</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Size</label>
+                            <select name="sizeId" class="form-select" required>
+                                <option value="">-- Chọn size --</option>
+                                <option th:each="s : ${sizes}" th:value="${s.id}" th:text="${s.name}" th:selected="${d.size != null and d.size.id == s.id}"></option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Màu sắc</label>
+                            <select name="colorId" class="form-select" required>
+                                <option value="">-- Chọn màu --</option>
+                                <option th:each="c : ${colors}" th:value="${c.id}" th:text="${c.name}" th:selected="${d.color != null and d.color.id == c.id}"></option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Số lượng</label>
+                            <input type="number" name="quantity" class="form-control" th:value="${d.quantity}" min="0" required/>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Giá bán (đ)</label>
+                            <input type="number" name="price" class="form-control" th:value="${d.price}" min="0" required/>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Barcode</label>
+                            <input type="text" name="barcode" class="form-control" th:value="${d.barcode}"/>
+                        </div>
+                        <div class="mb-0">
+                            <label class="form-label">Trạng thái</label>
+                            <select name="deleteFlag" class="form-select">
+                                <option value="false" th:selected="${d.deleteFlag == null or d.deleteFlag == false}">Hoạt động</option>
+                                <option value="true" th:selected="${d.deleteFlag == true}">Tắt</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                        <button type="submit" class="btn btn-purple">Lưu thay đổi</button>
                     </div>
                 </form>
             </div>

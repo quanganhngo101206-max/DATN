@@ -216,6 +216,40 @@ public class ProductController {
         return "redirect:/admin/product/detail/" + productId;
     }
 
+    // Cập nhật product detail
+    @PostMapping("/detail/update/{id}")
+    public String updateDetail(@PathVariable Integer id,
+                               @ModelAttribute ProductDetail updatedDetail,
+                               @RequestParam Integer productId,
+                               @RequestParam Integer sizeId,
+                               @RequestParam Integer colorId,
+                               RedirectAttributes ra) {
+        ProductDetail oldDetail = productDetailService.findById(id);
+        if (oldDetail == null) {
+            ra.addFlashAttribute("errorMsg", "Biến thể không tồn tại!");
+            return "redirect:/admin/product/detail/" + productId;
+        }
+
+        oldDetail.setSize(productDetailService.findAllSize()
+                .stream().filter(s -> s.getId().equals(sizeId)).findFirst().orElse(null));
+        oldDetail.setColor(productDetailService.findAllColor()
+                .stream().filter(c -> c.getId().equals(colorId)).findFirst().orElse(null));
+        oldDetail.setQuantity(updatedDetail.getQuantity());
+        oldDetail.setPrice(updatedDetail.getPrice());
+        oldDetail.setBarcode(updatedDetail.getBarcode());
+        oldDetail.setDeleteFlag(updatedDetail.getDeleteFlag());
+
+        try {
+            productDetailService.update(oldDetail);
+            ra.addFlashAttribute("successMsg", "Đã cập nhật biến thể sản phẩm.");
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            ra.addFlashAttribute("errorMsg", "Không thể cập nhật: biến thể với Size và Màu này đã tồn tại hoặc trùng Barcode.");
+        } catch (RuntimeException e) {
+            ra.addFlashAttribute("errorMsg", e.getMessage());
+        }
+        return "redirect:/admin/product/detail/" + productId;
+    }
+
     // Form sửa sản phẩm — modal sửa sẽ tự mở với dữ liệu đã điền sẵn
     @GetMapping("/edit/{id}")
     public String edit(@PathVariable Integer id, Model model) {

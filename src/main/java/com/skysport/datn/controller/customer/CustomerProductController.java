@@ -92,19 +92,29 @@ public class CustomerProductController {
                 .distinct()
                 .collect(Collectors.toList());
 
-        // Lấy giá thấp nhất để hiển thị (đã áp khuyến mãi nếu biến thể đang sale)
+        // Lấy giá thấp nhất để hiển thị (chỉ tính biến thể CÒN HÀNG, đã áp khuyến mãi nếu có)
         Double minPrice = details.stream()
+                .filter(d -> d.getQuantity() != null && d.getQuantity() > 0)
                 .filter(d -> d.getFinalPrice() != null)
                 .mapToDouble(ProductDetail::getFinalPrice)
                 .min()
-                .orElse(0.0);
+                .orElseGet(() -> details.stream()
+                        .filter(d -> d.getFinalPrice() != null)
+                        .mapToDouble(ProductDetail::getFinalPrice)
+                        .min()
+                        .orElse(0.0));
 
-        // Giá gốc thấp nhất (để hiển thị gạch ngang khi có sale)
+        // Giá gốc thấp nhất (chỉ tính biến thể CÒN HÀNG)
         Double minOriginalPrice = details.stream()
+                .filter(d -> d.getQuantity() != null && d.getQuantity() > 0)
                 .filter(d -> d.getPrice() != null)
                 .mapToDouble(ProductDetail::getPrice)
                 .min()
-                .orElse(0.0);
+                .orElseGet(() -> details.stream()
+                        .filter(d -> d.getPrice() != null)
+                        .mapToDouble(ProductDetail::getPrice)
+                        .min()
+                        .orElse(0.0));
 
         boolean hasActiveSale = details.stream().anyMatch(ProductDetail::isOnSale);
 
@@ -200,19 +210,29 @@ public class CustomerProductController {
         for (Product p : products) {
             List<ProductDetail> details = productDetailRepository.findByProductIdAndDeleteFlagFalse(p.getId());
 
-            // Giá hiển thị: giá thấp nhất SAU khi áp khuyến mãi (nếu đang sale)
+            // Giá hiển thị: giá thấp nhất SAU khi áp khuyến mãi (nếu đang sale) CÒN HÀNG
             Double minPrice = details.stream()
+                    .filter(d -> d.getQuantity() != null && d.getQuantity() > 0)
                     .filter(d -> d.getFinalPrice() != null)
                     .mapToDouble(ProductDetail::getFinalPrice)
                     .min()
-                    .orElse(0.0);
+                    .orElseGet(() -> details.stream()
+                            .filter(d -> d.getFinalPrice() != null)
+                            .mapToDouble(ProductDetail::getFinalPrice)
+                            .min()
+                            .orElse(0.0));
             productPrices.put(p.getId(), minPrice);
 
             Double minOriginalPrice = details.stream()
+                    .filter(d -> d.getQuantity() != null && d.getQuantity() > 0)
                     .filter(d -> d.getPrice() != null)
                     .mapToDouble(ProductDetail::getPrice)
                     .min()
-                    .orElse(0.0);
+                    .orElseGet(() -> details.stream()
+                            .filter(d -> d.getPrice() != null)
+                            .mapToDouble(ProductDetail::getPrice)
+                            .min()
+                            .orElse(0.0));
             productOriginalPrices.put(p.getId(), minOriginalPrice);
 
             productOnSale.put(p.getId(), details.stream().anyMatch(ProductDetail::isOnSale));

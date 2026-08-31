@@ -55,17 +55,27 @@ public class HomeController {
             // Lấy giá thấp nhất từ các biến thể
             List<ProductDetail> details = productDetailRepository.findByProductIdAndDeleteFlagFalse(p.getId());
             Double minPrice = details.stream()
+                    .filter(d -> d.getQuantity() != null && d.getQuantity() > 0)
                     .filter(d -> d.getPrice() != null)
                     .mapToDouble(ProductDetail::getPrice)
                     .min()
-                    .orElse(0.0);
+                    .orElseGet(() -> details.stream()
+                            .filter(d -> d.getPrice() != null)
+                            .mapToDouble(ProductDetail::getPrice)
+                            .min()
+                            .orElse(0.0));
             productPrices.put(p.getId(), minPrice);
             
             Double minFinalPrice = details.stream()
+                    .filter(d -> d.getQuantity() != null && d.getQuantity() > 0)
                     .filter(d -> d.getFinalPrice() != null)
                     .mapToDouble(ProductDetail::getFinalPrice)
                     .min()
-                    .orElse(minPrice);
+                    .orElseGet(() -> details.stream()
+                            .filter(d -> d.getFinalPrice() != null)
+                            .mapToDouble(ProductDetail::getFinalPrice)
+                            .min()
+                            .orElse(minPrice));
             productFinalPrices.put(p.getId(), minFinalPrice);
             
             boolean onSale = details.stream().anyMatch(ProductDetail::isOnSale);

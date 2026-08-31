@@ -2,7 +2,25 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{admin/fragments/layout :: adminHead(~{::title}, ~{::extraHead})}">
     <title>Tạo phiếu nhập - SkySport</title>
-    <th:block th:fragment="extraHead"></th:block>
+    <th:block th:fragment="extraHead">
+        <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+        <style>
+            .select2-container--default .select2-selection--single {
+                height: 31px;
+                padding: 2px 8px;
+                font-size: .875rem;
+                border-radius: .25rem;
+                border: 1px solid #dee2e6;
+            }
+            .select2-container--default .select2-selection--single .select2-selection__arrow {
+                height: 100%;
+            }
+            .select2-container--default .select2-selection--single .select2-selection__rendered {
+                line-height: 25px;
+                padding-left: 0;
+            }
+        </style>
+    </th:block>
 </head>
 <body>
 
@@ -61,7 +79,7 @@
                     <tbody id="detailBody">
                     <tr id="row-0">
                         <td>
-                            <select name="productDetailIds" class="form-select form-select-sm" required>
+                            <select name="productDetailIds" class="form-select form-select-sm select2-product" required>
                                 <option value="">-- Chọn sản phẩm --</option>
                                 <option th:each="pd : ${productDetails}"
                                         th:value="${pd.id}"
@@ -99,16 +117,31 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script th:inline="javascript">
     let rowCount = 1;
+    // Lấy nội dung các option ban đầu TRƯỚC KHI init select2
     const firstSelect = document.querySelector('select[name="productDetailIds"]').innerHTML;
+
+    $(document).ready(function() {
+        // Init cho các select có sẵn
+        $('select[name="supplierId"]').select2({
+            placeholder: '-- Chọn nhà cung cấp --',
+            width: '100%'
+        });
+        $('.select2-product').select2({
+            placeholder: '-- Chọn sản phẩm --',
+            width: '100%'
+        });
+    });
 
     function addRow() {
         const id = 'row-' + rowCount++;
         const tr = document.createElement('tr');
         tr.id = id;
         tr.innerHTML = `
-            <td><select name="productDetailIds" class="form-select form-select-sm" required>${firstSelect}</select></td>
+            <td><select name="productDetailIds" class="form-select form-select-sm select2-product" required>${firstSelect}</select></td>
             <td><input type="number" name="quantities" class="form-control form-control-sm" min="1" value="1" required onchange="calcTotal()"></td>
             <td><input type="number" name="importPrices" class="form-control form-control-sm" min="0" value="0" required onchange="calcTotal()"></td>
             <td class="text-center">
@@ -118,6 +151,12 @@
             </td>`;
         document.getElementById('detailBody').appendChild(tr);
         calcTotal();
+        
+        // Init select2 cho dòng mới
+        $('#' + id + ' .select2-product').select2({
+            placeholder: '-- Chọn sản phẩm --',
+            width: '100%'
+        });
     }
 
     function removeRow(id) {

@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Thanh toán VNPay</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background: #f5f5f5; font-family: Arial, sans-serif; }
+        .vnpay-container { max-width: 1100px; margin: 50px auto; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); overflow: hidden; }
+        .header { padding: 20px 40px; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; }
+        .header img { height: 50px; }
+        .timer { font-size: 18px; font-weight: bold; color: #555; }
+        .timer span { background: #333; color: white; padding: 6px 10px; border-radius: 4px; margin: 0 4px; }
+        .content { display: flex; }
+        .left-panel { width: 40%; background: #f8f9fa; padding: 40px; border-right: 1px solid #ddd; }
+        .right-panel { width: 60%; padding: 50px 60px; }
+        .order-title { font-size: 22px; font-weight: bold; margin-bottom: 25px; color: #333; border-bottom: 1px solid #ddd; padding-bottom: 15px; }
+        .info-row { margin-bottom: 25px; }
+        .info-label { font-size: 15px; color: #666; margin-bottom: 8px; }
+        .info-value { font-size: 18px; font-weight: 500; color: #333; }
+        .amount-value { font-size: 26px; color: #005A9E; font-weight: bold; }
+        .otp-title { font-size: 24px; font-weight: bold; text-align: center; margin-bottom: 35px; color: #333; }
+        .otp-input-wrapper { position: relative; margin-bottom: 20px; }
+        .otp-input { width: 100%; padding: 12px 15px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; outline: none; }
+        .otp-input:focus { border-color: #005A9E; box-shadow: 0 0 0 1px #005A9E; }
+        .bank-logo { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); height: 25px; }
+        .otp-desc { font-size: 13px; color: #555; margin-bottom: 30px; line-height: 1.5; }
+        .btn-group-custom { display: flex; gap: 15px; }
+        .btn-cancel { flex: 1; padding: 12px; background: #f1f1f1; border: none; border-radius: 4px; font-weight: bold; color: #555; }
+        .btn-pay { flex: 1; padding: 12px; background: #0068A5; border: none; border-radius: 4px; font-weight: bold; color: white; }
+        .btn-pay:hover { background: #005080; }
+    </style>
+</head>
+<body>
+
+<div class="vnpay-container">
+    <div class="header">
+        <div>
+            <img src="https://vnpay.vn/s1/statics.vnpay.vn/2023/9/06ncktiwd6dc1694418196384.png" alt="VNPay" style="height: 30px;">
+        </div>
+        <div class="timer">
+            Giao dịch hết hạn sau <span id="minute">14</span> : <span id="second">59</span>
+        </div>
+    </div>
+    
+    <div class="content">
+        <!-- Left Panel -->
+        <div class="left-panel">
+            <div class="order-title">Thông tin đơn hàng</div>
+            
+            <div class="info-row">
+                <div class="info-label">Số tiền thanh toán</div>
+                <div class="amount-value" th:text="${#numbers.formatInteger(amount, 0, 'COMMA')} + ' VND'"></div>
+            </div>
+            
+            <div class="info-row">
+                <div class="info-label">Giá trị đơn hàng</div>
+                <div class="info-value" th:text="${#numbers.formatInteger(amount, 0, 'COMMA')} + ' VND'"></div>
+            </div>
+            
+            <div class="info-row">
+                <div class="info-label">Phí giao dịch</div>
+                <div class="info-value">0 VND</div>
+            </div>
+            
+            <div class="info-row">
+                <div class="info-label">Mã đơn hàng</div>
+                <div class="info-value" th:text="${bill.code}"></div>
+            </div>
+            
+            <div class="info-row">
+                <div class="info-label">Nhà cung cấp</div>
+                <div class="info-value">SkySport</div>
+            </div>
+        </div>
+        
+        <!-- Right Panel -->
+        <div class="right-panel">
+            <div class="otp-title">Xác thực OTP</div>
+            
+            <form method="post" th:action="@{/mock-vnpay-pay}">
+                <input type="hidden" name="billId" th:value="${bill.id}">
+                <div class="otp-input-wrapper">
+                    <input type="text" name="otp" class="otp-input" placeholder="Nhập mã OTP" required autofocus>
+                    <span class="bank-logo" style="font-weight: 900; color: #e33539; font-style: italic; font-size: 18px; top: 50%; transform: translateY(-50%); position: absolute; right: 15px;">⚡ SKYSPORT</span>
+                </div>
+                
+                <p class="otp-desc">
+                    OTP đã được gửi về số điện thoại đăng ký. Quý khách vui lòng nhập OTP để tiếp tục thực hiện giao dịch. (Nhập mã bất kỳ)
+                </p>
+                
+                <div class="btn-group-custom">
+                    <a href="/cart" class="btn-cancel text-center text-decoration-none">Hủy</a>
+                    <button type="submit" class="btn-pay">Thanh toán</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        let timeLeft = 14 * 60 + 59; // 14 minutes 59 seconds
+        const minuteEl = document.getElementById('minute');
+        const secondEl = document.getElementById('second');
+
+        const countdown = setInterval(() => {
+            if (timeLeft <= 0) {
+                clearInterval(countdown);
+                alert("Giao dịch đã hết hạn!");
+                window.location.href = "/cart";
+                return;
+            }
+            
+            timeLeft--;
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            
+            minuteEl.textContent = minutes.toString().padStart(2, '0');
+            secondEl.textContent = seconds.toString().padStart(2, '0');
+        }, 1000);
+    });
+</script>
+
+</body>
+</html>

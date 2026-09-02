@@ -20,7 +20,7 @@ public interface DiscountCodeRepository extends JpaRepository<DiscountCode, Inte
 
     // UPDATE atomic ở tầng DB (không qua read-modify-write của entity) để tránh
     // lost update khi 2 request cùng áp 1 mã giảm giá tại cùng 1 thời điểm.
-    @Modifying(clearAutomatically = true)
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE DiscountCode d SET d.usedCount = COALESCE(d.usedCount, 0) + 1 WHERE d.id = :id")
     int incrementUsedCount(@Param("id") Integer id);
 }

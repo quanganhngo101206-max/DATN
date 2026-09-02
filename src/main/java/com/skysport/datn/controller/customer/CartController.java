@@ -102,7 +102,7 @@ public class CartController {
             item.setProductId(productId);
             item.setProductName(detail.getProduct().getName());
             // ✅ SỬA DÒNG NÀY - chỉ lấy giá từ ProductDetail
-            item.setPrice(detail.getPrice() != null ? detail.getPrice().doubleValue() : 0.0);
+            item.setPrice(detail.getFinalPrice() != null ? detail.getFinalPrice().doubleValue() : 0.0);
             item.setQuantity(quantity);
             item.setColor(color);
             item.setSize(size);
@@ -119,6 +119,15 @@ public class CartController {
     @GetMapping("/cart")
     public String viewCart(HttpSession session, Model model) {
         Map<Integer, CartItem> cart = getCartFromSession(session);
+        
+        // Cập nhật lại giá cho các sản phẩm trong giỏ
+        for (CartItem item : cart.values()) {
+            ProductDetail detail = cartService.getProductDetailById(item.getProductDetailId());
+            if (detail != null) {
+                item.setPrice(detail.getFinalPrice() != null ? detail.getFinalPrice().doubleValue() : 0.0);
+            }
+        }
+
         List<CartItem> items = new ArrayList<>(cart.values());
 
         double subtotal = items.stream().mapToDouble(i -> i.getPrice() * i.getQuantity()).sum();
@@ -168,6 +177,8 @@ public class CartController {
             cart.remove(detailId);
         } else {
             item.setQuantity(quantity);
+            // Cập nhật lại giá
+            item.setPrice(detail.getFinalPrice() != null ? detail.getFinalPrice().doubleValue() : 0.0);
         }
 
         updateCartCount(session);
@@ -252,7 +263,7 @@ public class CartController {
             item.setProductId(productId);
             item.setProductName(detail.getProduct().getName());
             // ✅ SỬA DÒNG NÀY - chỉ lấy giá từ ProductDetail
-            item.setPrice(detail.getPrice() != null ? detail.getPrice().doubleValue() : 0.0);
+            item.setPrice(detail.getFinalPrice() != null ? detail.getFinalPrice().doubleValue() : 0.0);
             item.setQuantity(quantity);
             item.setColor(color);
             item.setSize(size);

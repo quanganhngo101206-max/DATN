@@ -121,8 +121,8 @@ public class AuthController {
 
             String roleName = account.getRole().getName();
             if ("admin".equals(type)) {
-                if (RoleName.ADMIN.matches(roleName))       return "redirect:/admin/dashboard";
-                if (RoleName.STAFF.matches(roleName))   return "redirect:/staff/dashboard";
+                if (RoleName.ADMIN.matches(roleName))       return "redirect:/admin/report/sales";
+                if (RoleName.STAFF.matches(roleName))   return "redirect:/staff/bill";
                 model.addAttribute("error", "Bạn không có quyền truy cập!");
                 return "customer/login";
             } else {

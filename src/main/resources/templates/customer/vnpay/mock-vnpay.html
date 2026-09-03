@@ -81,6 +81,12 @@
             <form method="post" th:action="@{/mock-vnpay-pay}">
                 <input type="hidden" name="billId" th:value="${bill.id}">
                 <div class="otp-input-wrapper">
+                    <input type="text" name="cardNumber" class="otp-input" value="9704 0000 0000 0018" placeholder="Số thẻ">
+                </div>
+                <div class="otp-input-wrapper">
+                    <input type="text" name="cardName" class="otp-input" value="NGUYEN VAN A" placeholder="Tên chủ thẻ">
+                </div>
+                <div class="otp-input-wrapper">
                     <input type="text" name="otp" class="otp-input" placeholder="Nhập mã OTP" required autofocus>
                     <span class="bank-logo" style="font-weight: 900; color: #e33539; font-style: italic; font-size: 18px; top: 50%; transform: translateY(-50%); position: absolute; right: 15px;">⚡ SKYSPORT</span>
                 </div>

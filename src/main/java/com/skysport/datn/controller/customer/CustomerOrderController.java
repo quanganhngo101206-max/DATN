@@ -132,7 +132,7 @@ public class CustomerOrderController {
         }
 
         var customer = customerRepository.findByAccountId(account.getId());
-        if (customer == null || !bill.getCustomer().getId().equals(customer.getId())) {
+        if (customer == null || bill.getCustomer() == null || !bill.getCustomer().getId().equals(customer.getId())) {
             result.put("success", false);
             result.put("message", "Bạn không có quyền hủy đơn hàng này!");
             return result;

@@ -34,13 +34,13 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                         .csrfTokenRequestHandler(csrfHandler)
-                        // Bỏ qua CSRF cho API AJAX nội bộ (dùng header X-XSRF-TOKEN từ cookie)
                         .ignoringRequestMatchers(
                                 "/checkout/apply-discount",
                                 "/cart/**",
                                 "/wishlist/**",
                                 "/customer/review/**",
-                                "/api/chatbot/**"
+                                "/api/chatbot/**",
+                                "/customer/order/cancel/**"
                         )
                 )
 

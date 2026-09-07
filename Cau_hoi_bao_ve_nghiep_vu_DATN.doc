@@ -1,0 +1,73 @@
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+    <meta charset="utf-8">
+    <title>Câu hỏi bảo vệ nghiệp vụ DATN - FPT Polytechnic</title>
+    <style>
+        body { font-family: 'Times New Roman', serif; font-size: 14pt; line-height: 1.5; }
+        h1 { text-align: center; color: #d32f2f; font-size: 18pt; text-transform: uppercase; }
+        h2 { text-align: center; font-size: 14pt; font-style: italic; }
+        h3 { color: #1976d2; font-size: 16pt; margin-top: 20px; border-bottom: 1px solid #1976d2; padding-bottom: 5px; }
+        .question { font-weight: bold; margin-top: 15px; }
+        .answer { margin-left: 20px; font-style: italic; color: #424242; }
+    </style>
+</head>
+<body>
+    <h1>DANH SÁCH CÂU HỎI NGHIỆP VỤ BẢO VỆ DỰ ÁN TỐT NGHIỆP</h1>
+    <h2>Ngành: Phát triển phần mềm - FPT Polytechnic</h2>
+
+    <h3>Phần 1: Quy trình Giỏ hàng và Đặt hàng (Cart & Checkout)</h3>
+    <div class="question">1. Khi nào thì số lượng tồn kho của sản phẩm trong hệ thống bị trừ? Tại sao?</div>
+    <div class="answer">Gợi ý: Tồn kho chỉ nên bị trừ khi khách hàng bấm "Đặt hàng" thành công (tạo Bill). Không trừ ngay khi thêm vào giỏ hàng để tránh tình trạng khách thêm vào giỏ nhưng không thanh toán làm "giam hàng" ảo, khiến người khác không mua được.</div>
+
+    <div class="question">2. Nếu có 2 khách hàng cùng đặt mua 1 sản phẩm cuối cùng trong kho cùng một lúc thì hệ thống của nhóm xử lý thế nào?</div>
+    <div class="answer">Gợi ý: Hỏi về tính đồng thời (Race Condition). Trả lời bằng cách mô tả giải pháp khóa bi quan (Pessimistic Lock) ở tầng CSDL (như nhóm đang dùng `findByIdForUpdate`), hoặc Lock ở tầng Service để đảm bảo chỉ 1 người mua thành công, người kia sẽ nhận được thông báo hết hàng.</div>
+
+    <div class="question">3. Giỏ hàng (Cart) của khách (lúc chưa đăng nhập và sau khi đăng nhập) được hệ thống quản lý ở đâu và đồng bộ thế nào?</div>
+    <div class="answer">Gợi ý: Lưu ở Session (như code hiện tại), hoặc Cookie/Local Storage cho khách vãng lai, và lưu vào Database khi khách đã đăng nhập để không bị mất giỏ hàng khi đổi thiết bị.</div>
+
+    <h3>Phần 2: Quản lý Mã giảm giá (Discount/Voucher)</h3>
+    <div class="question">4. Điều kiện (Logic) để một khách hàng áp dụng được mã giảm giá là gì?</div>
+    <div class="answer">Gợi ý: Thời gian mã còn hiệu lực, trạng thái kích hoạt, số lượt dùng tối đa chưa vượt ngưỡng, đơn giá tối thiểu của giỏ hàng, và khách hàng này đã dùng mã này trước đó chưa.</div>
+
+    <div class="question">5. Xử lý thế nào nếu mã giảm giá chỉ còn 1 lượt dùng nhưng có 2 người bấm thanh toán cùng một giây?</div>
+    <div class="answer">Gợi ý: Nhắc lại việc sử dụng câu lệnh truy vấn Update nguyên tử (Atomic Update) ở tầng DB như `@Modifying UPDATE DiscountCode SET usedCount = usedCount + 1...` để tránh bị lost update.</div>
+
+    <div class="question">6. Nếu khách hàng hủy đơn hàng (hoặc nhân viên hủy đơn), số lượng mã giảm giá khách đã dùng có được hoàn lại không?</div>
+    <div class="answer">Gợi ý: Trình bày theo luồng dự án. Thông thường nếu hủy đơn, hệ thống sẽ thực hiện hàm `decreaseUsage` (cộng ngược lại số lượt dùng) và cho phép khách hàng sử dụng lại.</div>
+
+    <h3>Phần 3: Tích hợp Thanh toán Online (VNPay)</h3>
+    <div class="question">7. Mô tả luồng hoạt động khi khách hàng chọn thanh toán VNPay?</div>
+    <div class="answer">Gợi ý: Tạo đơn hàng với trạng thái "Chờ thanh toán" -> Redirect sang cổng VNPay -> Khách nhập thẻ thanh toán -> VNPay xử lý -> VNPay gọi IPN URL ngầm về server cập nhật trạng thái "Đã thanh toán" -> VNPay Redirect người dùng về Return URL hiển thị thông báo thành công.</div>
+
+    <div class="question">8. Sự khác nhau giữa "Return URL" và "IPN URL" của VNPay là gì? Tại sao phải dùng IPN?</div>
+    <div class="answer">Gợi ý: Return URL chỉ dùng để hiển thị giao diện cho người dùng sau khi thanh toán xong. IPN (Instant Payment Notification) là API ngầm server-to-server. Phải dùng IPN để đảm bảo tính an toàn, cập nhật trạng thái đơn xác thực nhất, đề phòng người dùng đổi tham số trên trình duyệt hoặc bị mất mạng/tắt trình duyệt ngay sau khi trừ tiền.</div>
+
+    <div class="question">9. Nếu khách hàng thanh toán VNPay thành công, bị trừ tiền nhưng tắt tab trình duyệt trước khi chuyển về trang web của mình thì sao?</div>
+    <div class="answer">Gợi ý: Dựa vào cơ chế IPN, server VNPay vẫn gọi ngầm về API server của dự án, nên trạng thái đơn vẫn sẽ được cập nhật thành công bình thường.</div>
+
+    <h3>Phần 4: Quản lý Đơn hàng (Order Management)</h3>
+    <div class="question">10. Trình bày các trạng thái của vòng đời đơn hàng?</div>
+    <div class="answer">Gợi ý: Chờ xác nhận -> Đã xác nhận -> Đang giao hàng -> Thành công / Đã hủy / Hoàn trả.</div>
+
+    <div class="question">11. Khách hàng được quyền hủy đơn hàng trên Website ở trạng thái nào? Tại sao?</div>
+    <div class="answer">Gợi ý: Chỉ được hủy khi ở trạng thái "Chờ xác nhận" hoặc "Đang xử lý". Nếu đơn đã chuyển sang "Đang giao" (đã đưa cho shipper) thì không cho hủy online nữa để tránh ảnh hưởng vận chuyển.</div>
+
+    <div class="question">12. Nếu giao hàng thất bại (khách bom hàng), quy trình kho xử lý như thế nào?</div>
+    <div class="answer">Gợi ý: Đơn hàng chuyển sang trạng thái "Hủy/Hoàn trả", số lượng sản phẩm của đơn hàng đó (BillDetail) sẽ phải được gọi hàm cộng ngược lại vào kho (bảng ProductDetail) để có thể bán tiếp.</div>
+
+    <h3>Phần 5: Quản lý Sản phẩm và Thuộc tính (Products & Variants)</h3>
+    <div class="question">13. Quản lý sản phẩm biến thể (Product Variants) lưu trong CSDL như thế nào?</div>
+    <div class="answer">Gợi ý: Sử dụng mô hình cha-con. Bảng cha (Product) lưu thông tin chung (Tên, Mô tả, Hãng). Bảng con (ProductDetail) lưu các biến thể (Màu sắc, Kích thước, Số lượng tồn kho, Giá bán riêng cho từng size/màu).</div>
+
+    <div class="question">14. Khi Admin muốn xóa một "Kích thước" hoặc "Màu sắc" đã từng được khách hàng mua trong quá khứ, hệ thống xử lý thế nào để không lỗi DB?</div>
+    <div class="answer">Gợi ý: Không dùng lệnh `DELETE` cứng mà sử dụng cơ chế xóa mềm (Soft Delete - đổi cờ `delete_flag = true`), để ẩn khỏi giao diện bán hàng nhưng vẫn giữ khóa ngoại để hệ thống xem lại hóa đơn cũ không bị lỗi.</div>
+
+    <h3>Phần 6: Phân quyền và Bảo mật (Security)</h3>
+    <div class="question">15. Sự khác biệt giữa quyền Quản trị viên (Admin) và Nhân viên (Staff) là gì?</div>
+    <div class="answer">Gợi ý: Admin có toàn quyền (xem thống kê doanh thu tổng, quản lý nhân viên). Staff chỉ có thể thực hiện nghiệp vụ bán hàng tại quầy, duyệt đơn, tạo mã giảm giá.</div>
+
+    <div class="question">16. Mật khẩu của khách hàng và nhân viên được lưu thế nào? Nếu lộ DB thì có mất mật khẩu không?</div>
+    <div class="answer">Gợi ý: Mật khẩu được mã hóa một chiều (như BCrypt) trước khi lưu vào CSDL. Do là mã hóa một chiều nên dù hacker có lấy được DB cũng không thể dịch ngược ra mật khẩu gốc.</div>
+
+</body>
+</html>

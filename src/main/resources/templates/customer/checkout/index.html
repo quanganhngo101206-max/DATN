@@ -99,54 +99,38 @@
                         <input type="email" class="form-control" th:field="*{email}" placeholder="Nhập email">
                     </div>
 
-                    <!-- =====================================================
-                         ĐỊA CHỈ GIAO HÀNG — Đã sửa: dropdown + hidden fields
-                         ===================================================== -->
-                    <!-- ĐỊA CHỈ GIAO HÀNG — 2 tầng: Tỉnh/Thành → Phường/Xã -->
+                    <!-- ĐỊA CHỈ GIAO HÀNG — Chỉ hiển thị -->
                     <div class="mb-3">
                         <label class="form-label">Địa chỉ giao hàng <span class="text-danger">*</span></label>
+                        <div th:if="${checkoutRequest.provinceId == null}" class="alert alert-warning">
+                            Bạn chưa cập nhật địa chỉ giao hàng. Vui lòng <a href="/profile#address">vào Thông tin cá nhân</a> để cập nhật địa chỉ!
+                        </div>
+                        <div th:if="${checkoutRequest.provinceId != null}" class="p-3 bg-light rounded border">
+                            <!-- Hidden fields submit lên server -->
+                            <input type="hidden" th:field="*{provinceId}" id="provinceId">
+                            <input type="hidden" th:field="*{wardId}" id="wardId">
+                            <input type="hidden" th:field="*{address}" id="streetAddress">
 
-                        <!-- 2 dropdown Tỉnh / Xã (bỏ Huyện vì Ward map thẳng lên Province) -->
-                        <div class="row mb-2">
-                            <div class="col-md-6 mb-2">
-                                <select class="form-select" id="provinceSelect"
-                                        th:attr="data-selected=${checkoutRequest.provinceId}">
-                                    <option value="">-- Chọn Tỉnh/Thành --</option>
-                                    <option th:each="p : ${provinces}"
-                                            th:value="${p.id}"
-                                            th:text="${p.name}"
-                                            th:selected="${checkoutRequest.provinceId != null and checkoutRequest.provinceId == p.id}">
-                                    </option>
-                                </select>
-                            </div>
-                            <div class="col-md-6 mb-2">
-                                <select class="form-select" id="wardSelect" disabled
-                                        th:attr="data-selected=${checkoutRequest.wardId}">
-                                    <option value="">-- Chọn Phường/Xã --</option>
-                                </select>
+                            <div class="fw-bold" th:text="${checkoutRequest.fullName}"></div>
+                            <div class="text-muted small mb-2" th:text="${checkoutRequest.phoneNumber}"></div>
+                            <div>
+                                <i class="bi bi-geo-alt-fill text-danger me-1"></i>
+                                <span th:text="${checkoutRequest.address}"></span>
+                                <!-- Note: Tên xã/tỉnh sẽ được hiển thị nếu ta gộp vào từ Controller, nhưng hiện tại checkoutRequest.address chỉ là số nhà. Chúng ta sẽ lấy từ customer object hoặc ta cứ để address đã được gộp. 
+                                Hoặc để đơn giản, có thể dựa vào provinceId để hiển thị. -->
                             </div>
                         </div>
 
-                        <!-- Hidden fields submit lên server (đã bỏ districtId) -->
-                        <input type="hidden" th:field="*{provinceId}" id="provinceId">
-                        <input type="hidden" th:field="*{wardId}" id="wardId">
-
-                        <!-- Ô nhập số nhà / tên đường -->
-                        <input type="text" class="form-control" th:field="*{address}"
-                               id="streetAddress"
-                               placeholder="Số nhà, tên đường..." required>
-                        <small class="text-muted">Nhập số nhà và tên đường, sau đó chọn Tỉnh/Thành và Phường/Xã ở trên</small>
-
                         <!-- Phí ship -->
-                        <div class="mt-2">
+                        <div class="mt-3">
                             <span class="shipping-badge" id="shippingBadge">
                                 <i class="bi bi-truck"></i>
                                 <span id="shippingBadgeText"
                                       th:text="${checkoutRequest.provinceId == null
-                                          ? 'Vui lòng chọn tỉnh/thành phố'
+                                          ? 'Vui lòng cập nhật địa chỉ để tính phí vận chuyển'
                                           : (shipping == 0
-                                              ? 'Miễn phí vận chuyển'
-                                              : 'Phí vận chuyển: ' + #numbers.formatInteger(shipping, 0, 'COMMA') + 'đ')}">
+                                              ? 'Miễn phí vận chuyển (Từ CĐ FPT)'
+                                              : 'Phí giao từ CĐ FPT: ' + #numbers.formatInteger(shipping, 0, 'COMMA') + 'đ')}">
                                 </span>
                             </span>
                         </div>
@@ -298,137 +282,26 @@
     }
 
     // =====================================================
-    // DROPDOWN TỈNH / XÃ (2 tầng — đã bỏ Huyện)
+    // MÃ GIẢM GIÁ
     // =====================================================
-    const provinceSelect = document.getElementById('provinceSelect');
-    const wardSelect     = document.getElementById('wardSelect');
-    const provinceHidden = document.getElementById('provinceId');
-    const shippingDisplay = document.getElementById('shippingDisplay');
-    const shippingBadgeText = document.getElementById('shippingBadgeText');
-    let shippingRequestId = 0;
-
     function updateShippingText(fee, freeShipping, message) {
         shippingFee = Number(fee) || 0;
+        const shippingDisplay = document.getElementById('shippingDisplay');
+        const shippingBadgeText = document.getElementById('shippingBadgeText');
+        const provinceId = document.getElementById('provinceId') ? document.getElementById('provinceId').value : null;
 
-        if (!provinceSelect.value) {
+        if (!provinceId) {
             shippingDisplay.textContent = 'Chọn tỉnh để tính phí';
-            shippingBadgeText.textContent = 'Vui lòng chọn tỉnh/thành phố';
+            if(shippingBadgeText) shippingBadgeText.textContent = 'Vui lòng cập nhật địa chỉ để tính phí vận chuyển';
         } else if (freeShipping) {
             shippingDisplay.textContent = 'Miễn phí';
-            shippingBadgeText.textContent = 'Miễn phí vận chuyển';
+            if(shippingBadgeText) shippingBadgeText.textContent = 'Miễn phí vận chuyển (Từ CĐ FPT)';
         } else {
             shippingDisplay.textContent = formatNumber(shippingFee);
-            shippingBadgeText.textContent = message ||
-                `Phí vận chuyển: ${formatNumber(shippingFee)}`;
+            if(shippingBadgeText) shippingBadgeText.textContent = message || `Phí giao từ CĐ FPT: ${formatNumber(shippingFee)}`;
         }
     }
 
-    async function calculateShippingFee() {
-        const provinceId = provinceSelect.value;
-        if (!provinceId) {
-            updateShippingText(0, false);
-            updateTotal();
-            return;
-        }
-
-        const requestId = ++shippingRequestId;
-        shippingDisplay.textContent = 'Đang tính...';
-        shippingBadgeText.textContent = 'Đang tính phí vận chuyển...';
-
-        try {
-            const response = await fetch('/api/shipping/calculate', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    provinceId: Number(provinceId),
-                    subtotal: subtotal
-                })
-            });
-
-            if (!response.ok) {
-                throw new Error('Không thể tính phí vận chuyển');
-            }
-
-            const data = await response.json();
-            if (requestId !== shippingRequestId) return;
-
-            updateShippingText(
-                data.shippingFee,
-                data.freeShipping,
-                data.freeShipping
-                    ? 'Miễn phí vận chuyển'
-                    : `Phí vận chuyển: ${formatNumber(data.shippingFee)}`
-            );
-            updateTotal();
-        } catch (error) {
-            if (requestId !== shippingRequestId) return;
-            updateShippingText(0, false, 'Không thể tính phí vận chuyển');
-            shippingDisplay.textContent = 'Không thể tính';
-            updateTotal();
-            console.error(error);
-        }
-    }
-
-    // Hàm tiện ích: xóa options và disable một select
-    function resetSelect(sel, placeholder) {
-        sel.innerHTML = `<option value="">${placeholder}</option>`;
-        sel.disabled = true;
-    }
-
-    // Khi chọn Tỉnh → load Phường/Xã trực tiếp (không qua Huyện)
-    provinceSelect.addEventListener('change', function () {
-        const provinceId = this.value;
-
-        // Cập nhật hidden field
-        provinceHidden.value = provinceId;
-        document.getElementById('wardId').value = '';
-
-        resetSelect(wardSelect, '-- Chọn Phường/Xã --');
-        calculateShippingFee();
-
-        if (!provinceId) return;
-
-        fetch(`/api/location/wards?provinceId=${provinceId}`)
-            .then(res => res.json())
-            .then(data => {
-                data.forEach(w => {
-                    wardSelect.innerHTML += `<option value="${w.id}">${w.name}</option>`;
-                });
-                wardSelect.disabled = false;
-            })
-            .catch(() => alert('Không tải được danh sách phường/xã, vui lòng thử lại.'));
-    });
-
-    // Khi chọn Xã → cập nhật hidden field
-    wardSelect.addEventListener('change', function () {
-        document.getElementById('wardId').value = this.value;
-    });
-
-    // Nếu khách đã đăng nhập và đã có địa chỉ, tự load lại xã tương ứng
-    (function autoLoadSavedAddress() {
-        const savedProvinceId = provinceSelect.dataset.selected;
-        const savedWardId     = wardSelect.dataset.selected;
-
-        if (!savedProvinceId) return;
-
-        fetch(`/api/location/wards?provinceId=${savedProvinceId}`)
-            .then(res => res.json())
-            .then(data => {
-                data.forEach(w => {
-                    const opt = document.createElement('option');
-                    opt.value = w.id;
-                    opt.textContent = w.name;
-                    if (String(w.id) === String(savedWardId)) opt.selected = true;
-                    wardSelect.appendChild(opt);
-                });
-                wardSelect.disabled = false;
-                calculateShippingFee();
-            });
-    })();
-
-    // =====================================================
-    // MÃ GIẢM GIÁ (giữ nguyên từ bản gốc)
-    // =====================================================
     const discountSelectEl = document.getElementById('discountSelect');
     if (discountSelectEl) {
         discountSelectEl.addEventListener('change', function () {
@@ -452,7 +325,7 @@
             method: 'POST',
             headers: {'Content-Type': 'application/x-www-form-urlencoded'},
             body: `code=${encodeURIComponent(code)}&subtotal=${subtotal}`
-                + `&provinceId=${encodeURIComponent(provinceSelect.value || '')}`
+                + `&provinceId=${encodeURIComponent(document.getElementById('provinceId') ? document.getElementById('provinceId').value : '')}`
         })
             .then(r => r.json())
             .then(data => {
@@ -467,8 +340,8 @@
                         data.shipping,
                         Number(data.shipping) === 0,
                         Number(data.shipping) === 0
-                            ? 'Miễn phí vận chuyển'
-                            : `Phí vận chuyển: ${formatNumber(data.shipping)}`
+                            ? 'Miễn phí vận chuyển (Từ CĐ FPT)'
+                            : `Phí giao từ CĐ FPT: ${formatNumber(data.shipping)}`
                     );
                     updateTotal();
                 } else {

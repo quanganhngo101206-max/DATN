@@ -117,9 +117,9 @@ public class ShippingFeeService {
             BigDecimal baseFee
     ) {
         if (freeShipping) {
-            return "Đơn hàng từ 800.000đ được miễn phí vận chuyển";
+            return "Miễn phí vận chuyển (Từ CĐ FPT Polytechnic)";
         }
-        return "Phí vận chuyển đến " + provinceName + ": "
+        return "Phí giao từ Trường Cao đẳng FPT đến " + provinceName + ": "
                 + baseFee.toPlainString() + "đ";
     }
 

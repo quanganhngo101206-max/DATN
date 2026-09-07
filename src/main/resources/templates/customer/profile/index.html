@@ -363,10 +363,29 @@
                                 <input type="text" name="receiverPhone" class="form-control"
                                        th:value="${customer != null && customer.addressShipping != null ? customer.addressShipping.receiverPhone : (customer != null ? customer.phoneNumber : '')}">
                             </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Tỉnh/Thành phố</label>
+                                <select class="form-select" id="provinceSelect" name="provinceId"
+                                        th:attr="data-selected=${customer != null && customer.addressShipping != null ? customer.addressShipping.provinceId : ''}">
+                                    <option value="">-- Chọn Tỉnh/Thành --</option>
+                                    <option th:each="p : ${provinces}"
+                                            th:value="${p.id}"
+                                            th:text="${p.name}"
+                                            th:selected="${customer != null && customer.addressShipping != null && customer.addressShipping.provinceId == p.id}">
+                                    </option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Phường/Xã</label>
+                                <select class="form-select" id="wardSelect" name="wardId" disabled
+                                        th:attr="data-selected=${customer != null && customer.addressShipping != null ? customer.addressShipping.wardId : ''}">
+                                    <option value="">-- Chọn Phường/Xã --</option>
+                                </select>
+                            </div>
                             <div class="col-12">
                                 <label class="form-label">Địa chỉ</label>
                                 <input type="text" name="address" class="form-control"
-                                       placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành phố"
+                                       placeholder="Số nhà, đường..."
                                        th:value="${customer != null && customer.addressShipping != null ? customer.addressShipping.address : ''}">
                             </div>
                             <div class="col-12 text-end">
@@ -443,6 +462,54 @@
             if (target) target.scrollIntoView({behavior: 'smooth', block: 'start'});
         });
     });
+
+    // =====================================================
+    // DROPDOWN TỈNH / XÃ
+    // =====================================================
+    const provinceSelect = document.getElementById('provinceSelect');
+    const wardSelect = document.getElementById('wardSelect');
+
+    function resetSelect(sel, placeholder) {
+        sel.innerHTML = `<option value="">${placeholder}</option>`;
+        sel.disabled = true;
+    }
+
+    provinceSelect.addEventListener('change', function () {
+        const provinceId = this.value;
+        resetSelect(wardSelect, '-- Chọn Phường/Xã --');
+
+        if (!provinceId) return;
+
+        fetch(`/api/location/wards?provinceId=${provinceId}`)
+            .then(res => res.json())
+            .then(data => {
+                data.forEach(w => {
+                    wardSelect.innerHTML += `<option value="${w.id}">${w.name}</option>`;
+                });
+                wardSelect.disabled = false;
+            })
+            .catch(() => alert('Không tải được danh sách phường/xã, vui lòng thử lại.'));
+    });
+
+    (function autoLoadSavedAddress() {
+        const savedProvinceId = provinceSelect.dataset.selected;
+        const savedWardId = wardSelect.dataset.selected;
+
+        if (!savedProvinceId) return;
+
+        fetch(`/api/location/wards?provinceId=${savedProvinceId}`)
+            .then(res => res.json())
+            .then(data => {
+                data.forEach(w => {
+                    const opt = document.createElement('option');
+                    opt.value = w.id;
+                    opt.textContent = w.name;
+                    if (String(w.id) === String(savedWardId)) opt.selected = true;
+                    wardSelect.appendChild(opt);
+                });
+                wardSelect.disabled = false;
+            });
+    })();
 </script>
 <div th:replace="~{fragments/chatbot :: chatbot}"></div>
 </body>

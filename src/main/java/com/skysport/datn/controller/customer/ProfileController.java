@@ -6,6 +6,7 @@ import com.skysport.datn.entity.Customer;
 import com.skysport.datn.repository.AccountRepository;
 import com.skysport.datn.repository.AddressShippingRepository;
 import com.skysport.datn.repository.CustomerRepository;
+import com.skysport.datn.repository.ProvinceRepository;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -18,14 +19,13 @@ import java.time.LocalDateTime;
 
 @Controller
 @RequiredArgsConstructor
-// KHÔNG dùng @Validated ở đây — tránh ConstraintViolationException khó xử lý với redirect
-// Validation được làm thủ công bên dưới, rõ ràng hơn
 public class ProfileController {
 
     private final CustomerRepository customerRepository;
     private final AccountRepository accountRepository;
     private final AddressShippingRepository addressShippingRepository;
     private final PasswordEncoder passwordEncoder;
+    private final ProvinceRepository provinceRepository;
 
     @GetMapping("/profile")
     public String profile(HttpSession session, Model model) {
@@ -34,6 +34,7 @@ public class ProfileController {
         Customer customer = customerRepository.findByAccountId(account.getId());
         model.addAttribute("customer", customer);
         model.addAttribute("account", account);
+        model.addAttribute("provinces", provinceRepository.findAll());
         return "customer/profile/index";
     }
 
@@ -48,7 +49,6 @@ public class ProfileController {
         Account account = (Account) session.getAttribute("account");
         if (account == null) return "redirect:/login";
 
-        // Validate thủ công — tránh ConstraintViolationException làm GlobalExceptionHandler redirect sai
         if (name == null || name.isBlank()) {
             redirectAttributes.addFlashAttribute("error", "Họ tên không được để trống!");
             return "redirect:/profile";
@@ -148,13 +148,14 @@ public class ProfileController {
             @RequestParam String address,
             @RequestParam String receiverName,
             @RequestParam String receiverPhone,
+            @RequestParam(required = false) Integer provinceId,
+            @RequestParam(required = false) Integer wardId,
             HttpSession session,
             RedirectAttributes redirectAttributes) {
 
         Account account = (Account) session.getAttribute("account");
         if (account == null) return "redirect:/login";
 
-        // Validate
         if (address == null || address.isBlank()) {
             redirectAttributes.addFlashAttribute("errorAddress", "Địa chỉ không được để trống!");
             return "redirect:/profile";
@@ -167,6 +168,10 @@ public class ProfileController {
             redirectAttributes.addFlashAttribute("errorAddress", "Số điện thoại người nhận không hợp lệ!");
             return "redirect:/profile";
         }
+        if (provinceId == null || wardId == null) {
+            redirectAttributes.addFlashAttribute("errorAddress", "Vui lòng chọn Tỉnh/Thành và Phường/Xã!");
+            return "redirect:/profile";
+        }
 
         try {
             Customer customer = customerRepository.findByAccountId(account.getId());
@@ -175,8 +180,6 @@ public class ProfileController {
                 return "redirect:/profile";
             }
 
-            // Lấy địa chỉ hiện tại hoặc tạo mới
-            // FIX: phải save AddressShipping riêng trước, rồi mới set FK vào Customer
             AddressShipping addr = customer.getAddressShipping();
             if (addr == null) {
                 addr = new AddressShipping();
@@ -185,12 +188,12 @@ public class ProfileController {
             addr.setAddress(address.trim());
             addr.setReceiverName(receiverName.trim());
             addr.setReceiverPhone(receiverPhone.trim());
+            addr.setProvinceId(provinceId);
+            addr.setWardId(wardId);
             addr.setIsDefault(true);
 
-            // Save AddressShipping trước (tạo row nếu mới)
             addr = addressShippingRepository.save(addr);
 
-            // Cập nhật FK address_shipping_id trên Customer
             customer.setAddressShipping(addr);
             customerRepository.save(customer);
 

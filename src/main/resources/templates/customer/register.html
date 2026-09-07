@@ -221,18 +221,22 @@
             <label><i class="bi bi-person-badge"></i> Tên đăng nhập</label>
             <input type="text"
                    class="form-control"
+                   th:classappend="${#fields.hasErrors('username')} ? 'error-field' : ''"
                    th:field="*{username}"
                    placeholder="Chọn tên đăng nhập"
                    required>
+            <span class="field-error" th:if="${#fields.hasErrors('username')}" th:errors="*{username}"></span>
         </div>
 
         <div class="form-group">
             <label><i class="bi bi-lock"></i> Mật khẩu</label>
             <input type="password"
                    class="form-control"
+                   th:classappend="${#fields.hasErrors('password')} ? 'error-field' : ''"
                    th:field="*{password}"
                    placeholder="Nhập mật khẩu"
                    required>
+            <span class="field-error" th:if="${#fields.hasErrors('password')}" th:errors="*{password}"></span>
         </div>
         <div class="form-group">
             <label><i class="bi bi-lock"></i> Xác nhận mật khẩu</label>
@@ -247,27 +251,33 @@
             <label><i class="bi bi-person"></i> Họ và tên</label>
             <input type="text"
                    class="form-control"
+                   th:classappend="${#fields.hasErrors('fullName')} ? 'error-field' : ''"
                    th:field="*{fullName}"
                    placeholder="Nhập họ và tên đầy đủ"
                    required>
+            <span class="field-error" th:if="${#fields.hasErrors('fullName')}" th:errors="*{fullName}"></span>
         </div>
 
         <div class="form-group">
             <label><i class="bi bi-envelope"></i> Email</label>
             <input type="email"
                    class="form-control"
+                   th:classappend="${#fields.hasErrors('email')} ? 'error-field' : ''"
                    th:field="*{email}"
                    placeholder="example@email.com"
                    required>
+            <span class="field-error" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></span>
         </div>
 
         <div class="form-group">
             <label><i class="bi bi-phone"></i> Số điện thoại</label>
             <input type="tel"
                    class="form-control"
+                   th:classappend="${#fields.hasErrors('phoneNumber')} ? 'error-field' : ''"
                    th:field="*{phoneNumber}"
                    placeholder="0123456789"
                    required>
+            <span class="field-error" th:if="${#fields.hasErrors('phoneNumber')}" th:errors="*{phoneNumber}"></span>
         </div>
 
         <button type="submit" class="btn-register">

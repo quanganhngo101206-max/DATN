@@ -115,12 +115,14 @@ public class CartController {
         return "redirect:/products/" + productId;
     }
 
+    @Autowired
+    private com.skysport.datn.service.ShippingFeeService shippingFeeService;
+
     // Xem giỏ hàng
     @GetMapping("/cart")
     public String viewCart(HttpSession session, Model model) {
         Map<Integer, CartItem> cart = getCartFromSession(session);
         
-        // Cập nhật lại giá cho các sản phẩm trong giỏ
         for (CartItem item : cart.values()) {
             ProductDetail detail = cartService.getProductDetailById(item.getProductDetailId());
             if (detail != null) {
@@ -129,9 +131,26 @@ public class CartController {
         }
 
         List<CartItem> items = new ArrayList<>(cart.values());
-
         double subtotal = items.stream().mapToDouble(i -> i.getPrice() * i.getQuantity()).sum();
-        double shipping = subtotal >= 500000 ? 0 : 30000;
+        
+        // Calculate shipping using ShippingFeeService if customer has address
+        double shipping = 0;
+        Account account = (Account) session.getAttribute("account");
+        if (account != null) {
+            Customer customer = customerRepository.findByAccountId(account.getId());
+            if (customer != null && customer.getAddressShipping() != null && customer.getAddressShipping().getProvinceId() != null) {
+                com.skysport.datn.dto.ShippingFeeResponse feeResponse = shippingFeeService.calculate(
+                        customer.getAddressShipping().getProvinceId(), 
+                        java.math.BigDecimal.valueOf(subtotal)
+                );
+                shipping = feeResponse.getShippingFee().doubleValue();
+            } else {
+                shipping = subtotal >= 800000 ? 0 : 35000;
+            }
+        } else {
+            shipping = subtotal >= 800000 ? 0 : 35000;
+        }
+
         double total = subtotal + shipping;
 
         model.addAttribute("cartItems", items);
@@ -142,6 +161,22 @@ public class CartController {
         model.addAttribute("wishlistCount", getWishlistCount(session));
 
         return "customer/cart/index";
+    }
+
+    // Hàm helper tính phí ship dùng chung
+    private double calculateShippingForCart(HttpSession session, double subtotal) {
+        Account account = (Account) session.getAttribute("account");
+        if (account != null) {
+            Customer customer = customerRepository.findByAccountId(account.getId());
+            if (customer != null && customer.getAddressShipping() != null && customer.getAddressShipping().getProvinceId() != null) {
+                com.skysport.datn.dto.ShippingFeeResponse feeResponse = shippingFeeService.calculate(
+                        customer.getAddressShipping().getProvinceId(), 
+                        java.math.BigDecimal.valueOf(subtotal)
+                );
+                return feeResponse.getShippingFee().doubleValue();
+            }
+        }
+        return subtotal >= 800000 ? 0 : 35000;
     }
 
     // Cập nhật số lượng (AJAX)
@@ -165,7 +200,6 @@ public class CartController {
             result.put("message", "Sản phẩm không còn tồn tại!");
             return result;
         }
-        // Kiểm tra tồn kho thực tế (quantity là số mới muốn set, không phải số thêm vào)
         if (!cartService.checkStock(detail, quantity)) {
             result.put("success", false);
             result.put("message", "Số lượng vượt quá tồn kho! Chỉ còn " + detail.getQuantity() + " sản phẩm.");
@@ -177,16 +211,14 @@ public class CartController {
             cart.remove(detailId);
         } else {
             item.setQuantity(quantity);
-            // Cập nhật lại giá
             item.setPrice(detail.getFinalPrice() != null ? detail.getFinalPrice().doubleValue() : 0.0);
         }
 
         updateCartCount(session);
 
         double subtotal = cart.values().stream().mapToDouble(i -> i.getPrice() * i.getQuantity()).sum();
-        double shipping = subtotal >= 500000 ? 0 : 30000;
+        double shipping = calculateShippingForCart(session, subtotal);
 
-        // Tính lại thành tiền của sản phẩm
         double itemTotal = 0;
         double unitPrice = 0;
         if (cart.containsKey(detailId)) {
@@ -199,8 +231,8 @@ public class CartController {
         result.put("shipping", shipping);
         result.put("total", subtotal + shipping);
         result.put("cartCount", session.getAttribute("cartCount"));
-        result.put("itemTotal", itemTotal);  // Thành tiền sản phẩm
-        result.put("unitPrice", unitPrice);   // Đơn giá
+        result.put("itemTotal", itemTotal);
+        result.put("unitPrice", unitPrice);
         result.put("detailId", detailId);
 
         return result;
@@ -226,10 +258,6 @@ public class CartController {
                                              HttpSession session) {
         Map<String, Object> result = new HashMap<>();
 
-
-
-
-
         ProductDetail detail = cartService.findProductDetail(productId, color, size);
 
         if (detail == null) {
@@ -237,7 +265,6 @@ public class CartController {
             result.put("message", "Không tìm thấy sản phẩm với màu/size này!");
             return result;
         }
-
 
         if (!cartService.checkStock(detail, quantity)) {
             result.put("success", false);
@@ -262,7 +289,6 @@ public class CartController {
             item.setProductDetailId(detail.getId());
             item.setProductId(productId);
             item.setProductName(detail.getProduct().getName());
-            // ✅ SỬA DÒNG NÀY - chỉ lấy giá từ ProductDetail
             item.setPrice(detail.getFinalPrice() != null ? detail.getFinalPrice().doubleValue() : 0.0);
             item.setQuantity(quantity);
             item.setColor(color);
@@ -290,11 +316,10 @@ public class CartController {
             cart.remove(detailId);
             updateCartCount(session);
 
-            // Tính toán lại các giá trị
             double subtotal = cart.values().stream()
                     .mapToDouble(i -> i.getPrice() * i.getQuantity())
                     .sum();
-            double shipping = subtotal >= 500000 ? 0 : 30000;
+            double shipping = calculateShippingForCart(session, subtotal);
             double total = subtotal + shipping;
 
             result.put("success", true);
@@ -303,7 +328,7 @@ public class CartController {
             result.put("subtotal", subtotal);
             result.put("shipping", shipping);
             result.put("total", total);
-            result.put("discountAmount", 0); // Nếu có giảm giá thì tính thêm
+            result.put("discountAmount", 0);
         } else {
             result.put("success", false);
             result.put("message", "Sản phẩm không tồn tại!");

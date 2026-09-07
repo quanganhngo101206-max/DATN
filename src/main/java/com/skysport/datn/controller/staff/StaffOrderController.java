@@ -18,7 +18,7 @@ import java.util.*;
 
 @Controller
 @RequestMapping("/staff/order")
-public class StaffOrderController {
+public class    StaffOrderController {
 
     @Autowired private BillRepository billRepository;
     @Autowired private BillDetailRepository billDetailRepository;

@@ -69,6 +69,14 @@ public class AdminImportController {
                     || productDetailIds.size() != importPrices.size())
                 throw new RuntimeException("Dữ liệu sản phẩm không hợp lệ!");
 
+            // Validate prices before saving anything
+            for (int i = 0; i < productDetailIds.size(); i++) {
+                ProductDetail pd = productDetailRepository.findById(productDetailIds.get(i)).orElse(null);
+                if (pd != null && pd.getPrice() != null && importPrices.get(i) > pd.getPrice()) {
+                    throw new RuntimeException("Giá nhập của sản phẩm " + pd.getProduct().getName() + " không được lớn hơn giá bán (" + pd.getPrice() + ")");
+                }
+            }
+
             double total = 0;
             for (int i = 0; i < quantities.size(); i++)
                 total += quantities.get(i) * importPrices.get(i);

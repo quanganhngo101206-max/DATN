@@ -49,6 +49,7 @@
                             <option th:each="s : ${suppliers}"
                                     th:value="${s.id}"
                                     th:text="${s.name + ' (' + s.phone + ')'}"></option>
+                            <option value="-1">Khác</option>
                         </select>
                     </div>
                     <div class="col-md-6">

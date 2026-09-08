@@ -73,8 +73,11 @@ public class StaffImportController {
             // Validate prices before saving anything
             for (int i = 0; i < productDetailIds.size(); i++) {
                 ProductDetail pd = productDetailRepository.findById(productDetailIds.get(i)).orElse(null);
-                if (pd != null && pd.getPrice() != null && importPrices.get(i) > pd.getPrice()) {
-                    throw new RuntimeException("Giá nhập của sản phẩm " + pd.getProduct().getName() + " không được lớn hơn giá bán (" + pd.getPrice() + ")");
+                if (pd != null) {
+                    float sellingPrice = pd.getPrice() != null ? pd.getPrice() : 0f;
+                    if (importPrices.get(i) > sellingPrice) {
+                        throw new RuntimeException("Giá nhập của sản phẩm " + pd.getProduct().getName() + " không được lớn hơn giá bán (" + sellingPrice + " đ)");
+                    }
                 }
             }
 

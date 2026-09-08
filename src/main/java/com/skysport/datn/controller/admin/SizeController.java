@@ -22,29 +22,5 @@ public class SizeController {
         return "admin/size/list";
     }
 
-    @PostMapping("/save")
-    public String save(@ModelAttribute Size size) {
-        sizeService.save(size);
-        return "redirect:/admin/size";
-    }
-
-    @GetMapping("/edit/{id}")
-    public String edit(@PathVariable Integer id, Model model) {
-        model.addAttribute("size", sizeService.findById(id));
-        model.addAttribute("sizes", sizeService.findAll());
-        model.addAttribute("openModal", true);
-        return "admin/size/list";
-    }
-
-    @PostMapping("/update")
-    public String update(@ModelAttribute Size size) {
-        sizeService.update(size);
-        return "redirect:/admin/size";
-    }
-
-    @GetMapping("/delete/{id}")
-    public String delete(@PathVariable Integer id) {
-        sizeService.delete(id);
-        return "redirect:/admin/size";
-    }
+    // Các chức năng thêm, sửa, xóa đã được loại bỏ theo yêu cầu
 }

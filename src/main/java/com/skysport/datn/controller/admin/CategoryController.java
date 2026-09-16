@@ -49,10 +49,10 @@ public class CategoryController {
         return "redirect:/admin/category";
     }
 
-    // Xóa
-    @GetMapping("/delete/{id}")
-    public String delete(@PathVariable Integer id) {
-        categoryService.delete(id);
+    // Bật/Tắt hoạt động — thay cho chức năng xóa
+    @PostMapping("/toggle-status/{id}")
+    public String toggleStatus(@PathVariable Integer id) {
+        categoryService.toggleStatus(id);
         return "redirect:/admin/category";
     }
 }

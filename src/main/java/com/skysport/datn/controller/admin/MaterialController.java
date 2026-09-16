@@ -37,17 +37,13 @@ public class MaterialController {
 
     @PostMapping("/update")
     public String update(@ModelAttribute Material material) {
-        Material old = materialService.findById(material.getId());
-        old.setCode(material.getCode());
-        old.setName(material.getName());
-        old.setStatus(material.getStatus()); // ✅
-        materialService.update(old);
+        materialService.update(material);
         return "redirect:/admin/material";
     }
 
-    @GetMapping("/delete/{id}")
-    public String delete(@PathVariable Integer id) {
-        materialService.delete(id);
+    @PostMapping("/toggle-status/{id}")
+    public String toggleStatus(@PathVariable Integer id) {
+        materialService.toggleStatus(id);
         return "redirect:/admin/material";
     }
 }

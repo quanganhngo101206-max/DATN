@@ -20,4 +20,7 @@ public class Size {
     private String name;
 
     private Boolean deleteFlag;
+
+    // 1 = Hoạt động, 0 = Tạm dừng. Mặc định khi tạo mới là 0 (Tạm dừng).
+    private Integer status;
 }

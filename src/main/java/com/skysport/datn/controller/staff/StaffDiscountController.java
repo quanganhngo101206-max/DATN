@@ -49,22 +49,39 @@ public class StaffDiscountController {
     // Staff tạo mới → status=0 (chờ Admin duyệt), deleteFlag=false
     @PostMapping("/save")
     public String save(@ModelAttribute DiscountCode discountCode, RedirectAttributes ra) {
+
         if (discountCode.getCode() == null || discountCode.getCode().isBlank()) {
             ra.addFlashAttribute("errorMsg", "Vui lòng nhập mã giảm giá!");
             return "redirect:/staff/discount";
         }
+
+        String codeError = discountCodeService.validateCode(discountCode.getCode(), null);
+        if (codeError != null) {
+            ra.addFlashAttribute("errorMsg", codeError);
+            return "redirect:/staff/discount";
+        }
+
         if (discountCode.getStartDate() == null || discountCode.getEndDate() == null) {
             ra.addFlashAttribute("errorMsg", "Vui lòng nhập đầy đủ ngày bắt đầu và ngày kết thúc!");
             return "redirect:/staff/discount";
         }
+
         if (discountCode.getEndDate().isBefore(discountCode.getStartDate())) {
             ra.addFlashAttribute("errorMsg", "Ngày kết thúc phải sau ngày bắt đầu!");
             return "redirect:/staff/discount";
         }
+
         discountCode.setStatus(0);       // 0 = chờ duyệt
         discountCode.setDeleteFlag(false);
-        discountCodeService.save(discountCode);
-        ra.addFlashAttribute("successMsg", "Đã gửi yêu cầu tạo mã giảm giá. Chờ Admin duyệt.");
+        discountCode.setUsedCount(0);
+
+        try {
+            discountCodeService.save(discountCode);
+            ra.addFlashAttribute("successMsg", "Đã gửi yêu cầu tạo mã giảm giá. Chờ Admin duyệt.");
+        } catch (RuntimeException e) {
+            ra.addFlashAttribute("errorMsg", e.getMessage());
+        }
+
         return "redirect:/staff/discount";
     }
 
@@ -84,19 +101,42 @@ public class StaffDiscountController {
 
     @PostMapping("/update")
     public String update(@ModelAttribute DiscountCode discountCode, RedirectAttributes ra) {
-        if (discountCode.getStartDate() == null || discountCode.getEndDate() == null) {
-            ra.addFlashAttribute("errorMsg", "Vui lòng nhập đầy đủ ngày bắt đầu và ngày kết thúc!");
+
+        if (discountCode.getId() == null) {
+            ra.addFlashAttribute("errorMsg", "Mã giảm giá không hợp lệ.");
             return "redirect:/staff/discount";
         }
-        if (discountCode.getEndDate().isBefore(discountCode.getStartDate())) {
-            ra.addFlashAttribute("errorMsg", "Ngày kết thúc phải sau ngày bắt đầu!");
-            return "redirect:/staff/discount";
-        }
+
         DiscountCode old = discountCodeService.findById(discountCode.getId());
         if (old == null || old.getStatus() != 0) {
             ra.addFlashAttribute("errorMsg", "Không thể chỉnh sửa mã này.");
             return "redirect:/staff/discount";
         }
+
+        if (discountCode.getCode() == null || discountCode.getCode().isBlank()) {
+            ra.addFlashAttribute("errorMsg", "Vui lòng nhập mã giảm giá!");
+            return "redirect:/staff/discount";
+        }
+
+        String codeError = discountCodeService.validateCode(
+                discountCode.getCode(),
+                discountCode.getId()
+        );
+        if (codeError != null) {
+            ra.addFlashAttribute("errorMsg", codeError);
+            return "redirect:/staff/discount";
+        }
+
+        if (discountCode.getStartDate() == null || discountCode.getEndDate() == null) {
+            ra.addFlashAttribute("errorMsg", "Vui lòng nhập đầy đủ ngày bắt đầu và ngày kết thúc!");
+            return "redirect:/staff/discount";
+        }
+
+        if (discountCode.getEndDate().isBefore(discountCode.getStartDate())) {
+            ra.addFlashAttribute("errorMsg", "Ngày kết thúc phải sau ngày bắt đầu!");
+            return "redirect:/staff/discount";
+        }
+
         old.setCode(discountCode.getCode());
         old.setDetail(discountCode.getDetail());
         old.setType(discountCode.getType());
@@ -107,21 +147,17 @@ public class StaffDiscountController {
         old.setMaximumUsage(discountCode.getMaximumUsage());
         old.setStartDate(discountCode.getStartDate());
         old.setEndDate(discountCode.getEndDate());
-        discountCodeService.update(old);
-        ra.addFlashAttribute("successMsg", "Đã cập nhật. Mã vẫn đang chờ Admin duyệt.");
-        return "redirect:/staff/discount";
-    }
 
-    // Staff chỉ xóa được mã đang chờ duyệt
-    @GetMapping("/delete/{id}")
-    public String delete(@PathVariable Integer id, RedirectAttributes ra) {
-        DiscountCode dc = discountCodeService.findById(id);
-        if (dc == null || dc.getStatus() != 0) {
-            ra.addFlashAttribute("errorMsg", "Chỉ có thể xóa mã đang chờ duyệt.");
-            return "redirect:/staff/discount";
+        old.setStatus(0);       // Sửa xong vẫn phải chờ Admin duyệt
+        old.setDeleteFlag(false);
+
+        try {
+            discountCodeService.update(old);
+            ra.addFlashAttribute("successMsg", "Đã cập nhật. Mã vẫn đang chờ Admin duyệt.");
+        } catch (RuntimeException e) {
+            ra.addFlashAttribute("errorMsg", e.getMessage());
         }
-        discountCodeService.delete(id);
-        ra.addFlashAttribute("successMsg", "Đã xóa yêu cầu tạo mã giảm giá.");
+
         return "redirect:/staff/discount";
     }
-}   
+}

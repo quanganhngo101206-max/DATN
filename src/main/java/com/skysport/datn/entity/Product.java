@@ -41,4 +41,23 @@ public class Product {
     @ManyToOne
     @JoinColumn(name = "material_id")
     private Material material;
+
+    // Category/Brand/Material của sản phẩm còn "Hoạt động" hay đã bị "Tạm dừng"
+    public boolean isCategoryActive() {
+        return category != null && category.getStatus() != null && category.getStatus() == 1;
+    }
+
+    public boolean isBrandActive() {
+        return brand != null && brand.getStatus() != null && brand.getStatus() == 1;
+    }
+
+    public boolean isMaterialActive() {
+        return material != null && material.getStatus() != null && material.getStatus() == 1;
+    }
+
+    // true nếu cả 3 danh mục gốc (category/brand/material) đều đang Hoạt động.
+    // Dùng để: (1) ẩn sản phẩm khỏi trang khách hàng, (2) hiện badge cảnh báo ở admin/staff.
+    public boolean isMasterDataActive() {
+        return isCategoryActive() && isBrandActive() && isMaterialActive();
+    }
 }

@@ -37,4 +37,14 @@ public class MaterialService {
             materialRepository.save(m);
         }
     }
+
+    public void toggleStatus(Integer id) {
+        Material material = findById(id);
+
+        if (material != null) {
+            material.setStatus(
+                    material.getStatus() != null && material.getStatus() == 1 ? 0 : 1);
+            materialRepository.save(material);
+        }
+    }
 }

@@ -27,22 +27,35 @@ import java.util.stream.Collectors;
 @Controller
 public class CheckoutController {
 
-    @Autowired private CartService cartService;
-    @Autowired private BillRepository billRepository;
-    @Autowired private BillDetailRepository billDetailRepository;
-    @Autowired private CustomerRepository customerRepository;
-    @Autowired private AccountRepository accountRepository;
-    @Autowired private PaymentMethodRepository paymentMethodRepository;
-    @Autowired private DiscountCodeService discountCodeService;
-    @Autowired private OrderStatusHistoryRepository orderStatusHistoryRepository;
-    @Autowired private ProductDetailRepository productDetailRepository;
-    @Autowired private DiscountCodeRepository discountCodeRepository;
-    @Autowired private ShippingFeeService shippingFeeService;
+    @Autowired
+    private CartService cartService;
+    @Autowired
+    private BillRepository billRepository;
+    @Autowired
+    private BillDetailRepository billDetailRepository;
+    @Autowired
+    private CustomerRepository customerRepository;
+    @Autowired
+    private AccountRepository accountRepository;
+    @Autowired
+    private PaymentMethodRepository paymentMethodRepository;
+    @Autowired
+    private DiscountCodeService discountCodeService;
+    @Autowired
+    private OrderStatusHistoryRepository orderStatusHistoryRepository;
+    @Autowired
+    private ProductDetailRepository productDetailRepository;
+    @Autowired
+    private DiscountCodeRepository discountCodeRepository;
+    @Autowired
+    private ShippingFeeService shippingFeeService;
 
-    @Autowired private ProvinceRepository provinceRepository;
+    @Autowired
+    private ProvinceRepository provinceRepository;
 
     // ✅ THÊM MỚI: inject WardRepository để tra tên phường/xã
-    @Autowired private WardRepository wardRepository;
+    @Autowired
+    private WardRepository wardRepository;
 
     private static final String CART_KEY = "cart";
     private static final double FREE_SHIP_THRESHOLD = 800000;
@@ -50,7 +63,10 @@ public class CheckoutController {
     private Map<Integer, CartController.CartItem> getCart(HttpSession session) {
         Map<Integer, CartController.CartItem> cart =
                 (Map<Integer, CartController.CartItem>) session.getAttribute(CART_KEY);
-        if (cart == null) { cart = new LinkedHashMap<>(); session.setAttribute(CART_KEY, cart); }
+        if (cart == null) {
+            cart = new LinkedHashMap<>();
+            session.setAttribute(CART_KEY, cart);
+        }
         return cart;
     }
 
@@ -62,10 +78,12 @@ public class CheckoutController {
 
         double subtotal = cart.values().stream()
                 .mapToDouble(i -> i.getPrice() * i.getQuantity()).sum();
+
         // Tự điền thông tin nếu đã đăng nhập
         Account account = (Account) session.getAttribute("account");
         CheckoutRequest req = new CheckoutRequest();
         Customer customerForCheck = null;
+
         if (account != null) {
             Customer customer = customerRepository.findByAccountId(account.getId());
             if (customer != null) {
@@ -73,6 +91,7 @@ public class CheckoutController {
                 req.setFullName(customer.getName());
                 req.setPhoneNumber(customer.getPhoneNumber());
                 req.setEmail(customer.getEmail());
+
                 if (customer.getAddressShipping() != null) {
                     req.setAddress(customer.getAddressShipping().getAddress());
                     req.setProvinceId(customer.getAddressShipping().getProvinceId());
@@ -89,6 +108,7 @@ public class CheckoutController {
         // Danh sách mã giảm giá đang khả dụng với đơn hàng hiện tại
         LocalDateTime now = LocalDateTime.now();
         Integer customerId = customerForCheck != null ? customerForCheck.getId() : null;
+
         List<DiscountCode> availableDiscounts = discountCodeRepository.findByStatusAndDeleteFlagFalse(1).stream()
                 .filter(d -> d.getStartDate() == null || !now.isBefore(d.getStartDate()))
                 .filter(d -> d.getEndDate() == null || !now.isAfter(d.getEndDate()))
@@ -104,6 +124,7 @@ public class CheckoutController {
                     return Double.compare(db, da); // giảm nhiều nhất lên trước
                 })
                 .collect(Collectors.toList());
+
         model.addAttribute("availableDiscounts", availableDiscounts);
 
         model.addAttribute("checkoutRequest", req);
@@ -136,12 +157,14 @@ public class CheckoutController {
 
         Integer customerId = null;
         Account account = (Account) session.getAttribute("account");
+
         if (account != null) {
             Customer customer = customerRepository.findByAccountId(account.getId());
             if (customer != null) customerId = customer.getId();
         }
 
         String validation = discountCodeService.validate(code, subtotal, customerId);
+
         if (!"OK".equals(validation)) {
             result.put("success", false);
             result.put("message", validation);
@@ -150,6 +173,7 @@ public class CheckoutController {
 
         DiscountCode discount = discountCodeService.findByCode(code);
         double discountAmount = discountCodeService.calculateDiscount(discount, subtotal);
+
         if (discountAmount > total) discountAmount = total;
 
         double finalTotal = total - discountAmount;
@@ -163,6 +187,7 @@ public class CheckoutController {
         result.put("discountAmount", (long) discountAmount);
         result.put("finalTotal", (long) finalTotal);
         result.put("shipping", (long) shipping);
+
         return ResponseEntity.ok(result);
     }
 
@@ -175,6 +200,7 @@ public class CheckoutController {
                              RedirectAttributes redirectAttributes) {
 
         Map<Integer, CartController.CartItem> cart = getCart(session);
+
         if (cart.isEmpty()) {
             redirectAttributes.addFlashAttribute("error", "Giỏ hàng trống!");
             return "redirect:/cart";
@@ -191,19 +217,23 @@ public class CheckoutController {
             // Tính tiền
             double subtotal = cart.values().stream()
                     .mapToDouble(i -> i.getPrice() * i.getQuantity()).sum();
+
             double shipping = calculateShipping(subtotal, request.getProvinceId());
             double total = subtotal + shipping;
 
             // Khách hàng — xác định trước để dùng cho validate mã giảm giá
             Account account = (Account) session.getAttribute("account");
             Customer customer = null;
+
             if (account != null) {
                 customer = customerRepository.findByAccountId(account.getId());
             }
+
             if (customer == null) {
                 // Tìm theo SĐT trước — tránh tạo trùng Customer cho guest
                 customer = customerRepository.findByPhoneNumber(request.getPhoneNumber()).orElse(null);
             }
+
             if (customer == null) {
                 customer = new Customer();
                 customer.setName(request.getFullName());
@@ -224,28 +254,39 @@ public class CheckoutController {
             String codeToUse = codeFromSession != null ? codeFromSession : request.getDiscountCode();
 
             if (codeToUse != null && !codeToUse.isBlank()) {
-                String validation = discountCodeService.validate(codeToUse, subtotal, customer.getId());
+                String validation = discountCodeService.validate(
+                        codeToUse,
+                        subtotal,
+                        customer.getId()
+                );
+
                 if ("OK".equals(validation)) {
                     appliedDiscount = discountCodeService.findByCode(codeToUse);
+
                     discountAmount = discountFromSession != null
                             ? discountFromSession
                             : discountCodeService.calculateDiscount(appliedDiscount, subtotal);
+
                     if (discountAmount > total) discountAmount = total;
                 }
             }
 
             double finalAmount = total - discountAmount;
 
-            // ✅ SỬA LỖI: Ghép địa chỉ đầy đủ = số nhà + phường/xã + tỉnh/thành
+            // Ghép địa chỉ đầy đủ = số nhà + phường/xã + tỉnh/thành
             String fullAddress = request.getAddress();
+
             if (request.getWardId() != null) {
                 Ward ward = wardRepository.findById(request.getWardId()).orElse(null);
+
                 if (ward != null) {
                     fullAddress += ", " + ward.getName();
                 }
             }
+
             if (request.getProvinceId() != null) {
                 Province province = provinceRepository.findById(request.getProvinceId()).orElse(null);
+
                 if (province != null) {
                     fullAddress += ", " + province.getName();
                 }
@@ -256,7 +297,6 @@ public class CheckoutController {
             bill.setCreateDate(LocalDateTime.now());
             bill.setUpdateDate(LocalDateTime.now());
             bill.setStatus(OrderStatus.PENDING.getValue());
-            // ✅ Dùng fullAddress thay vì request.getAddress()
             bill.setBillingAddress(fullAddress);
             bill.setInvoiceType(1);
             bill.setAmount((float) finalAmount);
@@ -274,42 +314,91 @@ public class CheckoutController {
             // Phương thức thanh toán
             String requestedMethod = request.getPaymentMethod();
             List<Payment> methods = paymentMethodRepository.findAll();
+
             Payment paymentMethod = methods.stream()
                     .filter(m -> {
                         if (m.getName() == null) return false;
+
                         String upper = m.getName().toUpperCase();
+
                         if ("BANKING".equals(requestedMethod)) {
-                            return upper.contains("CHUY") || upper.contains("BANK") || upper.contains("KHO");
+                            return upper.contains("CHUY")
+                                    || upper.contains("BANK")
+                                    || upper.contains("KHO");
                         }
-                        return upper.contains("TIỀN") || upper.contains("MẶT") || upper.contains("COD");
+
+                        return upper.contains("TIỀN")
+                                || upper.contains("MẶT")
+                                || upper.contains("COD");
                     })
                     .findFirst()
                     .orElse(methods.isEmpty() ? null : methods.get(0));
+
             bill.setPaymentMethod(paymentMethod);
 
             // Khóa từng dòng tồn kho (PESSIMISTIC_WRITE)
             Map<Integer, ProductDetail> lockedDetails = new LinkedHashMap<>();
+
             for (CartController.CartItem item : cart.values()) {
-                ProductDetail pd = productDetailRepository.findByIdForUpdate(item.getProductDetailId())
+
+                ProductDetail pd = productDetailRepository
+                        .findByIdForUpdate(item.getProductDetailId())
                         .orElse(null);
+
                 if (pd == null) {
                     throw new RuntimeException("Sản phẩm không còn tồn tại trong hệ thống!");
                 }
+
                 var prod = pd.getProduct();
-                if (prod == null || Boolean.TRUE.equals(prod.getDeleteFlag())
-                        || prod.getStatus() == null || prod.getStatus() != 1) {
-                    throw new RuntimeException("Sản phẩm \"" + item.getProductName()
-                            + "\" hiện không còn được bán!");
+
+                if (prod == null
+                        || Boolean.TRUE.equals(prod.getDeleteFlag())
+                        || prod.getStatus() == null
+                        || prod.getStatus() != 1) {
+                    throw new RuntimeException(
+                            "Sản phẩm \"" + item.getProductName() + "\" hiện không còn được bán!"
+                    );
                 }
-                if (pd.getQuantity() == null || pd.getQuantity() < item.getQuantity()) {
-                    throw new RuntimeException("Sản phẩm \"" + item.getProductName()
-                            + "\" chỉ còn " + (pd.getQuantity() != null ? pd.getQuantity() : 0)
-                            + " sản phẩm trong kho!");
+
+                if (!pd.isVariantStatusActive()) {
+                    throw new RuntimeException(
+                            "Biến thể \"" + item.getProductName() + "\" hiện đang tạm dừng bán!"
+                    );
                 }
+
+                if (!pd.isSizeActive()) {
+                    throw new RuntimeException(
+                            "Size của sản phẩm \"" + item.getProductName()
+                                    + "\" hiện không còn được bán!"
+                    );
+                }
+
+                if (!pd.isColorActive()) {
+                    throw new RuntimeException(
+                            "Màu của sản phẩm \"" + item.getProductName()
+                                    + "\" hiện không còn được bán!"
+                    );
+                }
+
+                if (item.getQuantity() <= 0) {
+                    throw new RuntimeException("Số lượng sản phẩm không hợp lệ!");
+                }
+
+                if (pd.getQuantity() == null
+                        || pd.getQuantity() < item.getQuantity()) {
+                    throw new RuntimeException(
+                            "Sản phẩm \"" + item.getProductName()
+                                    + "\" chỉ còn "
+                                    + (pd.getQuantity() != null ? pd.getQuantity() : 0)
+                                    + " sản phẩm trong kho!"
+                    );
+                }
+
                 lockedDetails.put(item.getProductDetailId(), pd);
             }
 
             bill = billRepository.save(bill);
+
             bill.setCode("HD" + String.format("%05d", bill.getId()));
             bill = billRepository.save(bill);
 
@@ -320,16 +409,22 @@ public class CheckoutController {
 
             // Tạo BillDetail + trừ tồn kho
             for (CartController.CartItem item : cart.values()) {
-                ProductDetail productDetail = lockedDetails.get(item.getProductDetailId());
+
+                ProductDetail productDetail =
+                        lockedDetails.get(item.getProductDetailId());
 
                 BillDetail detail = new BillDetail();
                 detail.setBill(bill);
                 detail.setProductDetail(productDetail);
                 detail.setMomentPrice(item.getPrice().floatValue());
                 detail.setQuantity(item.getQuantity());
+
                 billDetailRepository.save(detail);
 
-                productDetail.setQuantity(productDetail.getQuantity() - item.getQuantity());
+                productDetail.setQuantity(
+                        productDetail.getQuantity() - item.getQuantity()
+                );
+
                 cartService.updateProductDetail(productDetail);
             }
 
@@ -339,11 +434,12 @@ public class CheckoutController {
             history.setStatus(1);
             history.setNote("Đơn hàng được tạo - " + request.getFullName());
             history.setCreatedDate(LocalDateTime.now());
+
             orderStatusHistoryRepository.save(history);
 
-            // Trừ lượt dùng mã giảm giá
-            if (appliedDiscount != null) {
-                discountCodeService.decreaseUsage(appliedDiscount.getId());
+            // COD: đặt hàng thành công thì tính lượt sử dụng voucher ngay
+            if (!"BANKING".equals(requestedMethod) && appliedDiscount != null) {
+                discountCodeService.incrementUsage(appliedDiscount.getId());
             }
 
             // Xóa giỏ hàng và discount session
@@ -351,19 +447,30 @@ public class CheckoutController {
             session.removeAttribute("appliedDiscountCode");
             session.removeAttribute("appliedDiscountAmount");
             session.setAttribute("cartCount", 0);
-            
+
             if ("BANKING".equals(requestedMethod)) {
-                return "redirect:/mock-vnpay?billId=" + bill.getId() + "&amount=" + (long)finalAmount;
+                return "redirect:/mock-vnpay?billId=" + bill.getId()
+                        + "&amount=" + (long) finalAmount;
             }
 
-            redirectAttributes.addFlashAttribute("successMsg", "Đặt hàng thành công! Mã đơn: " + bill.getCode());
+            redirectAttributes.addFlashAttribute(
+                    "successMsg",
+                    "Đặt hàng thành công! Mã đơn: " + bill.getCode()
+            );
+
             return "redirect:/order/success/" + bill.getId();
 
         } catch (Exception e) {
             e.printStackTrace();
+
             session.removeAttribute("appliedDiscountCode");
             session.removeAttribute("appliedDiscountAmount");
-            redirectAttributes.addFlashAttribute("error", "Có lỗi xảy ra: " + e.getMessage());
+
+            redirectAttributes.addFlashAttribute(
+                    "error",
+                    "Có lỗi xảy ra: " + e.getMessage()
+            );
+
             return "redirect:/checkout";
         }
     }
@@ -374,24 +481,31 @@ public class CheckoutController {
                                @ModelAttribute("successMsg") String successMsg,
                                HttpSession session,
                                Model model) {
+
         Bill bill = billRepository.findById(billId).orElse(null);
+
         if (bill == null) return "redirect:/home";
 
         Account account = (Account) session.getAttribute("account");
+
         Integer lastOrderId = (Integer) session.getAttribute("lastOrderId");
-        boolean isOwner = (account != null && bill.getCustomer() != null
+
+        boolean isOwner = (account != null
+                && bill.getCustomer() != null
                 && bill.getCustomer().getAccount() != null
                 && account.getId().equals(bill.getCustomer().getAccount().getId()))
                 || (billId.equals(lastOrderId));
+
         if (!isOwner) return "redirect:/home";
 
         List<BillDetail> details = billDetailRepository.findByBillId(billId);
+
         model.addAttribute("bill", bill);
         model.addAttribute("details", details);
         model.addAttribute("successMsg", successMsg);
+
         return "customer/order/success";
     }
-
 
     private String generateBillCode() {
         Integer maxId = billRepository.findMaxId();
@@ -418,7 +532,7 @@ public class CheckoutController {
                 provinceId,
                 BigDecimal.valueOf(subtotal)
         );
+
         return response.getShippingFee().doubleValue();
     }
 }
- 

@@ -17,6 +17,18 @@
         </button>
     </div>
 
+    <div th:if="${successMsg}" class="alert alert-success alert-dismissible fade show">
+        <i class="bi bi-check-circle"></i>
+        <span th:text="${successMsg}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <div th:if="${errorMsg}" class="alert alert-danger alert-dismissible fade show">
+        <i class="bi bi-exclamation-triangle"></i>
+        <span th:text="${errorMsg}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
     <div class="card">
         <div class="card-header"><i class="bi bi-list-ul"></i> Danh sách mã giảm giá</div>
         <div class="card-body p-0">
@@ -36,31 +48,81 @@
                 <tbody>
                 <tr th:each="d, i : ${discounts}">
                     <td th:text="${i.count}"></td>
-                    <td><span class="badge bg-secondary" th:text="${d.code}"></span></td>
+
+                    <td>
+                        <span class="badge bg-secondary" th:text="${d.code}"></span>
+                    </td>
+
                     <td th:text="${d.detail}"></td>
+
                     <td>
                         <span class="badge bg-info" th:if="${d.type == 1}">Theo tiền</span>
                         <span class="badge bg-info" th:if="${d.type == 2}">Theo %</span>
                     </td>
+
                     <td>
-                        <span th:if="${d.type == 1}" th:text="${d.discountAmount != null ? #numbers.formatInteger(d.discountAmount, 0, 'COMMA') + 'đ' : '-'}"></span>
-                        <span th:if="${d.type == 2}" th:text="${d.percentage != null ? d.percentage + '%' : '-'}"></span>
+                        <span th:if="${d.type == 1}"
+                              th:text="${d.discountAmount != null ? #numbers.formatInteger(d.discountAmount, 0, 'COMMA') + 'đ' : '-'}"></span>
+                        <span th:if="${d.type == 2}"
+                              th:text="${d.percentage != null ? d.percentage + '%' : '-'}"></span>
                     </td>
+
                     <td style="font-size:12px;">
                         <span th:text="${d.startDate != null ? #temporals.format(d.startDate, 'dd/MM/yyyy') : '-'}"></span><br>
-                        → <span th:text="${d.endDate != null ? #temporals.format(d.endDate, 'dd/MM/yyyy') : '-'}"></span>
+                        →
+                        <span th:text="${d.endDate != null ? #temporals.format(d.endDate, 'dd/MM/yyyy') : '-'}"></span>
                     </td>
+
                     <td>
-                        <span class="badge bg-success" th:if="${d.status == 1}">Hoạt động</span>
-                        <span class="badge bg-danger" th:if="${d.status == 0}">Tắt</span>
+                        <span class="badge bg-warning text-dark"
+                              th:if="${d.status == 0}">
+                            <i class="bi bi-hourglass-split"></i> Chờ duyệt
+                        </span>
+
+                        <span class="badge bg-success"
+                              th:if="${d.status == 1}">
+                            Hoạt động
+                        </span>
+
+                        <span class="badge bg-secondary"
+                              th:if="${d.status == 2}">
+                            Tạm dừng
+                        </span>
                     </td>
+
                     <td>
-                        <a th:href="@{/staff/discount/edit/{id}(id=${d.id})}" class="btn btn-sm btn-warning"><i class="bi bi-pencil"></i></a>
-                        <a th:href="@{/staff/discount/delete/{id}(id=${d.id})}" class="btn btn-sm btn-danger" onclick="return confirm('Xóa mã giảm giá này?')"><i class="bi bi-trash"></i></a>
+                        <!-- Chỉ cho sửa voucher đang chờ Admin duyệt -->
+                        <th:block th:if="${d.status == 0}">
+                            <a th:href="@{/staff/discount/edit/{id}(id=${d.id})}"
+                               class="btn btn-sm btn-warning"
+                               title="Chỉnh sửa">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+
+                            <span class="text-muted ms-1"
+                                  style="font-size:12px;">
+                                Chờ Admin duyệt
+                            </span>
+                        </th:block>
+
+                        <span th:if="${d.status == 1}"
+                              class="text-muted"
+                              style="font-size:12px;">
+                            Đã được duyệt
+                        </span>
+
+                        <span th:if="${d.status == 2}"
+                              class="text-muted"
+                              style="font-size:12px;">
+                            Tạm dừng
+                        </span>
                     </td>
                 </tr>
+
                 <tr th:if="${#lists.isEmpty(discounts)}">
-                    <td colspan="8" class="text-center text-muted py-4">Chưa có mã giảm giá nào</td>
+                    <td colspan="8" class="text-center text-muted py-4">
+                        Chưa có mã giảm giá nào
+                    </td>
                 </tr>
                 </tbody>
             </table>
@@ -80,76 +142,121 @@
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
+
                 <div class="modal-body">
                     <input type="hidden" name="id" th:value="${discount.id}"/>
 
                     <div class="mb-3">
                         <label class="form-label fw-bold">Mã code</label>
-                        <input type="text" name="code" class="form-control" th:value="${discount.code}" placeholder="VD: SUMMER30" required/>
+                        <input type="text"
+                               name="code"
+                               class="form-control"
+                               th:value="${discount.code}"
+                               placeholder="VD: SUMMER30"
+                               required/>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label fw-bold">Mô tả</label>
-                        <input type="text" name="detail" class="form-control" th:value="${discount.detail}" placeholder="VD: Giảm 30% cho đơn từ 1 triệu"/>
+                        <input type="text"
+                               name="detail"
+                               class="form-control"
+                               th:value="${discount.detail}"
+                               placeholder="VD: Giảm 30% cho đơn từ 1 triệu"/>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label fw-bold">Loại giảm giá</label>
                         <select name="type" class="form-select" required>
-                            <option value="1" th:selected="${discount.type == 1}">Giảm theo số tiền (VNĐ)</option>
-                            <option value="2" th:selected="${discount.type == 2}">Giảm theo phần trăm (%)</option>
+                            <option value="1" th:selected="${discount.type == 1}">
+                                Giảm theo số tiền (VNĐ)
+                            </option>
+                            <option value="2" th:selected="${discount.type == 2}">
+                                Giảm theo phần trăm (%)
+                            </option>
                         </select>
                     </div>
 
                     <div class="mb-3" id="discountAmountDiv">
                         <label class="form-label fw-bold">Số tiền giảm (VNĐ)</label>
-                        <input type="number" name="discountAmount" class="form-control" th:value="${discount.discountAmount}" placeholder="VD: 50000" min="0"/>
+                        <input type="number"
+                               name="discountAmount"
+                               class="form-control"
+                               th:value="${discount.discountAmount}"
+                               placeholder="VD: 50000"
+                               min="0"/>
                     </div>
 
                     <div class="mb-3" id="percentageDiv" style="display:none;">
                         <label class="form-label fw-bold">Phần trăm giảm (%)</label>
-                        <input type="number" name="percentage" class="form-control" th:value="${discount.percentage}" placeholder="VD: 30" min="0" max="100"/>
+                        <input type="number"
+                               name="percentage"
+                               class="form-control"
+                               th:value="${discount.percentage}"
+                               placeholder="VD: 30"
+                               min="0"
+                               max="100"/>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label fw-bold">Đơn hàng tối thiểu (VNĐ)</label>
-                        <input type="number" name="minimumAmountInCart" class="form-control" th:value="${discount.minimumAmountInCart}" placeholder="VD: 500000" min="0"/>
+                        <input type="number"
+                               name="minimumAmountInCart"
+                               class="form-control"
+                               th:value="${discount.minimumAmountInCart}"
+                               placeholder="VD: 500000"
+                               min="0"/>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label fw-bold">Giảm tối đa (VNĐ)</label>
-                        <input type="number" name="maximumAmount" class="form-control" th:value="${discount.maximumAmount}" placeholder="VD: 200000" min="0"/>
+                        <input type="number"
+                               name="maximumAmount"
+                               class="form-control"
+                               th:value="${discount.maximumAmount}"
+                               placeholder="VD: 200000"
+                               min="0"/>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label fw-bold">Số lượt sử dụng tối đa</label>
-                        <input type="number" name="maximumUsage" class="form-control" th:value="${discount.maximumUsage}" placeholder="VD: 100" min="1"/>
+                        <input type="number"
+                               name="maximumUsage"
+                               class="form-control"
+                               th:value="${discount.maximumUsage}"
+                               placeholder="VD: 100"
+                               min="1"/>
                     </div>
 
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label fw-bold">Ngày bắt đầu</label>
-                            <input type="datetime-local" name="startDate" class="form-control"
-                                   th:value="${discount.startDate != null ? #temporals.format(discount.startDate, 'yyyy-MM-dd''T''HH:mm') : ''}" required/>
+                            <input type="datetime-local"
+                                   name="startDate"
+                                   class="form-control"
+                                   th:value="${discount.startDate != null ? #temporals.format(discount.startDate, 'yyyy-MM-dd''T''HH:mm') : ''}"
+                                   required/>
                         </div>
+
                         <div class="col-md-6 mb-3">
                             <label class="form-label fw-bold">Ngày kết thúc</label>
-                            <input type="datetime-local" name="endDate" class="form-control"
-                                   th:value="${discount.endDate != null ? #temporals.format(discount.endDate, 'yyyy-MM-dd''T''HH:mm') : ''}" required/>
+                            <input type="datetime-local"
+                                   name="endDate"
+                                   class="form-control"
+                                   th:value="${discount.endDate != null ? #temporals.format(discount.endDate, 'yyyy-MM-dd''T''HH:mm') : ''}"
+                                   required/>
                         </div>
                     </div>
-
-                    <div class="mb-0">
-                        <label class="form-label fw-bold">Trạng thái</label>
-                        <select name="status" class="form-select">
-                            <option value="1" th:selected="${discount.status == 1}">Hoạt động</option>
-                            <option value="0" th:selected="${discount.status == 0}">Tắt</option>
-                        </select>
-                    </div>
                 </div>
+
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
-                            th:onclick="${discount.id != null} ? 'window.location=\'/staff/discount\'' : ''">Hủy</button>
+                    <button type="button"
+                            class="btn btn-secondary"
+                            data-bs-dismiss="modal"
+                            th:onclick="${discount.id != null} ? 'window.location=\'/staff/discount\'' : ''">
+                        Hủy
+                    </button>
+
                     <button type="submit" class="btn btn-purple">
                         <i class="bi bi-save"></i>
                         <span th:text="${discount.id != null} ? 'Cập nhật' : 'Thêm mới'"></span>
@@ -161,6 +268,7 @@
 </div>
 
 <div th:replace="~{staff/fragments/layout :: staffScripts}"></div>
+
 <script th:inline="javascript">
     const typeSelect = document.querySelector('#discountModal select[name="type"]');
     const discountAmountDiv = document.getElementById('discountAmountDiv');
@@ -183,16 +291,20 @@
 
     function openCreateModal() {
         var form = document.querySelector('#discountModal form');
+
         form.reset();
         form.setAttribute('action', '/staff/discount/save');
         form.querySelector('input[name=id]').value = '';
+
         document.querySelector('#discountModal .modal-title span').textContent = 'Thêm mã giảm giá';
+
         toggleDiscountFields();
     }
 
     /*<![CDATA[*/
     var shouldOpenModal = /*[[${openModal != null && openModal}]]*/ false;
     /*]]>*/
+
     if (shouldOpenModal) {
         document.addEventListener('DOMContentLoaded', function () {
             toggleDiscountFields();
@@ -200,6 +312,8 @@
         });
     }
 </script>
+
 <div th:replace="~{fragments/chatbot :: chatbot}"></div>
+
 </body>
 </html>

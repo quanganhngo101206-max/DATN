@@ -44,4 +44,7 @@ public class DiscountCode {
     private Integer status;
 
     private Integer type;
+
+    @Transient
+    private String displayStatus;
 }

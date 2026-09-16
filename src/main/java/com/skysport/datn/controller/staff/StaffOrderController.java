@@ -42,6 +42,7 @@ public class    StaffOrderController {
 
         List<Product> products = productRepository.findByDeleteFlagFalse().stream()
                 .filter(p -> p.getStatus() != null && p.getStatus() == 1)
+                .filter(Product::isMasterDataActive)
                 .toList();
 
         // Lấy ảnh đại diện cho mỗi sản phẩm
@@ -87,6 +88,7 @@ public class    StaffOrderController {
 
         List<Product> allActive = productRepository.findByDeleteFlagFalse().stream()
                 .filter(p -> p.getStatus() != null && p.getStatus() == 1)
+                .filter(Product::isMasterDataActive)
                 .toList();
         Map<Integer, Product> productMap = new HashMap<>();
         for (Product p : allActive) productMap.put(p.getId(), p);
@@ -151,6 +153,7 @@ public class    StaffOrderController {
         String kw = keyword == null ? "" : keyword.trim().toLowerCase();
         List<Product> allActive = productRepository.findByDeleteFlagFalse().stream()
                 .filter(p -> p.getStatus() != null && p.getStatus() == 1)
+                .filter(Product::isMasterDataActive)
                 .filter(p -> kw.isEmpty()
                         || (p.getName() != null && p.getName().toLowerCase().contains(kw))
                         || (p.getCode() != null && p.getCode().toLowerCase().contains(kw)))
@@ -198,6 +201,7 @@ public class    StaffOrderController {
         List<Map<String, Object>> variants = new ArrayList<>();
         for (ProductDetail pd : details) {
             if (pd.getQuantity() == null || pd.getQuantity() <= 0) continue;
+            if (!pd.isVariantActive()) continue; // size/color đang Tạm dừng -> không cho bán
             Map<String, Object> m = new HashMap<>();
             m.put("id", pd.getId());
             m.put("size", pd.getSize() != null ? pd.getSize().getName() : "-");
@@ -366,9 +370,9 @@ public class    StaffOrderController {
             history.setStaff(staff);
             orderStatusHistoryRepository.save(history);
 
-            // 8. Trừ lượt dùng mã giảm giá
+            // 8. Tăng lượt sử dụng mã giảm giá
             if (appliedDiscount != null) {
-                discountCodeService.decreaseUsage(appliedDiscount.getId());
+                discountCodeService.incrementUsage(appliedDiscount.getId());
             }
 
             ra.addFlashAttribute("successMsg", "Tạo đơn " + bill.getCode() + " thành công!");

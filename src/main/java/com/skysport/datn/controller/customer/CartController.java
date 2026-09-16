@@ -82,7 +82,7 @@ public class CartController {
         }
 
         if (!cartService.checkStock(detail, quantity)) {
-            redirectAttributes.addFlashAttribute("error", "Số lượng sản phẩm không đủ! Tồn kho: " + detail.getQuantity());
+            redirectAttributes.addFlashAttribute("error", getCartErrorMessage(detail, quantity));
             return "redirect:/products/" + productId;
         }
 
@@ -92,7 +92,7 @@ public class CartController {
             CartItem item = cart.get(detail.getId());
             int newQty = item.getQuantity() + quantity;
             if (!cartService.checkStock(detail, newQty)) {
-                redirectAttributes.addFlashAttribute("error", "Vượt quá số lượng tồn kho!");
+                redirectAttributes.addFlashAttribute("error", getCartErrorMessage(detail, newQty));
                 return "redirect:/products/" + productId;
             }
             item.setQuantity(newQty);
@@ -122,7 +122,7 @@ public class CartController {
     @GetMapping("/cart")
     public String viewCart(HttpSession session, Model model) {
         Map<Integer, CartItem> cart = getCartFromSession(session);
-        
+
         for (CartItem item : cart.values()) {
             ProductDetail detail = cartService.getProductDetailById(item.getProductDetailId());
             if (detail != null) {
@@ -132,7 +132,7 @@ public class CartController {
 
         List<CartItem> items = new ArrayList<>(cart.values());
         double subtotal = items.stream().mapToDouble(i -> i.getPrice() * i.getQuantity()).sum();
-        
+
         // Calculate shipping using ShippingFeeService if customer has address
         double shipping = 0;
         Account account = (Account) session.getAttribute("account");
@@ -140,7 +140,7 @@ public class CartController {
             Customer customer = customerRepository.findByAccountId(account.getId());
             if (customer != null && customer.getAddressShipping() != null && customer.getAddressShipping().getProvinceId() != null) {
                 com.skysport.datn.dto.ShippingFeeResponse feeResponse = shippingFeeService.calculate(
-                        customer.getAddressShipping().getProvinceId(), 
+                        customer.getAddressShipping().getProvinceId(),
                         java.math.BigDecimal.valueOf(subtotal)
                 );
                 shipping = feeResponse.getShippingFee().doubleValue();
@@ -170,7 +170,7 @@ public class CartController {
             Customer customer = customerRepository.findByAccountId(account.getId());
             if (customer != null && customer.getAddressShipping() != null && customer.getAddressShipping().getProvinceId() != null) {
                 com.skysport.datn.dto.ShippingFeeResponse feeResponse = shippingFeeService.calculate(
-                        customer.getAddressShipping().getProvinceId(), 
+                        customer.getAddressShipping().getProvinceId(),
                         java.math.BigDecimal.valueOf(subtotal)
                 );
                 return feeResponse.getShippingFee().doubleValue();
@@ -200,9 +200,9 @@ public class CartController {
             result.put("message", "Sản phẩm không còn tồn tại!");
             return result;
         }
-        if (!cartService.checkStock(detail, quantity)) {
+        if (quantity > 0 && !cartService.checkStock(detail, quantity)) {
             result.put("success", false);
-            result.put("message", "Số lượng vượt quá tồn kho! Chỉ còn " + detail.getQuantity() + " sản phẩm.");
+            result.put("message", getCartErrorMessage(detail, quantity));
             return result;
         }
 
@@ -268,7 +268,7 @@ public class CartController {
 
         if (!cartService.checkStock(detail, quantity)) {
             result.put("success", false);
-            result.put("message", "Số lượng không đủ! Tồn kho: " + detail.getQuantity());
+            result.put("message", getCartErrorMessage(detail, quantity));
             return result;
         }
 
@@ -279,7 +279,7 @@ public class CartController {
             int newQty = item.getQuantity() + quantity;
             if (!cartService.checkStock(detail, newQty)) {
                 result.put("success", false);
-                result.put("message", "Vượt quá số lượng tồn kho!");
+                result.put("message", getCartErrorMessage(detail, newQty));
                 return result;
             }
             item.setQuantity(newQty);
@@ -337,6 +337,22 @@ public class CartController {
         return result;
     }
 
+    private String getCartErrorMessage(ProductDetail detail, int quantity) {
+
+        if (detail == null) {return "Sản phẩm không còn tồn tại!";}
+
+        if (!detail.isVariantStatusActive()) {return "Biến thể sản phẩm hiện đang tạm dừng bán!";}
+
+        if (!detail.isSizeActive()) {return "Size của sản phẩm hiện không còn được bán!";}
+
+        if (!detail.isColorActive()) {return "Màu của sản phẩm hiện không còn được bán!";}
+
+        if (quantity <= 0) {return "Số lượng sản phẩm không hợp lệ!";}
+
+        return "Số lượng không đủ! Tồn kho: "
+                + (detail.getQuantity() != null ? detail.getQuantity() : 0);
+    }
+
     // Inner class CartItem
     public static class CartItem {
         private Integer productDetailId;
@@ -348,22 +364,72 @@ public class CartController {
         private String size;
         private String imageUrl;
 
-        public Integer getProductDetailId() { return productDetailId; }
-        public void setProductDetailId(Integer productDetailId) { this.productDetailId = productDetailId; }
-        public Integer getProductId() { return productId; }
-        public void setProductId(Integer productId) { this.productId = productId; }
-        public String getProductName() { return productName; }
-        public void setProductName(String productName) { this.productName = productName; }
-        public Double getPrice() { return price; }
-        public void setPrice(Double price) { this.price = price; }
-        public Integer getQuantity() { return quantity; }
-        public void setQuantity(Integer quantity) { this.quantity = quantity; }
-        public String getColor() { return color; }
-        public void setColor(String color) { this.color = color; }
-        public String getSize() { return size; }
-        public void setSize(String size) { this.size = size; }
-        public String getImageUrl() { return imageUrl; }
-        public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
-        public Double getTotalPrice() { return price * quantity; }
+        public Integer getProductDetailId() {
+            return productDetailId;
+        }
+
+        public void setProductDetailId(Integer productDetailId) {
+            this.productDetailId = productDetailId;
+        }
+
+        public Integer getProductId() {
+            return productId;
+        }
+
+        public void setProductId(Integer productId) {
+            this.productId = productId;
+        }
+
+        public String getProductName() {
+            return productName;
+        }
+
+        public void setProductName(String productName) {
+            this.productName = productName;
+        }
+
+        public Double getPrice() {
+            return price;
+        }
+
+        public void setPrice(Double price) {
+            this.price = price;
+        }
+
+        public Integer getQuantity() {
+            return quantity;
+        }
+
+        public void setQuantity(Integer quantity) {
+            this.quantity = quantity;
+        }
+
+        public String getColor() {
+            return color;
+        }
+
+        public void setColor(String color) {
+            this.color = color;
+        }
+
+        public String getSize() {
+            return size;
+        }
+
+        public void setSize(String size) {
+            this.size = size;
+        }
+
+        public String getImageUrl() {
+            return imageUrl;
+        }
+
+        public void setImageUrl(String imageUrl) {
+            this.imageUrl = imageUrl;
+        }
+
+        public Double getTotalPrice() {
+            return price * quantity;
+        }
     }
 }

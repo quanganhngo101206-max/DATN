@@ -23,4 +23,13 @@ public interface DiscountCodeRepository extends JpaRepository<DiscountCode, Inte
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE DiscountCode d SET d.usedCount = COALESCE(d.usedCount, 0) + 1 WHERE d.id = :id")
     int incrementUsedCount(@Param("id") Integer id);
+
+    // Hoàn lượt sử dụng khi đơn hàng đã dùng mã bị hủy. Chặn không cho về âm
+    // bằng GREATEST(..., 0) — nếu DB không hỗ trợ GREATEST thì đổi sang
+    // CASE WHEN d.usedCount > 0 THEN d.usedCount - 1 ELSE 0 END.
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("UPDATE DiscountCode d SET d.usedCount = " +
+            "CASE WHEN COALESCE(d.usedCount, 0) > 0 THEN d.usedCount - 1 ELSE 0 END " +
+            "WHERE d.id = :id")
+    int decrementUsedCount(@Param("id") Integer id);
 }

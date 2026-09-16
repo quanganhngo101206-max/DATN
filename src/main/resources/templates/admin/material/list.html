@@ -31,11 +31,17 @@
                     <td th:text="${m.name}"></td>
                     <td>
                         <span class="badge bg-success" th:if="${m.status == 1}">Hoạt động</span>
-                        <span class="badge bg-danger" th:if="${m.status == 0}">Tắt</span>
+                        <span class="badge bg-secondary" th:if="${m.status == 0}">Tạm dừng</span>
                     </td>
                     <td>
                         <a th:href="@{/admin/material/edit/{id}(id=${m.id})}" class="btn btn-sm btn-warning"><i class="bi bi-pencil"></i></a>
-                        <a th:href="@{/admin/material/delete/{id}(id=${m.id})}" class="btn btn-sm btn-danger" onclick="return confirm('Xóa chất liệu này?')"><i class="bi bi-trash"></i></a>
+                        <form th:action="@{/admin/material/toggle-status/{id}(id=${m.id})}" method="post" style="display:inline">
+                            <button type="submit" th:class="${m.status == 1} ? 'btn btn-sm btn-outline-secondary' : 'btn btn-sm btn-success'"
+                                    th:title="${m.status == 1} ? 'Tạm dừng' : 'Kích hoạt'"
+                                    th:onclick="${m.status == 1} ? 'return confirm(\'Tạm dừng chất liệu này?\')' : null">
+                                <i th:class="${m.status == 1} ? 'bi bi-pause-fill' : 'bi bi-play-fill'"></i>
+                            </button>
+                        </form>
                     </td>
                 </tr>
                 <tr th:if="${#lists.isEmpty(materials)}">
@@ -71,13 +77,9 @@
                         <label class="form-label fw-bold">Tên chất liệu</label>
                         <input type="text" name="name" class="form-control" th:value="${material.name}" placeholder="VD: Cotton, Polyester..." required/>
                     </div>
-                    <div class="mb-0">
-                        <label class="form-label fw-bold">Trạng thái</label>
-                        <select name="status" class="form-select">
-                            <option value="1" th:selected="${material.status == 1}">Hoạt động</option>
-                            <option value="0" th:selected="${material.status == 0}">Tắt</option>
-                        </select>
-                    </div>
+                    <p class="text-muted small mb-0" th:if="${material.id == null}">
+                        <i class="bi bi-info-circle"></i> Chất liệu mới sẽ ở trạng thái Tạm dừng, hãy bật hoạt động sau khi tạo.
+                    </p>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"

@@ -37,17 +37,13 @@ public class BrandController {
 
     @PostMapping("/update")
     public String update(@ModelAttribute Brand brand) {
-        Brand old = brandService.findById(brand.getId());
-        old.setCode(brand.getCode());
-        old.setName(brand.getName());
-        old.setStatus(brand.getStatus());
-        brandService.update(old);
+        brandService.update(brand);
         return "redirect:/admin/brand";
     }
 
-    @GetMapping("/delete/{id}")
-    public String delete(@PathVariable Integer id) {
-        brandService.delete(id);
+    @PostMapping("/toggle-status/{id}")
+    public String toggleStatus(@PathVariable Integer id) {
+        brandService.toggleStatus(id);
         return "redirect:/admin/brand";
     }
 }

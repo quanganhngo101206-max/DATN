@@ -45,38 +45,42 @@ public class SecurityConfig {
                 )
 
                 .authorizeHttpRequests(auth -> auth
-                        // Static resources
-                        .requestMatchers("/css/**", "/js/**", "/images/**", "/favicon.ico", "/uploads/**").permitAll()
+                                // Static resources
+                                .requestMatchers("/css/**", "/js/**", "/images/**", "/favicon.ico", "/uploads/**").permitAll()
 
-                        // Trang công khai
-                        .requestMatchers(
-                                "/", "/home",
-                                "/login", "/register",
-                                "/products/**", "/product/**",
-                                "/cart/**",
-                                "/checkout/**",
-                                "/order/**",
-                                "/track-order/**",
-                                "/guest/**",
-                                "/wishlist/toggle/**", "/wishlist/add/**", "/wishlist/remove/**",
-                                "/api/chatbot/**"
-                        ).permitAll()
+                                // Trang công khai
+                                .requestMatchers(
+                                        "/", "/home",
+                                        "/login", "/register",
+                                        "/products/**", "/product/**",
+                                        "/cart/**",
+                                        "/checkout/**",
+                                        "/order/**",
+                                        "/track-order/**",
+                                        "/guest/**",
+                                        "/wishlist/toggle/**", "/wishlist/add/**", "/wishlist/remove/**",
+                                        "/api/chatbot/**"
+                                ).permitAll()
 
-                        // Chỉ Admin
-                        .requestMatchers("/admin/**").hasRole("ADMIN")
+                                // Chỉ Admin
+                                .requestMatchers("/admin/**").hasRole("ADMIN")
 
-                        // AJAX staff — cần trả 401 JSON thay vì redirect
-                        .requestMatchers(
-                                "/staff/order/search-customer",
-                                "/staff/order/product-variants/**",
-                                "/staff/order/validate-discount"
-                        ).hasAnyRole("ADMIN", "STAFF")
+                                // AJAX staff — cần trả 401 JSON thay vì redirect
+                                .requestMatchers(
+                                        "/staff/order/search-customer",
+                                        "/staff/order/product-variants/**",
+                                        "/staff/order/validate-discount"
+                                ).hasAnyRole("ADMIN", "STAFF")
 
-                        // Admin và Staff
-                        .requestMatchers("/staff/**").hasAnyRole("ADMIN", "STAFF")
 
-                        // Đã đăng nhập (Customer, Staff, Admin đều được)
-                        .anyRequest().authenticated()
+                                // POS — Admin và Staff
+                                .requestMatchers("/pos/**").hasAnyRole("ADMIN", "STAFF")
+
+                                // Admin và Staff
+                                .requestMatchers("/staff/**").hasAnyRole("ADMIN", "STAFF")
+
+                                // Đã đăng nhập (Customer, Staff, Admin đều được)
+                                .anyRequest().authenticated()
                 )
 
                 // Tắt form login mặc định của Spring — dùng form tự viết

@@ -20,29 +20,59 @@ public class CartService {
 
     // Tìm ProductDetail theo productId, color, size
     public ProductDetail findProductDetail(Integer productId, String color, String size) {
-        List<ProductDetail> details = productDetailRepository.findByProductIdAndDeleteFlagFalse(productId);
+        List<ProductDetail> details =
+                productDetailRepository.findByProductIdAndDeleteFlagFalse(productId);
 
         return details.stream()
                 .filter(d -> {
-                    // Không cho thao tác với sản phẩm đã bị xóa mềm hoặc đang ẩn
+                    // Không cho thao tác với sản phẩm đã bị xóa mềm
                     var p = d.getProduct();
-                    if (p == null || Boolean.TRUE.equals(p.getDeleteFlag())
-                            || p.getStatus() == null || p.getStatus() != 1) {
+
+                    if (p == null
+                            || Boolean.TRUE.equals(p.getDeleteFlag())
+                            || p.getStatus() == null
+                            || p.getStatus() != 1) {
                         return false;
                     }
-                    boolean colorMatch = (color == null || color.isEmpty()) ||
-                            (d.getColor() != null && color.equalsIgnoreCase(d.getColor().getName()));
-                    boolean sizeMatch = (size == null || size.isEmpty()) ||
-                            (d.getSize() != null && size.equalsIgnoreCase(d.getSize().getName()));
+
+                    // Biến thể phải đang hoạt động
+                    if (!d.isVariantStatusActive()) {
+                        return false;
+                    }
+
+                    // Size phải đang hoạt động
+                    if (!d.isSizeActive()) {
+                        return false;
+                    }
+
+                    // Color phải đang hoạt động
+                    if (!d.isColorActive()) {
+                        return false;
+                    }
+
+                    boolean colorMatch =
+                            (color == null || color.isEmpty())
+                                    || (d.getColor() != null
+                                    && color.equalsIgnoreCase(d.getColor().getName()));
+
+                    boolean sizeMatch =
+                            (size == null || size.isEmpty())
+                                    || (d.getSize() != null
+                                    && size.equalsIgnoreCase(d.getSize().getName()));
+
                     return colorMatch && sizeMatch;
                 })
                 .findFirst()
                 .orElse(null);
     }
 
-    // Kiểm tra tồn kho
+    // Kiểm tra tồn kho và trạng thái có thể bán
     public boolean checkStock(ProductDetail detail, int requestedQty) {
-        return detail != null && detail.getQuantity() != null && detail.getQuantity() >= requestedQty;
+        return detail != null
+                && requestedQty > 0
+                && detail.isSellable()
+                && detail.getQuantity() != null
+                && detail.getQuantity() >= requestedQty;
     }
 
     // Lấy ảnh sản phẩm

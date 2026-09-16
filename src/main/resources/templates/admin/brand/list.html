@@ -31,11 +31,17 @@
                     <td th:text="${b.name}"></td>
                     <td>
                         <span class="badge bg-success" th:if="${b.status == 1}">Hoạt động</span>
-                        <span class="badge bg-danger" th:if="${b.status == 0}">Tắt</span>
+                        <span class="badge bg-secondary" th:if="${b.status == 0}">Tạm dừng</span>
                     </td>
                     <td>
                         <a th:href="@{/admin/brand/edit/{id}(id=${b.id})}" class="btn btn-sm btn-warning"><i class="bi bi-pencil"></i></a>
-                        <a th:href="@{/admin/brand/delete/{id}(id=${b.id})}" class="btn btn-sm btn-danger" onclick="return confirm('Xóa thương hiệu này?')"><i class="bi bi-trash"></i></a>
+                        <form th:action="@{/admin/brand/toggle-status/{id}(id=${b.id})}" method="post" style="display:inline">
+                            <button type="submit" th:class="${b.status == 1} ? 'btn btn-sm btn-outline-secondary' : 'btn btn-sm btn-success'"
+                                    th:title="${b.status == 1} ? 'Tạm dừng' : 'Kích hoạt'"
+                                    th:onclick="${b.status == 1} ? 'return confirm(\'Tạm dừng thương hiệu này?\')' : null">
+                                <i th:class="${b.status == 1} ? 'bi bi-pause-fill' : 'bi bi-play-fill'"></i>
+                            </button>
+                        </form>
                     </td>
                 </tr>
                 <tr th:if="${#lists.isEmpty(brands)}">
@@ -71,13 +77,9 @@
                         <label class="form-label fw-bold">Tên thương hiệu</label>
                         <input type="text" name="name" class="form-control" th:value="${brand.name}" placeholder="VD: Nike, Adidas..." required/>
                     </div>
-                    <div class="mb-0">
-                        <label class="form-label fw-bold">Trạng thái</label>
-                        <select name="status" class="form-select">
-                            <option value="1" th:selected="${brand.status == 1}">Hoạt động</option>
-                            <option value="0" th:selected="${brand.status == 0}">Tắt</option>
-                        </select>
-                    </div>
+                    <p class="text-muted small mb-0" th:if="${brand.id == null}">
+                        <i class="bi bi-info-circle"></i> Thương hiệu mới sẽ ở trạng thái Tạm dừng, hãy bật hoạt động sau khi tạo.
+                    </p>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"

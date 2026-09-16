@@ -2,6 +2,7 @@ package com.skysport.datn.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -41,6 +42,9 @@ public class Bill {
     private Integer returnStatus;
 
     private String note;
+
+    @Column(name = "pos_status")
+    private Integer posStatus;
 
     @ManyToOne
     @JoinColumn(name = "discount_code_id")

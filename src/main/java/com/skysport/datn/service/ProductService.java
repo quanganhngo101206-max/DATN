@@ -84,14 +84,14 @@ public class ProductService {
         productRepository.save(product);
     }
 
-    // Xóa mềm
-    public void delete(Integer id) {
-        Product p = findById(id);
-        if (p != null) {
-            p.setDeleteFlag(true);
-            productRepository.save(p);
-        }
-    }
+//    // Xóa mềm
+//    public void delete(Integer id) {
+//        Product p = findById(id);
+//        if (p != null) {
+//            p.setDeleteFlag(true);
+//            productRepository.save(p);
+//        }
+//    }
 
     // Lấy danh mục, thương hiệu, chất liệu
     public List<Category> findAllCategory() {
@@ -104,5 +104,36 @@ public class ProductService {
 
     public List<Material> findAllMaterial() {
         return materialRepository.findByDeleteFlag(false);
+    }
+
+    // Chỉ lấy các mục đang Hoạt động — dùng cho dropdown chọn khi thêm/sửa sản phẩm
+    // (khác với findAllCategory/Brand/Material ở trên, vẫn giữ để hiện đầy đủ trong bộ lọc tìm kiếm)
+    public List<Category> findAllActiveCategory() {
+        return categoryRepository.findByDeleteFlag(false).stream()
+                .filter(c -> c.getStatus() != null && c.getStatus() == 1)
+                .toList();
+    }
+
+    public List<Brand> findAllActiveBrand() {
+        return brandRepository.findByDeleteFlag(false).stream()
+                .filter(b -> b.getStatus() != null && b.getStatus() == 1)
+                .toList();
+    }
+
+    public List<Material> findAllActiveMaterial() {
+        return materialRepository.findByDeleteFlag(false).stream()
+                .filter(m -> m.getStatus() != null && m.getStatus() == 1)
+                .toList();
+    }
+
+    // Bật / tắt trạng thái sản phẩm
+    public void toggleStatus(Integer id) {
+        Product product = findById(id);
+        if (product != null) {
+            product.setStatus(
+                    product.getStatus() != null && product.getStatus() == 1 ? 0 : 1);
+            product.setUpdatedDate(LocalDateTime.now());
+            productRepository.save(product);
+        }
     }
 }

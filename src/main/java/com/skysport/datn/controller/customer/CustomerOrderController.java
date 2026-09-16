@@ -14,6 +14,7 @@ import com.skysport.datn.repository.BillRepository;
 import com.skysport.datn.repository.CustomerRepository;
 import com.skysport.datn.entity.ReturnRequest;
 import com.skysport.datn.repository.BillReturnRequestRepository;
+import com.skysport.datn.service.DiscountCodeService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,6 +46,9 @@ public class CustomerOrderController {
 
     @Autowired
     private BillReturnRequestRepository billReturnRequestRepository;
+
+    @Autowired
+    private DiscountCodeService discountCodeService;
 
     // Danh sách đơn hàng của khách hàng
     @GetMapping("/customer/orders")
@@ -142,6 +146,32 @@ public class CustomerOrderController {
             result.put("success", false);
             result.put("message", "Không thể hủy đơn hàng ở trạng thái hiện tại!");
             return result;
+        }
+
+        // Hoàn lại lượt voucher nếu đơn COD bị hủy.
+// Đơn Banking đang PENDING chưa từng tăng usedCount nên không được giảm.
+        if (bill.getDiscountCode() != null) {
+
+            boolean isBanking = false;
+
+            if (bill.getPaymentMethod() != null
+                    && bill.getPaymentMethod().getName() != null) {
+
+                String paymentName = bill.getPaymentMethod()
+                        .getName()
+                        .toUpperCase();
+
+                isBanking = paymentName.contains("CHUYỂN")
+                        || paymentName.contains("BANK")
+                        || paymentName.contains("KHOẢN")
+                        || paymentName.contains("VNPAY");
+            }
+
+            if (!isBanking) {
+                discountCodeService.decrementUsage(
+                        bill.getDiscountCode().getId()
+                );
+            }
         }
 
         bill.setStatus(OrderStatus.CANCELLED.getValue());

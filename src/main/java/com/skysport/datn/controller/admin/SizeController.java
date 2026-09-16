@@ -22,5 +22,10 @@ public class SizeController {
         return "admin/size/list";
     }
 
-    // Các chức năng thêm, sửa, xóa đã được loại bỏ theo yêu cầu
+    // Bật/Tắt hoạt động — không còn chức năng thêm/sửa/xóa (theo yêu cầu trước đó)
+    @PostMapping("/toggle-status/{id}")
+    public String toggleStatus(@PathVariable Integer id) {
+        sizeService.toggleStatus(id);
+        return "redirect:/admin/size";
+    }
 }

@@ -18,16 +18,29 @@
         <div class="card-body p-0">
             <table class="table table-hover mb-0">
                 <thead class="table-light">
-                <tr><th>#</th><th>Mã</th><th>Tên</th></tr>
+                <tr><th>#</th><th>Mã</th><th>Tên</th><th>Trạng thái</th><th>Thao tác</th></tr>
                 </thead>
                 <tbody>
                 <tr th:each="s, i : ${sizes}">
                     <td th:text="${i.count}"></td>
                     <td><span class="badge bg-secondary" th:text="${s.code}"></span></td>
                     <td th:text="${s.name}"></td>
+                    <td>
+                        <span class="badge bg-success" th:if="${s.status == 1}">Hoạt động</span>
+                        <span class="badge bg-secondary" th:if="${s.status == null or s.status == 0}">Tạm dừng</span>
+                    </td>
+                    <td>
+                        <form th:action="@{/admin/size/toggle-status/{id}(id=${s.id})}" method="post" style="display:inline">
+                            <button type="submit" th:class="${s.status == 1} ? 'btn btn-sm btn-outline-secondary' : 'btn btn-sm btn-success'"
+                                    th:title="${s.status == 1} ? 'Tạm dừng' : 'Kích hoạt'"
+                                    th:onclick="${s.status == 1} ? 'return confirm(\'Tạm dừng size này?\')' : null">
+                                <i th:class="${s.status == 1} ? 'bi bi-pause-fill' : 'bi bi-play-fill'"></i>
+                            </button>
+                        </form>
+                    </td>
                 </tr>
                 <tr th:if="${#lists.isEmpty(sizes)}">
-                    <td colspan="3" class="text-center text-muted py-4">Chưa có size nào</td>
+                    <td colspan="5" class="text-center text-muted py-4">Chưa có size nào</td>
                 </tr>
                 </tbody>
             </table>

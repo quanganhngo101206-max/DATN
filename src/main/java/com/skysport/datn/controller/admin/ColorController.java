@@ -42,9 +42,9 @@ public class ColorController {
         return "redirect:/admin/color";
     }
 
-    @GetMapping("/delete/{id}")
-    public String delete(@PathVariable Integer id) {
-        colorService.delete(id);
+    @PostMapping("/toggle-status/{id}")
+    public String toggleStatus(@PathVariable Integer id) {
+        colorService.toggleStatus(id);
         return "redirect:/admin/color";
     }
 }

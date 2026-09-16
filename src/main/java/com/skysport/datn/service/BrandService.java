@@ -12,9 +12,37 @@ public class BrandService {
     @Autowired
     private BrandRepository brandRepository;
 
-    public List<Brand> findAll() { return brandRepository.findByDeleteFlag(false); }
-    public void save(Brand brand) { brand.setDeleteFlag(false); brand.setStatus(1); brandRepository.save(brand); }
-    public Brand findById(Integer id) { return brandRepository.findById(id).orElse(null); }
-    public void update(Brand brand) { brandRepository.save(brand); }
-    public void delete(Integer id) { Brand b = findById(id); if(b != null) { b.setDeleteFlag(true); brandRepository.save(b); } }
+    public List<Brand> findAll() {
+        return brandRepository.findByDeleteFlag(false);
+    }
+
+    public void save(Brand brand) {
+        brand.setDeleteFlag(false);
+        brand.setStatus(1);
+        brandRepository.save(brand);
+    }
+
+    public Brand findById(Integer id) {
+        return brandRepository.findById(id).orElse(null);
+    }
+
+    public void update(Brand brand) {
+        brandRepository.save(brand);
+    }
+
+    public void delete(Integer id) {
+        Brand b = findById(id);
+        if (b != null) {
+            b.setDeleteFlag(true);
+            brandRepository.save(b);
+        }
+    }
+
+    public void toggleStatus(Integer id) {
+        Brand brand = findById(id);
+        if (brand != null) {
+            brand.setStatus(brand.getStatus() != null && brand.getStatus() == 1 ? 0 : 1);
+            brandRepository.save(brand);
+        }
+    }
 }

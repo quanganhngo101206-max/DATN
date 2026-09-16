@@ -67,27 +67,31 @@ public class CustomerProductController {
         Product product = productRepository.findById(id).orElse(null);
         if (product == null) return "redirect:/products";
 
-        // Không cho xem sản phẩm đã bị xóa mềm hoặc đang ẩn (status != 1)
+        // Không cho xem sản phẩm đã bị xóa mềm, đang ẩn (status != 1),
+        // hoặc có category/brand/material đang Tạm dừng
         if (Boolean.TRUE.equals(product.getDeleteFlag())
-                || product.getStatus() == null || product.getStatus() != 1) {
+                || product.getStatus() == null || product.getStatus() != 1
+                || !product.isMasterDataActive()) {
             return "redirect:/products";
         }
 
         List<ProductDetail> details = productDetailRepository
-                .findByProductIdAndDeleteFlagFalse(id);
+                .findByProductIdAndDeleteFlagFalse(id).stream()
+                .filter(ProductDetail::isVariantActive) // ẩn riêng biến thể có size/color đang Tạm dừng
+                .collect(Collectors.toList());
 
         // Lấy ảnh
         List<Image> images = imageRepository.findByProductId(id);
 
-        // Lấy danh sách size, màu còn hàng
+        // Lấy danh sách size, màu đang hoạt động
         List<String> sizes = details.stream()
-                .filter(d -> d.getSize() != null && d.getQuantity() != null && d.getQuantity() > 0)
+                .filter(d -> d.getSize() != null && d.isSizeActive())
                 .map(d -> d.getSize().getName())
                 .distinct()
                 .collect(Collectors.toList());
 
         List<String> colors = details.stream()
-                .filter(d -> d.getColor() != null && d.getQuantity() != null && d.getQuantity() > 0)
+                .filter(d -> d.getColor() != null && d.isColorActive())
                 .map(d -> d.getColor().getName())
                 .distinct()
                 .collect(Collectors.toList());
@@ -105,6 +109,7 @@ public class CustomerProductController {
         Double minPrice = representativeDetail != null && representativeDetail.getFinalPrice() != null ? (double) representativeDetail.getFinalPrice() : 0.0;
         Double minOriginalPrice = representativeDetail != null && representativeDetail.getPrice() != null ? (double) representativeDetail.getPrice() : 0.0;
         boolean hasActiveSale = representativeDetail != null && representativeDetail.isOnSale();
+        boolean hasStock = details.stream().anyMatch(d -> d.getQuantity() != null && d.getQuantity() > 0);
 
         model.addAttribute("product", product);
         model.addAttribute("details", details);
@@ -115,6 +120,7 @@ public class CustomerProductController {
         model.addAttribute("displayPrice", minPrice);
         model.addAttribute("displayOriginalPrice", minOriginalPrice);
         model.addAttribute("hasActiveSale", hasActiveSale);
+        model.addAttribute("hasStock", hasStock);
 
         // === Đánh giá sản phẩm ===
         List<Review> reviews = reviewRepository.findByProduct_IdOrderByCreatedDateDesc(id);
@@ -182,6 +188,7 @@ public class CustomerProductController {
 
         List<Product> products = productRepository.findByDeleteFlagFalse().stream()
                 .filter(p -> p.getStatus() != null && p.getStatus() == 1)
+                .filter(Product::isMasterDataActive)
                 .filter(p -> categoryId == null || (p.getCategory() != null && p.getCategory().getId().equals(categoryId)))
                 .filter(p -> brandId == null || (p.getBrand() != null && p.getBrand().getId().equals(brandId)))
                 .filter(p -> gender == null || gender.equals(p.getGender()))
@@ -196,7 +203,8 @@ public class CustomerProductController {
         Map<Integer, String> productImages = new HashMap<>();
 
         for (Product p : products) {
-            List<ProductDetail> details = productDetailRepository.findByProductIdAndDeleteFlagFalse(p.getId());
+            List<ProductDetail> details = productDetailRepository.findByProductIdAndDeleteFlagFalse(p.getId())
+                    .stream().filter(ProductDetail::isVariantActive).collect(Collectors.toList());
 
             // Chọn biến thể đại diện (có giá final thấp nhất)
             ProductDetail representativeDetail = details.stream()

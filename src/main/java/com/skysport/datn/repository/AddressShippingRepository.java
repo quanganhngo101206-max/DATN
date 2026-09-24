@@ -8,5 +8,5 @@ import java.util.List;
 
 @Repository
 public interface AddressShippingRepository extends JpaRepository<AddressShipping, Integer> {
-    List<AddressShipping> findByCustomerId(Integer customerId);
+    List<AddressShipping> findByCustomerIdOrderByIsDefaultDescIdAsc(Integer customerId);
 }

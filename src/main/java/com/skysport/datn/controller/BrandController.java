@@ -2,17 +2,17 @@ package com.skysport.datn.controller;
 
 import com.skysport.datn.entity.Brand;
 import com.skysport.datn.service.BrandService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import lombok.RequiredArgsConstructor;
 
 // BrandController
 //@Controller
 @RequestMapping("/admin/brand")
+@RequiredArgsConstructor
 public class BrandController {
-    @Autowired
-    private BrandService brandService;
+    private final BrandService brandService;
 
     @GetMapping
     public String list(Model model) {
@@ -50,4 +50,3 @@ public class BrandController {
         return "redirect:/admin/brand";
     }
 }
-

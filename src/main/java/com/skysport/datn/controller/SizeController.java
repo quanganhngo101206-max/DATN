@@ -3,17 +3,17 @@ package com.skysport.datn.controller;
 
 import com.skysport.datn.entity.Size;
 import com.skysport.datn.service.SizeService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import lombok.RequiredArgsConstructor;
 
 //@Controller
 @RequestMapping("/admin/size")
+@RequiredArgsConstructor
 public class SizeController {
 
-    @Autowired
-    private SizeService sizeService;
+    private final SizeService sizeService;
 
     @GetMapping
     public String list(Model model) {

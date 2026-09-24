@@ -5,7 +5,10 @@ import lombok.*;
 
 @Entity
 @Table(name = "Import_order_detail")
-@Data
+@Getter
+@Setter
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@ToString(exclude = {"importOrder", "productDetail"})
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -13,6 +16,7 @@ public class ImportOrderDetail {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @EqualsAndHashCode.Include
     private Integer id;
 
     private Integer quantity;

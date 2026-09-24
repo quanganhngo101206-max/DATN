@@ -4,20 +4,20 @@ import com.skysport.datn.entity.ProductDetail;
 import com.skysport.datn.entity.ProductDiscount;
 import com.skysport.datn.repository.ProductDetailRepository;
 import com.skysport.datn.repository.ProductDiscountRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import lombok.RequiredArgsConstructor;
+import com.skysport.datn.exception.BusinessException;
 
 @Service
+@RequiredArgsConstructor
 public class ProductDiscountService {
 
-    @Autowired
-    private ProductDiscountRepository productDiscountRepository;
+    private final ProductDiscountRepository productDiscountRepository;
 
-    @Autowired
-    private ProductDetailRepository productDetailRepository;
+    private final ProductDetailRepository productDetailRepository;
 
     /**
      * Áp khuyến mãi mới cho 1 biến thể sản phẩm (ProductDetail).
@@ -29,16 +29,16 @@ public class ProductDiscountService {
                                LocalDateTime startDate, LocalDateTime endDate) {
 
         ProductDetail detail = productDetailRepository.findById(productDetailId)
-                .orElseThrow(() -> new RuntimeException("Biến thể sản phẩm không tồn tại"));
+                .orElseThrow(() -> new BusinessException("Biến thể sản phẩm không tồn tại"));
 
         if (discountedAmount == null || discountedAmount <= 0) {
-            throw new RuntimeException("Số tiền giảm phải lớn hơn 0");
+            throw new BusinessException("Số tiền giảm phải lớn hơn 0");
         }
         if (detail.getPrice() != null && discountedAmount >= detail.getPrice()) {
-            throw new RuntimeException("Số tiền giảm phải nhỏ hơn giá bán");
+            throw new BusinessException("Số tiền giảm phải nhỏ hơn giá bán");
         }
         if (startDate == null || endDate == null || !endDate.isAfter(startDate)) {
-            throw new RuntimeException("Ngày kết thúc phải sau ngày bắt đầu");
+            throw new BusinessException("Ngày kết thúc phải sau ngày bắt đầu");
         }
 
         // Đóng khuyến mãi cũ (nếu còn hiệu lực) trước khi tạo mới
@@ -66,7 +66,7 @@ public class ProductDiscountService {
     @Transactional
     public void closeDiscount(Integer discountId) {
         ProductDiscount discount = productDiscountRepository.findById(discountId)
-                .orElseThrow(() -> new RuntimeException("Khuyến mãi không tồn tại"));
+                .orElseThrow(() -> new BusinessException("Khuyến mãi không tồn tại"));
         discount.setClosed(true);
         productDiscountRepository.save(discount);
     }

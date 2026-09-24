@@ -7,7 +7,10 @@ import java.util.List;
 
 @Entity
 @Table(name = "Wishlist")
-@Data
+@Getter
+@Setter
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@ToString(exclude = {"customer", "wishlistDetails"})
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -15,6 +18,7 @@ public class Wishlist {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @EqualsAndHashCode.Include
     private Integer id;
 
     @ManyToOne

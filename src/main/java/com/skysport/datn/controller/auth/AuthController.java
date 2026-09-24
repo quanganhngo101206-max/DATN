@@ -202,7 +202,7 @@ public class AuthController {
         }
     }
 
-    @GetMapping("/logout")
+    @PostMapping("/logout")
     public String logout(HttpSession session) {
         Account account = (Account) session.getAttribute("account");
         String roleName = (account != null && account.getRole() != null) ? account.getRole().getName() : null;

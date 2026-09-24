@@ -4,7 +4,6 @@ import com.skysport.datn.entity.*;
 import com.skysport.datn.enums.OrderStatus;
 import com.skysport.datn.enums.ReturnRequestStatus;
 import com.skysport.datn.repository.*;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
@@ -13,16 +12,18 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 @Controller
 @RequestMapping("/admin/return")
+@RequiredArgsConstructor
 public class AdminReturnController {
 
-    @Autowired private BillReturnRequestRepository requestRepository;
-    @Autowired private BillReturnRequestDetailRepository requestDetailRepository;
-    @Autowired private BillReturnRepository billReturnRepository;
-    @Autowired private BillRepository billRepository;
-    @Autowired private ProductDetailRepository productDetailRepository;
+    private final BillReturnRequestRepository requestRepository;
+    private final BillReturnRequestDetailRepository requestDetailRepository;
+    private final BillReturnRepository billReturnRepository;
+    private final BillRepository billRepository;
+    private final ProductDetailRepository productDetailRepository;
 
     @GetMapping
     public String list(@RequestParam(required = false) Integer status, Model model) {
@@ -66,9 +67,11 @@ public class AdminReturnController {
         float fee = percentFeeExchange != null ? percentFeeExchange : 0;
         float returnMoney = totalRefund * (1 - fee / 100);
 
+        // Dùng findByIdForUpdate (PESSIMISTIC_WRITE) — nhất quán với restockBillItems() trong BillService.
+        // Tránh lost update nếu 2 admin approve 2 return request cùng sản phẩm đồng thời.
         for (ReturnRequestDetail d : details) {
             if (d.getProductDetail() == null || d.getQuantityReturn() == null) continue;
-            ProductDetail pd = productDetailRepository.findById(d.getProductDetail().getId()).orElse(null);
+            ProductDetail pd = productDetailRepository.findByIdForUpdate(d.getProductDetail().getId()).orElse(null);
             if (pd != null) {
                 pd.setQuantity((pd.getQuantity() != null ? pd.getQuantity() : 0) + d.getQuantityReturn());
                 productDetailRepository.save(pd);

@@ -28,6 +28,10 @@ public class CheckoutRequest {
     @NotBlank(message = "Vui lòng chọn phương thức thanh toán")
     private String paymentMethod;
 
+    private Integer addressId;
+
+    private boolean saveAddress;
+
     private String discountCode;
 
     @NotNull(message = "Vui lòng chọn tỉnh/thành phố")

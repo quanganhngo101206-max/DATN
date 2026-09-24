@@ -38,4 +38,12 @@ public interface ProductDetailRepository extends JpaRepository<ProductDetail, In
             "AND pd.productDiscount.startDate <= :now " +
             "AND pd.productDiscount.endDate >= :now")
     List<Integer> findProductIdsOnSale(@Param("now") LocalDateTime now);
+
+    /** Low-stock list: tồn kho > 0 và <= threshold, chưa xóa mềm */
+    @Query("SELECT pd FROM ProductDetail pd " +
+            "WHERE pd.deleteFlag = false " +
+            "AND pd.quantity > 0 " +
+            "AND pd.quantity <= :threshold " +
+            "ORDER BY pd.quantity ASC")
+    List<ProductDetail> findLowStock(@Param("threshold") Integer threshold, org.springframework.data.domain.Pageable pageable);
 }

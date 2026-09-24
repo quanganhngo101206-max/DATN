@@ -42,7 +42,10 @@ public class BillController {
     @GetMapping("/detail/{id}")
     public String detail(@PathVariable Integer id, Model model) {
         var bill = billService.findById(id);
-        if (bill == null) return "redirect:/admin/bill";
+        // Chặn đơn POS lọt vào trang này — POS có lifecycle riêng, nút đổi trạng thái sẽ fail silent
+        if (bill == null || (bill.getInvoiceType() != null && bill.getInvoiceType() == 2)) {
+            return "redirect:/admin/bill";
+        }
         model.addAttribute("bill", bill);
         model.addAttribute("details", billService.findDetailsByBillId(id));
         model.addAttribute("history", billService.findHistoryByBillId(id));

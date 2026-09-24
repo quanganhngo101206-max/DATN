@@ -3,7 +3,6 @@ package com.skysport.datn.controller.staff;
 import com.skysport.datn.entity.*;
 import com.skysport.datn.repository.*;
 import jakarta.servlet.http.HttpSession;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
@@ -14,16 +13,19 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
+import com.skysport.datn.exception.BusinessException;
 
 @Controller
 @RequestMapping("/staff/import")
+@RequiredArgsConstructor
 public class StaffImportController {
 
-    @Autowired private ImportOrderRepository importOrderRepository;
-    @Autowired private ImportOrderDetailRepository importOrderDetailRepository;
-    @Autowired private SupplierRepository supplierRepository;
-    @Autowired private ProductDetailRepository productDetailRepository;
-    @Autowired private StaffRepository staffRepository;
+    private final ImportOrderRepository importOrderRepository;
+    private final ImportOrderDetailRepository importOrderDetailRepository;
+    private final SupplierRepository supplierRepository;
+    private final ProductDetailRepository productDetailRepository;
+    private final StaffRepository staffRepository;
 
     @GetMapping
     public String list(HttpSession session, Model model) {
@@ -65,10 +67,10 @@ public class StaffImportController {
                        RedirectAttributes ra) {
         try {
             if (productDetailIds == null || productDetailIds.isEmpty())
-                throw new RuntimeException("Vui lòng chọn ít nhất một sản phẩm!");
+                throw new BusinessException("Vui lòng chọn ít nhất một sản phẩm!");
             if (productDetailIds.size() != quantities.size()
                     || productDetailIds.size() != importPrices.size())
-                throw new RuntimeException("Dữ liệu sản phẩm không hợp lệ!");
+                throw new BusinessException("Dữ liệu sản phẩm không hợp lệ!");
 
             // Validate prices before saving anything
             for (int i = 0; i < productDetailIds.size(); i++) {
@@ -76,7 +78,7 @@ public class StaffImportController {
                 if (pd != null) {
                     float sellingPrice = pd.getPrice() != null ? pd.getPrice() : 0f;
                     if (importPrices.get(i) > sellingPrice) {
-                        throw new RuntimeException("Giá nhập của sản phẩm " + pd.getProduct().getName() + " không được lớn hơn giá bán (" + sellingPrice + " đ)");
+                        throw new BusinessException("Giá nhập của sản phẩm " + pd.getProduct().getName() + " không được lớn hơn giá bán (" + sellingPrice + " đ)");
                     }
                 }
             }

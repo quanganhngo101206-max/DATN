@@ -5,7 +5,10 @@ import lombok.*;
 
 @Entity
 @Table(name = "Cart_detail")
-@Data
+@Getter
+@Setter
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@ToString(exclude = {"cart", "productDetail"})
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -13,6 +16,7 @@ public class CartDetail {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @EqualsAndHashCode.Include
     private Integer id;
 
     private Integer quantity;

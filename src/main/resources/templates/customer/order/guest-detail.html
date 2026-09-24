@@ -52,8 +52,10 @@
         .status-1 { background: #fef3c7; color: #d97706; }
         .status-2 { background: #e0f2fe; color: #0284c7; }
         .status-3 { background: #e0e7ff; color: #4338ca; }
-        .status-7 { background: #d1fae5; color: #059669; }
+        .status-4 { background: #e2e8f0; color: #475569; }
         .status-5 { background: #fee2e2; color: #dc2626; }
+        .status-6 { background: #ffedd5; color: #c2410c; }
+        .status-7 { background: #d1fae5; color: #059669; }
         .info-row { display: flex; padding: 8px 0; border-bottom: 1px solid #eee; }
         .info-label { width: 140px; font-weight: 600; color: #555; }
         .info-value { flex: 1; color: #333; }
@@ -129,7 +131,7 @@
                 <div class="card-body p-0">
                     <table class="table mb-0">
                         <thead class="table-light">
-                        <tr><th>Sản phẩm</th><th>Đơn giá</th><th>Số lượng</th><th>Thành tiền</th></tr>
+                        <tr><th>Sản phẩm</th><th>Mã SP</th><th>Đơn giá</th><th>Số lượng</th><th>Đã trả</th><th>Thành tiền</th></tr>
                         </thead>
                         <tbody>
                         <tr th:each="detail : ${details}">
@@ -146,8 +148,13 @@
                                     </div>
                                 </div>
                             </td>
+                            <td><span class="text-muted small" th:text="${detail.productDetail.barcode != null ? detail.productDetail.barcode : '-'}"></span></td>
                             <td th:text="${#numbers.formatInteger(detail.momentPrice, 0, 'COMMA') + 'đ'}"></td>
                             <td th:text="${detail.quantity}"></td>
+                            <td>
+                                <span th:if="${detail.returnQuantity != null and detail.returnQuantity > 0}" class="badge bg-warning text-dark" th:text="${detail.returnQuantity + '/' + detail.quantity}"></span>
+                                <span th:if="${detail.returnQuantity == null or detail.returnQuantity == 0}" class="text-muted small">—</span>
+                            </td>
                             <td class="fw-bold text-danger" th:text="${#numbers.formatInteger(detail.momentPrice * detail.quantity, 0, 'COMMA') + 'đ'}"></td>
                         </tr>
                         </tbody>
@@ -191,9 +198,16 @@
                     <div class="info-row"><div class="info-label">Ngày đặt:</div><div class="info-value" th:text="${#temporals.format(bill.createDate, 'dd/MM/yyyy HH:mm')}"></div></div>
                     <div class="info-row"><div class="info-label">Trạng thái:</div>
                         <div class="info-value">
-                            <span class="badge-status"
-                                  th:class="${bill.status == 1 ? 'status-1' : (bill.status == 2 ? 'status-2' : (bill.status == 3 ? 'status-3' : (bill.status == 7 ? 'status-7' : 'status-5')))}"
-                                  th:text="${bill.status == 1 ? 'Chờ xác nhận' : (bill.status == 2 ? 'Đã xác nhận' : (bill.status == 3 ? 'Đang giao' : (bill.status == 7 ? 'Hoàn thành' : 'Đã hủy')))}"></span>
+                            <span th:switch="${bill.status}">
+                                <span th:case="1" class="badge-status status-1">Chờ xác nhận</span>
+                                <span th:case="2" class="badge-status status-2">Đã xác nhận</span>
+                                <span th:case="3" class="badge-status status-3">Đang giao</span>
+                                <span th:case="4" class="badge-status status-4">Đã giao</span>
+                                <span th:case="5" class="badge-status status-5">Đã hủy</span>
+                                <span th:case="6" class="badge-status status-6">Trả hàng</span>
+                                <span th:case="7" class="badge-status status-7">Hoàn thành</span>
+                                <span th:case="*" class="badge-status status-5">Không xác định</span>
+                            </span>
                         </div>
                     </div>
                     <div class="info-row"><div class="info-label">Thanh toán:</div>
@@ -203,6 +217,24 @@
                         <div class="info-value" th:text="${bill.discountCode != null ? bill.discountCode.code : 'Không có'}"></div>
                     </div>
                     <hr>
+                    <div class="info-row">
+                        <div class="info-label">Tiền hàng:</div>
+                        <div class="info-value"
+                             th:text="${#numbers.formatInteger(bill.subtotal != null ? bill.subtotal : bill.amount, 0, 'COMMA') + 'đ'}"></div>
+                    </div>
+                    <div class="info-row" th:if="${bill.shippingFee != null && bill.shippingFee > 0}">
+                        <div class="info-label">Phí vận chuyển:</div>
+                        <div class="info-value" th:text="${#numbers.formatInteger(bill.shippingFee, 0, 'COMMA') + 'đ'}"></div>
+                    </div>
+                    <div class="info-row" th:if="${bill.shippingFee != null && bill.shippingFee == 0}">
+                        <div class="info-label">Phí vận chuyển:</div>
+                        <div class="info-value text-success">Miễn phí</div>
+                    </div>
+                    <div class="info-row" th:if="${bill.promotionPrice != null && bill.promotionPrice > 0}">
+                        <div class="info-label">Giảm giá:</div>
+                        <div class="info-value text-success fw-bold"
+                             th:text="${'-' + #numbers.formatInteger(bill.promotionPrice, 0, 'COMMA') + 'đ'}"></div>
+                    </div>
                     <div class="info-row"><div class="info-label fw-bold">Tổng cộng:</div>
                         <div class="info-value fw-bold text-danger fs-5" th:text="${#numbers.formatInteger(bill.amount, 0, 'COMMA') + 'đ'}"></div>
                     </div>

@@ -2,17 +2,17 @@ package com.skysport.datn.controller.admin;
 
 import com.skysport.datn.entity.Brand;
 import com.skysport.datn.service.BrandService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import lombok.RequiredArgsConstructor;
 
 // BrandController
 @Controller
 @RequestMapping("/admin/brand")
+@RequiredArgsConstructor
 public class BrandController {
-    @Autowired
-    private BrandService brandService;
+    private final BrandService brandService;
 
     @GetMapping
     public String list(Model model) {
@@ -37,17 +37,13 @@ public class BrandController {
 
     @PostMapping("/update")
     public String update(@ModelAttribute Brand brand) {
-        Brand old = brandService.findById(brand.getId());
-        old.setCode(brand.getCode());
-        old.setName(brand.getName());
-        old.setStatus(brand.getStatus());
-        brandService.update(old);
+        brandService.update(brand);
         return "redirect:/admin/brand";
     }
 
-    @GetMapping("/delete/{id}")
-    public String delete(@PathVariable Integer id) {
-        brandService.delete(id);
+    @PostMapping("/toggle-status/{id}")
+    public String toggleStatus(@PathVariable Integer id) {
+        brandService.toggleStatus(id);
         return "redirect:/admin/brand";
     }
 }

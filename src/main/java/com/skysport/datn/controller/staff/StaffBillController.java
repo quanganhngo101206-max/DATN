@@ -57,7 +57,10 @@ public class StaffBillController {
             model.addAttribute("staff", staff);
         }
         var bill = billService.findById(id);
-        if (bill == null) return "redirect:/staff/bill";
+        // Chặn đơn POS lọt vào trang này — POS có lifecycle riêng, nút đổi trạng thái sẽ fail silent
+        if (bill == null || (bill.getInvoiceType() != null && bill.getInvoiceType() == 2)) {
+            return "redirect:/staff/bill";
+        }
         model.addAttribute("bill", bill);
         model.addAttribute("details", billService.findDetailsByBillId(id));
         model.addAttribute("history", billService.findHistoryByBillId(id));

@@ -81,7 +81,6 @@
             font-weight: 800;
         }
 
-        /* Sidebar */
         .sidebar-card {
             background: white;
             border-radius: 20px;
@@ -133,7 +132,6 @@
             width: 22px;
         }
 
-        /* Cards */
         .content-card {
             background: white;
             border-radius: 20px;
@@ -195,6 +193,51 @@
             color: #555;
         }
 
+        .address-card {
+            border: 1px solid #eee;
+            border-radius: 14px;
+            padding: 18px;
+            margin-bottom: 14px;
+            transition: all 0.2s;
+        }
+
+        .address-card:hover {
+            border-color: #e94560;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        .address-card.default-address {
+            border: 2px solid #e94560;
+            background: #fff8fa;
+        }
+
+        .default-badge {
+            background: #e94560;
+            color: white;
+            border-radius: 20px;
+            padding: 4px 10px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .address-info {
+            color: #555;
+            line-height: 1.7;
+        }
+
+        .address-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn-address {
+            border-radius: 8px;
+            padding: 7px 12px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
         footer {
             background: #1a1a2e;
             color: #aaa;
@@ -230,7 +273,6 @@
 </head>
 <body>
 
-<!-- Navbar -->
 <nav class="navbar navbar-expand-lg">
     <div class="container">
         <a class="navbar-brand" href="/home"><i class="bi bi-lightning-charge-fill"></i> SKYSPORT</a>
@@ -246,15 +288,13 @@
                     <span th:text="${session.account.username}"></span>
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end">
-                    <li><a class="dropdown-item" href="/profile"><i class="bi bi-person me-2"></i>Thông tin cá nhân</a>
-                    </li>
-                    <li><a class="dropdown-item" href="/customer/orders"><i class="bi bi-list-ul me-2"></i>Đơn hàng của
-                        tôi</a></li>
+                    <li><a class="dropdown-item" href="/profile"><i class="bi bi-person me-2"></i>Thông tin cá nhân</a></li>
+                    <li><a class="dropdown-item" href="/customer/orders"><i class="bi bi-list-ul me-2"></i>Đơn hàng của tôi</a></li>
+                    <li><hr class="dropdown-divider"></li>
                     <li>
-                        <hr class="dropdown-divider">
-                    </li>
-                    <li><a class="dropdown-item text-danger" href="/logout"><i class="bi bi-box-arrow-right me-2"></i>Đăng
-                        xuất</a>
+                        <form th:action="@{/logout}" method="post" class="m-0">
+                            <button type="submit" class="dropdown-item text-danger border-0 bg-transparent w-100 text-start"><i class="bi bi-box-arrow-right me-2"></i>Đăng xuất</button>
+                        </form>
                     </li>
                 </ul>
             </div>
@@ -262,7 +302,6 @@
     </div>
 </nav>
 
-<!-- Header -->
 <section class="page-header">
     <div class="container">
         <h1><i class="bi bi-person-circle"></i> Tài khoản của tôi</h1>
@@ -272,12 +311,11 @@
 <div class="container py-5">
     <div class="row g-4">
 
-        <!-- Sidebar -->
         <div class="col-lg-3">
             <div class="sidebar-card">
                 <div class="sidebar-avatar">
                     <div class="avatar-circle"
-                         th:text="${customer != null ? customer.name.substring(0,1).toUpperCase() : account.username.substring(0,1).toUpperCase()}">
+                         th:text="${customer != null && customer.name != null && !customer.name.isEmpty() ? customer.name.substring(0,1).toUpperCase() : account.username.substring(0,1).toUpperCase()}">
                     </div>
                     <div class="fw-700 fs-6" th:text="${customer != null ? customer.name : account.username}"></div>
                     <div class="small text-white-50" th:text="${account.email}"></div>
@@ -287,21 +325,21 @@
                     <a href="#address"><i class="bi bi-geo-alt"></i> Địa chỉ giao hàng</a>
                     <a href="#password"><i class="bi bi-lock"></i> Đổi mật khẩu</a>
                     <a href="/customer/orders"><i class="bi bi-bag"></i> Đơn hàng của tôi</a>
-                    <a href="/logout" style="color:#e94560;"><i class="bi bi-box-arrow-right"></i> Đăng xuất</a>
+                    <form th:action="@{/logout}" method="post" class="m-0">
+                        <button type="submit" class="border-0 bg-transparent p-0" style="color:#e94560;"><i class="bi bi-box-arrow-right"></i> Đăng xuất</button>
+                    </form>
                 </div>
             </div>
         </div>
 
-        <!-- Content -->
         <div class="col-lg-9">
 
-            <!-- Thông báo -->
             <div class="alert alert-success rounded-3 mb-3" th:if="${success}" th:text="${success}"></div>
             <div class="alert alert-danger rounded-3 mb-3" th:if="${error}" th:text="${error}"></div>
 
-            <!-- Thông tin cá nhân -->
             <div class="content-card" id="info">
-                <div class="card-header"><i class="bi bi-person-fill me-2" style="color:#e94560;"></i> Thông tin cá nhân
+                <div class="card-header">
+                    <i class="bi bi-person-fill me-2" style="color:#e94560;"></i> Thông tin cá nhân
                 </div>
                 <div class="card-body">
                     <form th:action="@{/profile/update}" method="post">
@@ -343,69 +381,113 @@
 
             <!-- Địa chỉ giao hàng -->
             <div class="content-card" id="address">
-                <div class="card-header"><i class="bi bi-geo-alt-fill me-2" style="color:#e94560;"></i> Địa chỉ giao
-                    hàng
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="bi bi-geo-alt-fill me-2" style="color:#e94560;"></i>
+                        Địa chỉ giao hàng
+                    </div>
+                    <button type="button" class="btn-save" data-bs-toggle="modal" data-bs-target="#addressModal"
+                            onclick="openAddAddress()">
+                        <i class="bi bi-plus-lg me-1"></i> Thêm địa chỉ
+                    </button>
                 </div>
+
                 <div class="card-body">
                     <div class="alert alert-success rounded-3 mb-3" th:if="${successAddress}"
                          th:text="${successAddress}"></div>
                     <div class="alert alert-danger rounded-3 mb-3" th:if="${errorAddress}"
                          th:text="${errorAddress}"></div>
-                    <form th:action="@{/profile/update-address}" method="post">
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Người nhận</label>
-                                <input type="text" name="receiverName" class="form-control"
-                                       th:value="${customer != null && customer.addressShipping != null ? customer.addressShipping.receiverName : (customer != null ? customer.name : '')}">
+
+                    <div th:if="${addresses == null || addresses.isEmpty()}"
+                         class="text-center py-4 text-muted">
+                        <i class="bi bi-geo-alt fs-1 d-block mb-2"></i>
+                        Bạn chưa có địa chỉ giao hàng nào.
+                    </div>
+
+                    <div th:each="addr : ${addresses}"
+                         class="address-card"
+                         th:classappend="${addr.isDefault ? ' default-address' : ''}">
+
+                        <div class="d-flex justify-content-between align-items-start gap-3">
+                            <div class="flex-grow-1">
+                                <div class="d-flex align-items-center gap-2 mb-2">
+                                    <strong th:text="${addr.receiverName}">Người nhận</strong>
+                                    <span th:if="${addr.isDefault}" class="default-badge">
+                                        Mặc định
+                                    </span>
+                                </div>
+
+                                <div class="address-info">
+                                    <div>
+                                        <i class="bi bi-telephone me-1"></i>
+                                        <span th:text="${addr.receiverPhone}"></span>
+                                    </div>
+                                    <div>
+                                        <i class="bi bi-geo-alt me-1"></i>
+                                        <span th:text="${addr.address}"></span>
+                                    </div>
+                                    <div>
+                                        <i class="bi bi-map me-1"></i>
+                                        Tỉnh/Thành ID:
+                                        <span th:text="${addr.provinceId}"></span>
+                                        &nbsp;|&nbsp;
+                                        Phường/Xã ID:
+                                        <span th:text="${addr.wardId}"></span>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Số điện thoại nhận hàng</label>
-                                <input type="text" name="receiverPhone" class="form-control"
-                                       th:value="${customer != null && customer.addressShipping != null ? customer.addressShipping.receiverPhone : (customer != null ? customer.phoneNumber : '')}">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Tỉnh/Thành phố</label>
-                                <select class="form-select" id="provinceSelect" name="provinceId"
-                                        th:attr="data-selected=${customer != null && customer.addressShipping != null ? customer.addressShipping.provinceId : ''}">
-                                    <option value="">-- Chọn Tỉnh/Thành --</option>
-                                    <option th:each="p : ${provinces}"
-                                            th:value="${p.id}"
-                                            th:text="${p.name}"
-                                            th:selected="${customer != null && customer.addressShipping != null && customer.addressShipping.provinceId == p.id}">
-                                    </option>
-                                </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Phường/Xã</label>
-                                <select class="form-select" id="wardSelect" name="wardId" disabled
-                                        th:attr="data-selected=${customer != null && customer.addressShipping != null ? customer.addressShipping.wardId : ''}">
-                                    <option value="">-- Chọn Phường/Xã --</option>
-                                </select>
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label">Địa chỉ</label>
-                                <input type="text" name="address" class="form-control"
-                                       placeholder="Số nhà, đường..."
-                                       th:value="${customer != null && customer.addressShipping != null ? customer.addressShipping.address : ''}">
-                            </div>
-                            <div class="col-12 text-end">
-                                <button type="submit" class="btn-save">
-                                    <i class="bi bi-check-lg me-1"></i> Lưu địa chỉ
+
+                            <div class="address-actions">
+                                <button type="button"
+                                        class="btn btn-outline-primary btn-address"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#addressModal"
+                                        th:attr="data-id=${addr.id},
+                                                 data-address=${addr.address},
+                                                 data-receiver-name=${addr.receiverName},
+                                                 data-receiver-phone=${addr.receiverPhone},
+                                                 data-province-id=${addr.provinceId},
+                                                 data-ward-id=${addr.wardId}"
+                                        onclick="openEditAddress(this)">
+                                    <i class="bi bi-pencil"></i>
                                 </button>
+
+                                <form th:if="${!addr.isDefault}"
+                                      th:action="@{/profile/address/default}"
+                                      method="post"
+                                      class="d-inline">
+                                    <input type="hidden" name="id" th:value="${addr.id}">
+                                    <button type="submit" class="btn btn-outline-success btn-address">
+                                        <i class="bi bi-star"></i> Đặt mặc định
+                                    </button>
+                                </form>
+
+                                <form th:action="@{/profile/address/delete}"
+                                      method="post"
+                                      class="d-inline"
+                                      onsubmit="return confirm('Bạn có chắc muốn xóa địa chỉ này?');">
+                                    <input type="hidden" name="id" th:value="${addr.id}">
+                                    <button type="submit" class="btn btn-outline-danger btn-address">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
                             </div>
                         </div>
-                    </form>
+                    </div>
                 </div>
             </div>
 
             <!-- Đổi mật khẩu -->
             <div class="content-card" id="password">
-                <div class="card-header"><i class="bi bi-lock-fill me-2" style="color:#e94560;"></i> Đổi mật khẩu</div>
+                <div class="card-header">
+                    <i class="bi bi-lock-fill me-2" style="color:#e94560;"></i> Đổi mật khẩu
+                </div>
                 <div class="card-body">
                     <div class="alert alert-success rounded-3 mb-3" th:if="${successPassword}"
                          th:text="${successPassword}"></div>
                     <div class="alert alert-danger rounded-3 mb-3" th:if="${errorPassword}"
                          th:text="${errorPassword}"></div>
+
                     <form th:action="@{/profile/change-password}" method="post">
                         <div class="row g-3">
                             <div class="col-md-8">
@@ -434,23 +516,106 @@
     </div>
 </div>
 
-<!-- Footer -->
+<!-- Modal thêm / sửa địa chỉ -->
+<div class="modal fade" id="addressModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content" style="border-radius:20px; overflow:hidden;">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addressModalTitle">
+                    <i class="bi bi-geo-alt-fill me-2" style="color:#e94560;"></i>
+                    Thêm địa chỉ
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <form id="addressForm" method="post" th:action="@{/profile/address/add}">
+                <div class="modal-body">
+                    <input type="hidden" id="addressId" name="id">
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Người nhận</label>
+                            <input type="text" id="receiverName" name="receiverName"
+                                   class="form-control" required>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Số điện thoại</label>
+                            <input type="text" id="receiverPhone" name="receiverPhone"
+                                   class="form-control" required>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Tỉnh/Thành phố</label>
+                            <select id="modalProvinceSelect" name="provinceId"
+                                    class="form-select" required>
+                                <option value="">-- Chọn Tỉnh/Thành --</option>
+                                <option th:each="p : ${provinces}"
+                                        th:value="${p.id}"
+                                        th:text="${p.name}">
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Phường/Xã</label>
+                            <select id="modalWardSelect" name="wardId"
+                                    class="form-select" required disabled>
+                                <option value="">-- Chọn Phường/Xã --</option>
+                            </select>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label">Địa chỉ chi tiết</label>
+                            <input type="text" id="addressDetail" name="address"
+                                   class="form-control"
+                                   placeholder="Số nhà, đường..."
+                                   required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        Hủy
+                    </button>
+                    <button type="submit" class="btn-save">
+                        <i class="bi bi-check-lg me-1"></i> Lưu địa chỉ
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <footer>
     <div class="container">
         <div class="row">
-            <div class="col-md-4"><h6>⚡ SKYSPORT</h6>
-                <p class="small">Chuyên áo thể thao chính hãng</p></div>
-            <div class="col-md-2"><h6>Sản phẩm</h6><a href="/products">Áo thể thao</a></div>
-            <div class="col-md-2"><h6>Hỗ trợ</h6><a href="#">Chính sách đổi trả</a><a href="#">Vận chuyển</a></div>
-            <div class="col-md-4"><h6>Liên hệ</h6>
+            <div class="col-md-4">
+                <h6>⚡ SKYSPORT</h6>
+                <p class="small">Chuyên áo thể thao chính hãng</p>
+            </div>
+            <div class="col-md-2">
+                <h6>Sản phẩm</h6>
+                <a href="/products">Áo thể thao</a>
+            </div>
+            <div class="col-md-2">
+                <h6>Hỗ trợ</h6>
+                <a href="#">Chính sách đổi trả</a>
+                <a href="#">Vận chuyển</a>
+            </div>
+            <div class="col-md-4">
+                <h6>Liên hệ</h6>
                 <p><i class="bi bi-telephone"></i> 0123 456 789</p>
-                <p><i class="bi bi-envelope"></i> support@skysport.vn</p></div>
+                <p><i class="bi bi-envelope"></i> support@skysport.vn</p>
+            </div>
         </div>
         <div class="footer-bottom">© 2024 SkySport. All rights reserved.</div>
     </div>
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
 <script>
     // Scroll to section khi click sidebar
     document.querySelectorAll('.sidebar-menu a[href^="#"]').forEach(link => {
@@ -463,54 +628,121 @@
         });
     });
 
-    // =====================================================
-    // DROPDOWN TỈNH / XÃ
-    // =====================================================
-    const provinceSelect = document.getElementById('provinceSelect');
-    const wardSelect = document.getElementById('wardSelect');
-
-    function resetSelect(sel, placeholder) {
-        sel.innerHTML = `<option value="">${placeholder}</option>`;
-        sel.disabled = true;
+    // CSRF
+    function getCsrfToken() {
+        const match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]+)/);
+        return match ? decodeURIComponent(match[1]) : '';
     }
 
-    provinceSelect.addEventListener('change', function () {
-        const provinceId = this.value;
-        resetSelect(wardSelect, '-- Chọn Phường/Xã --');
+    // Modal thêm địa chỉ
+    function openAddAddress() {
+        const form = document.getElementById('addressForm');
+
+        document.getElementById('addressModalTitle').innerHTML =
+            '<i class="bi bi-geo-alt-fill me-2" style="color:#e94560;"></i> Thêm địa chỉ';
+
+        form.action = '/profile/address/add';
+
+        document.getElementById('addressId').value = '';
+        document.getElementById('receiverName').value = '';
+        document.getElementById('receiverPhone').value = '';
+        document.getElementById('addressDetail').value = '';
+
+        document.getElementById('modalProvinceSelect').value = '';
+        resetWardSelect();
+    }
+
+    // Modal sửa địa chỉ
+    function openEditAddress(button) {
+        const form = document.getElementById('addressForm');
+
+        document.getElementById('addressModalTitle').innerHTML =
+            '<i class="bi bi-pencil me-2" style="color:#e94560;"></i> Sửa địa chỉ';
+
+        form.action = '/profile/address/update';
+
+        document.getElementById('addressId').value = button.dataset.id;
+        document.getElementById('receiverName').value = button.dataset.receiverName || '';
+        document.getElementById('receiverPhone').value = button.dataset.receiverPhone || '';
+        document.getElementById('addressDetail').value = button.dataset.address || '';
+
+        const provinceId = button.dataset.provinceId;
+        const wardId = button.dataset.wardId;
+
+        document.getElementById('modalProvinceSelect').value = provinceId || '';
+
+        resetWardSelect();
+
+        if (provinceId) {
+            loadWards(provinceId, wardId);
+        }
+    }
+
+    // Reset phường/xã
+    function resetWardSelect() {
+        const wardSelect = document.getElementById('modalWardSelect');
+        wardSelect.innerHTML = '<option value="">-- Chọn Phường/Xã --</option>';
+        wardSelect.disabled = true;
+    }
+
+    // Load phường/xã
+    function loadWards(provinceId, selectedWardId = '') {
+        const wardSelect = document.getElementById('modalWardSelect');
+
+        resetWardSelect();
 
         if (!provinceId) return;
 
         fetch(`/api/location/wards?provinceId=${provinceId}`)
-            .then(res => res.json())
+            .then(response => {
+                if (!response.ok) throw new Error('Không thể tải phường/xã');
+                return response.json();
+            })
             .then(data => {
                 data.forEach(w => {
-                    wardSelect.innerHTML += `<option value="${w.id}">${w.name}</option>`;
+                    const option = document.createElement('option');
+                    option.value = w.id;
+                    option.textContent = w.name;
+
+                    if (String(w.id) === String(selectedWardId)) {
+                        option.selected = true;
+                    }
+
+                    wardSelect.appendChild(option);
                 });
+
                 wardSelect.disabled = false;
             })
-            .catch(() => alert('Không tải được danh sách phường/xã, vui lòng thử lại.'));
+            .catch(() => {
+                alert('Không tải được danh sách phường/xã, vui lòng thử lại.');
+            });
+    }
+
+    document.getElementById('modalProvinceSelect').addEventListener('change', function () {
+        loadWards(this.value);
     });
 
-    (function autoLoadSavedAddress() {
-        const savedProvinceId = provinceSelect.dataset.selected;
-        const savedWardId = wardSelect.dataset.selected;
+    // Thêm CSRF token cho toàn bộ form POST
+    document.querySelectorAll('form[method="post"]').forEach(form => {
+        form.addEventListener('submit', function () {
+            const token = getCsrfToken();
 
-        if (!savedProvinceId) return;
+            if (!token) return;
 
-        fetch(`/api/location/wards?provinceId=${savedProvinceId}`)
-            .then(res => res.json())
-            .then(data => {
-                data.forEach(w => {
-                    const opt = document.createElement('option');
-                    opt.value = w.id;
-                    opt.textContent = w.name;
-                    if (String(w.id) === String(savedWardId)) opt.selected = true;
-                    wardSelect.appendChild(opt);
-                });
-                wardSelect.disabled = false;
-            });
-    })();
+            let input = form.querySelector('input[name="_csrf"]');
+
+            if (!input) {
+                input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = '_csrf';
+                form.appendChild(input);
+            }
+
+            input.value = token;
+        });
+    });
 </script>
+
 <div th:replace="~{fragments/chatbot :: chatbot}"></div>
 </body>
 </html>

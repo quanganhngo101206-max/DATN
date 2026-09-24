@@ -34,14 +34,11 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                         .csrfTokenRequestHandler(csrfHandler)
-                        .ignoringRequestMatchers(
-                                "/checkout/apply-discount",
-                                "/cart/**",
-                                "/wishlist/**",
-                                "/customer/review/**",
-                                "/api/chatbot/**",
-                                "/customer/order/cancel/**"
-                        )
+                        // Chỉ ignore chatbot: stateless, không có tác dụng phụ tài chính/dữ liệu.
+                        // /cart/**, /wishlist/**, /customer/review/**, /checkout/apply-discount
+                        // đều thay đổi dữ liệu → phải bảo vệ CSRF.
+                        // JS phía client gửi X-XSRF-TOKEN header (lấy từ cookie XSRF-TOKEN).
+                        .ignoringRequestMatchers("/api/chatbot/**")
                 )
 
                 .authorizeHttpRequests(auth -> auth
@@ -59,7 +56,14 @@ public class SecurityConfig {
                                 "/track-order/**",
                                 "/guest/**",
                                 "/wishlist/toggle/**", "/wishlist/add/**", "/wishlist/remove/**",
-                                "/api/chatbot/**"
+                                "/api/chatbot/**",
+                                // API địa chỉ và phí ship dùng ở trang checkout — phải public vì guest cũng checkout
+                                "/api/location/**",
+                                "/api/shipping/**",
+                                // VNPay gọi vào đây (browser return + server-to-server IPN) không kèm session đăng nhập
+                                "/vnpay-return", "/vnpay-ipn",
+                                // Trang mock cũ, giữ tạm để không vỡ luồng đang chạy trong lúc chuyển đổi
+                                "/mock-vnpay", "/mock-vnpay/**", "/mock-vnpay-pay", "/mock-vnpay-success"
                         ).permitAll()
 
                         // Chỉ Admin
@@ -71,6 +75,10 @@ public class SecurityConfig {
                                 "/staff/order/product-variants/**",
                                 "/staff/order/validate-discount"
                         ).hasAnyRole("ADMIN", "STAFF")
+
+
+                        // POS — Admin và Staff
+                        .requestMatchers("/pos/**").hasAnyRole("ADMIN", "STAFF")
 
                         // Admin và Staff
                         .requestMatchers("/staff/**").hasAnyRole("ADMIN", "STAFF")

@@ -57,7 +57,7 @@
       <a href="/products" class="nav-link">Sản phẩm</a>
       <th:block th:if="${session.account != null}">
         <a href="/profile" class="nav-link"><i class="bi bi-person"></i> <span th:text="${session.account.username}"></span></a>
-        <a href="/logout" class="btn-nav">Đăng xuất</a>
+        <form th:action="@{/logout}" method="post" class="d-inline m-0"><button type="submit" class="btn-nav border-0" style="background:none;">Đăng xuất</button></form>
       </th:block>
       <th:block th:if="${session.account == null}">
         <a href="/login" class="btn-nav">Đăng nhập</a>
@@ -175,9 +175,9 @@
           <i class="bi bi-info-circle"></i>
           Vui lòng quét mã QR dưới đây hoặc chuyển khoản để hoàn tất đơn hàng!
           <div class="text-center mt-3">
-             <img th:src="@{'https://img.vietqr.io/image/970419-0123456789-compact2.png?amount=' + ${bill.amount} + '&addInfo=Thanh toan don ' + ${bill.code} + '&accountName=SKYSPORT'}" alt="QR Code Thanh Toán" class="img-fluid rounded shadow-sm" style="max-width: 300px;"/>
-             <p class="mt-2 mb-0 fw-bold">Ngân hàng NCB - STK: 0123456789</p>
-             <p class="mb-0 text-muted">Chủ tài khoản: SKYSPORT</p>
+            <img th:src="@{'https://img.vietqr.io/image/970419-0123456789-compact2.png?amount=' + ${bill.amount} + '&addInfo=Thanh toan don ' + ${bill.code} + '&accountName=SKYSPORT'}" alt="QR Code Thanh Toán" class="img-fluid rounded shadow-sm" style="max-width: 300px;"/>
+            <p class="mt-2 mb-0 fw-bold">Ngân hàng NCB - STK: 0123456789</p>
+            <p class="mb-0 text-muted">Chủ tài khoản: SKYSPORT</p>
           </div>
         </div>
         <div class="alert alert-success mt-3 small" th:if="${bill.paymentMethod != null && (bill.paymentMethod.name.toUpperCase().contains('CHUY') || bill.paymentMethod.name.toUpperCase().contains('BANK')) && bill.status == 2}">

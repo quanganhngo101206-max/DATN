@@ -4,21 +4,19 @@ import com.skysport.datn.repository.BillRepository;
 import com.skysport.datn.repository.ImportOrderRepository;
 import com.skysport.datn.service.CustomerService;
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import lombok.RequiredArgsConstructor;
 
 @ControllerAdvice
+@RequiredArgsConstructor
 public class AdminModelAdvice {
 
-    @Autowired
-    private ImportOrderRepository importOrderRepository;
+    private final ImportOrderRepository importOrderRepository;
 
-    @Autowired
-    private BillRepository billRepository;
+    private final BillRepository billRepository;
 
-    @Autowired
-    private CustomerService customerService;
+    private final CustomerService customerService;
 
     /**
      * Tự động inject pendingCount vào model của mọi trang /admin/**

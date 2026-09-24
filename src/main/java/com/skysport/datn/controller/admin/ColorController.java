@@ -3,17 +3,17 @@ package com.skysport.datn.controller.admin;
 
 import com.skysport.datn.entity.Color;
 import com.skysport.datn.service.ColorService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import lombok.RequiredArgsConstructor;
 
 // ColorController
 @Controller
 @RequestMapping("/admin/color")
+@RequiredArgsConstructor
 public class ColorController {
-    @Autowired
-    private ColorService colorService;
+    private final ColorService colorService;
 
     @GetMapping
     public String list(Model model) {
@@ -42,9 +42,9 @@ public class ColorController {
         return "redirect:/admin/color";
     }
 
-    @GetMapping("/delete/{id}")
-    public String delete(@PathVariable Integer id) {
-        colorService.delete(id);
+    @PostMapping("/toggle-status/{id}")
+    public String toggleStatus(@PathVariable Integer id) {
+        colorService.toggleStatus(id);
         return "redirect:/admin/color";
     }
 }

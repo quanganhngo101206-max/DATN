@@ -2,20 +2,25 @@ package com.skysport.datn.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 @Entity
 @Table(name = "Bill")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@ToString(exclude = {"billDetails", "customer", "discountCode", "paymentMethod"})
 public class Bill {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @EqualsAndHashCode.Include
     private Integer id;
 
     private String code;
@@ -42,6 +47,18 @@ public class Bill {
 
     private String note;
 
+    @Column(name = "pos_status")
+    private Integer posStatus;
+
+    /**
+     * Mã tham chiếu giao dịch (vnp_TxnRef) của lần thanh toán VNPay gần nhất
+     * cho hóa đơn này. Dùng để đối soát khi VNPay gọi về Return URL / IPN,
+     * vì vnp_TxnRef là mã VNPay biết, không phải billId nội bộ của hệ thống.
+     * Mỗi lần khách bấm "thanh toán lại" sẽ sinh txnRef mới, ghi đè giá trị cũ.
+     */
+    @Column(name = "vnp_txn_ref")
+    private String vnpTxnRef;
+
     @ManyToOne
     @JoinColumn(name = "discount_code_id")
     private DiscountCode discountCode;
@@ -54,6 +71,8 @@ public class Bill {
     @JoinColumn(name = "payment_id")
     private Payment paymentMethod;
 
-    @OneToMany(mappedBy = "bill", fetch = FetchType.EAGER)
+    // LAZY: tránh Hibernate kéo toàn bộ BillDetail mỗi khi load Bill
+    // (đặc biệt nguy hiểm với billRepository.findAll() trong StatisticsService)
+    @OneToMany(mappedBy = "bill", fetch = FetchType.LAZY)
     private List<BillDetail> billDetails = new ArrayList<>();
 }

@@ -31,11 +31,17 @@
                     <td th:text="${cat.name}"></td>
                     <td>
                         <span class="badge bg-success" th:if="${cat.status == 1}">Hoạt động</span>
-                        <span class="badge bg-danger" th:if="${cat.status == 0}">Tắt</span>
+                        <span class="badge bg-secondary" th:if="${cat.status == 0}">Tạm dừng</span>
                     </td>
                     <td>
                         <a th:href="@{/admin/category/edit/{id}(id=${cat.id})}" class="btn btn-sm btn-warning"><i class="bi bi-pencil"></i></a>
-                        <a th:href="@{/admin/category/delete/{id}(id=${cat.id})}" class="btn btn-sm btn-danger" onclick="return confirm('Xóa danh mục này?')"><i class="bi bi-trash"></i></a>
+                        <form th:action="@{/admin/category/toggle-status/{id}(id=${cat.id})}" method="post" style="display:inline">
+                            <button type="submit" th:class="${cat.status == 1} ? 'btn btn-sm btn-outline-secondary' : 'btn btn-sm btn-success'"
+                                    th:title="${cat.status == 1} ? 'Tạm dừng' : 'Kích hoạt'"
+                                    th:onclick="${cat.status == 1} ? 'return confirm(\'Tạm dừng danh mục này?\')' : null">
+                                <i th:class="${cat.status == 1} ? 'bi bi-pause-fill' : 'bi bi-play-fill'"></i>
+                            </button>
+                        </form>
                     </td>
                 </tr>
                 <tr th:if="${#lists.isEmpty(categories)}">

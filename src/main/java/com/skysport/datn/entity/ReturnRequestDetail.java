@@ -5,7 +5,10 @@ import lombok.*;
 
 @Entity
 @Table(name = "Return_request_detail")
-@Data
+@Getter
+@Setter
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@ToString(exclude = {"billReturnRequest", "productDetail"})
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -13,6 +16,7 @@ public class ReturnRequestDetail {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @EqualsAndHashCode.Include
     private Integer id;
 
     private Float momentPriceRefund;

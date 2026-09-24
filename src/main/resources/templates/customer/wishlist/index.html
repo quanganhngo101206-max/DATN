@@ -195,7 +195,11 @@
                         <li>
                             <hr class="dropdown-divider">
                         </li>
-                        <li><a class="dropdown-item text-danger" href="/logout">Đăng xuất</a></li>
+                        <li>
+                            <form th:action="@{/logout}" method="post" class="m-0">
+                                <button type="submit" class="dropdown-item text-danger border-0 bg-transparent w-100 text-start">Đăng xuất</button>
+                            </form>
+                        </li>
                     </ul>
                 </div>
             </th:block>
@@ -263,18 +267,34 @@
 
     function removeFromWishlist(btn) {
         const productId = btn.dataset.productId;
-        fetch('/wishlist/remove/' + productId, {method: 'POST'})
+
+        const csrfToken = document.cookie
+            .split('; ')
+            .find(row => row.startsWith('XSRF-TOKEN='))
+            ?.split('=')[1];
+
+        fetch('/wishlist/remove/' + productId, {
+            method: 'POST',
+            headers: {
+                'X-XSRF-TOKEN': csrfToken
+                    ? decodeURIComponent(csrfToken)
+                    : ''
+            }
+        })
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
                     document.getElementById('wish-card-' + productId).remove();
                     document.querySelector('.wishlist-badge').innerText = data.wishlistCount;
-                    showToast(data.message, 'success');  // ← thay alert
+                    showToast(data.message, 'success');
                 } else {
-                    showToast(data.message || 'Có lỗi xảy ra!', 'error');  // ← thay alert
+                    showToast(data.message || 'Có lỗi xảy ra!', 'error');
                 }
             })
-            .catch(() => showToast('Có lỗi xảy ra!', 'error'));  // ← thay alert
+            .catch(error => {
+                console.error('Remove wishlist error:', error);
+                showToast('Có lỗi xảy ra!', 'error');
+            });
     }
 </script>
 <div th:replace="~{fragments/chatbot :: chatbot}"></div>

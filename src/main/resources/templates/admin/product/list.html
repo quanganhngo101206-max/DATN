@@ -70,8 +70,9 @@
                     <label class="form-label mb-1" style="font-size:12px;">Trạng thái</label>
                     <select name="status" class="form-select form-select-sm">
                         <option value="">-- Tất cả --</option>
-                        <option value="1" th:selected="${selectedStatus != null && selectedStatus == 1}">Hoạt động</option>
-                        <option value="0" th:selected="${selectedStatus != null && selectedStatus == 0}">Tắt</option>
+                        <option value="1" th:selected="${selectedStatus != null && selectedStatus == 1}">Hoạt động
+                        </option>
+                        <option value="0" th:selected="${selectedStatus != null && selectedStatus == 0}">Tạm dừng</option>
                     </select>
                 </div>
                 <div class="col-12 d-flex gap-2 mt-2 mb-2">
@@ -104,10 +105,28 @@
                 <tr th:each="p, i : ${products}">
                     <td th:text="${productPage.number * productPage.size + i.count}"></td>
                     <td><span class="badge bg-secondary" th:text="${p.code}"></span></td>
-                    <td th:text="${p.name}"></td>
-                    <td th:text="${p.category != null ? p.category.name : ''}"></td>
-                    <td th:text="${p.brand != null ? p.brand.name : ''}"></td>
-                    <td th:text="${p.material != null ? p.material.name : ''}"></td>
+                    <td>
+                        <span th:text="${p.name}"></span>
+                        <span class="badge bg-warning text-dark ms-1" th:if="${!p.isMasterDataActive()}"
+                              title="Danh mục/Thương hiệu/Chất liệu của sản phẩm này đang Tạm dừng — sản phẩm đã bị ẩn khỏi trang khách hàng">
+                            <i class="bi bi-exclamation-triangle"></i> Tạm dừng liên kết
+                        </span>
+                    </td>
+                    <td>
+                        <span th:text="${p.category != null ? p.category.name : ''}"></span>
+                        <span class="badge bg-secondary"
+                              th:if="${p.category != null && !p.isCategoryActive()}">Tạm dừng</span>
+                    </td>
+                    <td>
+                        <span th:text="${p.brand != null ? p.brand.name : ''}"></span>
+                        <span class="badge bg-secondary"
+                              th:if="${p.brand != null && !p.isBrandActive()}">Tạm dừng</span>
+                    </td>
+                    <td>
+                        <span th:text="${p.material != null ? p.material.name : ''}"></span>
+                        <span class="badge bg-secondary"
+                              th:if="${p.material != null && !p.isMaterialActive()}">Tạm dừng</span>
+                    </td>
                     <td class="text-end">
                         <span class="badge"
                               th:classappend="${(quantities.get(p.id) ?: 0) > 0} ? 'bg-success' : 'bg-danger'"
@@ -115,12 +134,40 @@
                     </td>
                     <td>
                         <span class="badge" th:classappend="${p.status == 1} ? 'bg-success' : 'bg-secondary'"
-                              th:text="${p.status == 1} ? 'Hoạt động' : 'Tắt'"></span>
+                              th:text="${p.status == 1} ? 'Hoạt động' : 'Tạm dừng'"></span>
                     </td>
                     <td>
-                        <a th:href="@{/admin/product/detail/{id}(id=${p.id})}" class="btn btn-sm btn-info text-white" title="Xem chi tiết"><i class="bi bi-eye"></i></a>
-                        <a th:href="@{/admin/product/edit/{id}(id=${p.id})}" class="btn btn-sm btn-warning" title="Sửa"><i class="bi bi-pencil"></i></a>
-                        <a th:href="@{/admin/product/delete/{id}(id=${p.id})}" class="btn btn-sm btn-danger" title="Xóa" onclick="return confirm('Xóa sản phẩm này?')"><i class="bi bi-trash"></i></a>
+                        <!-- Xem chi tiết -->
+                        <a th:href="@{/admin/product/detail/{id}(id=${p.id})}"
+                           class="btn btn-sm btn-info text-white"
+                           title="Xem chi tiết">
+                            <i class="bi bi-eye"></i>
+                        </a>
+
+                        <!-- Sửa -->
+                        <a th:href="@{/admin/product/edit/{id}(id=${p.id})}"
+                           class="btn btn-sm btn-warning"
+                           title="Sửa">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+
+                        <!-- Bật / Tắt -->
+                        <form th:action="@{/admin/product/toggle-status/{id}(id=${p.id})}"
+                              method="post"
+                              style="display:inline;">
+
+                            <button type="submit"
+                                    class="btn btn-sm"
+                                    th:classappend="${p.status == 1} ? 'btn-secondary' : 'btn-success'"
+                                    th:title="${p.status == 1} ? 'Tạm dừng sản phẩm' : 'Kích hoạt sản phẩm'"
+                                    th:onclick="${p.status == 1} ? 'return confirm(\'Bạn có chắc muốn tạm dừng sản phẩm này?\')' : 'return confirm(\'Bạn có chắc muốn kích hoạt sản phẩm này?\')'">
+
+                                <i class="bi"
+                                   th:classappend="${p.status == 1} ? 'bi-pause-fill' : 'bi-play-fill'">
+                                </i>
+                            </button>
+
+                        </form>
                     </td>
                 </tr>
                 <tr th:if="${#lists.isEmpty(products)}">
@@ -193,41 +240,47 @@
                         <label class="form-label fw-bold">Danh mục</label>
                         <select name="categoryId" class="form-select" required>
                             <option value="">-- Chọn danh mục --</option>
-                            <option th:each="cat : ${categories}" th:value="${cat.id}" th:text="${cat.name}"
+                            <option th:each="cat : ${activeCategories}" th:value="${cat.id}" th:text="${cat.name}"
                                     th:selected="${product.category != null && product.category.id == cat.id}"></option>
+                            <option th:if="${product.category != null && !product.isCategoryActive()}"
+                                    th:value="${product.category.id}"
+                                    th:text="${product.category.name + ' (Đang tạm dừng)'}"
+                                    selected="selected"></option>
                         </select>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold">Thương hiệu</label>
                         <select name="brandId" class="form-select" required>
                             <option value="">-- Chọn thương hiệu --</option>
-                            <option th:each="b : ${brands}" th:value="${b.id}" th:text="${b.name}"
+                            <option th:each="b : ${activeBrands}" th:value="${b.id}" th:text="${b.name}"
                                     th:selected="${product.brand != null && product.brand.id == b.id}"></option>
+                            <option th:if="${product.brand != null && !product.isBrandActive()}"
+                                    th:value="${product.brand.id}" th:text="${product.brand.name + ' (Đang tạm dừng)'}"
+                                    selected="selected"></option>
                         </select>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold">Chất liệu</label>
                         <select name="materialId" class="form-select" required>
                             <option value="">-- Chọn chất liệu --</option>
-                            <option th:each="m : ${materials}" th:value="${m.id}" th:text="${m.name}"
+                            <option th:each="m : ${activeMaterials}" th:value="${m.id}" th:text="${m.name}"
                                     th:selected="${product.material != null && product.material.id == m.id}"></option>
+                            <option th:if="${product.material != null && !product.isMaterialActive()}"
+                                    th:value="${product.material.id}"
+                                    th:text="${product.material.name + ' (Đang tạm dừng)'}"
+                                    selected="selected"></option>
                         </select>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold">Mô tả</label>
-                        <textarea name="describe" class="form-control" rows="3" th:text="${product.describe}"></textarea>
-                    </div>
-                    <div class="mb-0">
-                        <label class="form-label fw-bold">Trạng thái</label>
-                        <select name="status" class="form-select">
-                            <option value="1" th:selected="${product.status == 1}">Hoạt động</option>
-                            <option value="0" th:selected="${product.status == 0}">Tắt</option>
-                        </select>
+                        <textarea name="describe" class="form-control" rows="3"
+                                  th:text="${product.describe}"></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
-                            th:onclick="${product.id != null} ? 'window.location=\'/admin/product\'' : ''">Hủy</button>
+                            th:onclick="${product.id != null} ? 'window.location=\'/admin/product\'' : ''">Hủy
+                    </button>
                     <button type="submit" class="btn btn-purple">
                         <i class="bi bi-save"></i>
                         <span th:text="${product.id != null} ? 'Cập nhật' : 'Thêm mới'"></span>

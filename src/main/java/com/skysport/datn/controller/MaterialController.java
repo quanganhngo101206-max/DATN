@@ -2,17 +2,17 @@ package com.skysport.datn.controller;
 
 import com.skysport.datn.entity.Material;
 import com.skysport.datn.service.MaterialService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import lombok.RequiredArgsConstructor;
 
 // MaterialController
 //@Controller
 @RequestMapping("/admin/material")
+@RequiredArgsConstructor
 public class MaterialController {
-    @Autowired
-    private MaterialService materialService;
+    private final MaterialService materialService;
 
     @GetMapping
     public String list(Model model) {

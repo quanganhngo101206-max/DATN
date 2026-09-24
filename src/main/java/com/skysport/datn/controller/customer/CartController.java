@@ -10,7 +10,6 @@ import com.skysport.datn.repository.WishlistDetailRepository;
 import com.skysport.datn.repository.WishlistRepository;
 import com.skysport.datn.service.CartService;
 import jakarta.servlet.http.HttpSession;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -18,21 +17,19 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.web.bind.annotation.DeleteMapping;
 
 import java.util.*;
+import lombok.RequiredArgsConstructor;
 
 @Controller
+@RequiredArgsConstructor
 public class CartController {
 
-    @Autowired
-    private CartService cartService;
+    private final CartService cartService;
 
-    @Autowired
-    private CustomerRepository customerRepository;
+    private final CustomerRepository customerRepository;
 
-    @Autowired
-    private WishlistRepository wishlistRepository;
+    private final WishlistRepository wishlistRepository;
 
-    @Autowired
-    private WishlistDetailRepository wishlistDetailRepository;
+    private final WishlistDetailRepository wishlistDetailRepository;
 
     private static final String CART_SESSION_KEY = "cart";
 
@@ -82,7 +79,7 @@ public class CartController {
         }
 
         if (!cartService.checkStock(detail, quantity)) {
-            redirectAttributes.addFlashAttribute("error", "Số lượng sản phẩm không đủ! Tồn kho: " + detail.getQuantity());
+            redirectAttributes.addFlashAttribute("error", getCartErrorMessage(detail, quantity));
             return "redirect:/products/" + productId;
         }
 
@@ -92,7 +89,7 @@ public class CartController {
             CartItem item = cart.get(detail.getId());
             int newQty = item.getQuantity() + quantity;
             if (!cartService.checkStock(detail, newQty)) {
-                redirectAttributes.addFlashAttribute("error", "Vượt quá số lượng tồn kho!");
+                redirectAttributes.addFlashAttribute("error", getCartErrorMessage(detail, newQty));
                 return "redirect:/products/" + productId;
             }
             item.setQuantity(newQty);
@@ -115,14 +112,13 @@ public class CartController {
         return "redirect:/products/" + productId;
     }
 
-    @Autowired
-    private com.skysport.datn.service.ShippingFeeService shippingFeeService;
+    private final com.skysport.datn.service.ShippingFeeService shippingFeeService;
 
     // Xem giỏ hàng
     @GetMapping("/cart")
     public String viewCart(HttpSession session, Model model) {
         Map<Integer, CartItem> cart = getCartFromSession(session);
-        
+
         for (CartItem item : cart.values()) {
             ProductDetail detail = cartService.getProductDetailById(item.getProductDetailId());
             if (detail != null) {
@@ -132,7 +128,7 @@ public class CartController {
 
         List<CartItem> items = new ArrayList<>(cart.values());
         double subtotal = items.stream().mapToDouble(i -> i.getPrice() * i.getQuantity()).sum();
-        
+
         // Calculate shipping using ShippingFeeService if customer has address
         double shipping = 0;
         Account account = (Account) session.getAttribute("account");
@@ -140,7 +136,7 @@ public class CartController {
             Customer customer = customerRepository.findByAccountId(account.getId());
             if (customer != null && customer.getAddressShipping() != null && customer.getAddressShipping().getProvinceId() != null) {
                 com.skysport.datn.dto.ShippingFeeResponse feeResponse = shippingFeeService.calculate(
-                        customer.getAddressShipping().getProvinceId(), 
+                        customer.getAddressShipping().getProvinceId(),
                         java.math.BigDecimal.valueOf(subtotal)
                 );
                 shipping = feeResponse.getShippingFee().doubleValue();
@@ -170,7 +166,7 @@ public class CartController {
             Customer customer = customerRepository.findByAccountId(account.getId());
             if (customer != null && customer.getAddressShipping() != null && customer.getAddressShipping().getProvinceId() != null) {
                 com.skysport.datn.dto.ShippingFeeResponse feeResponse = shippingFeeService.calculate(
-                        customer.getAddressShipping().getProvinceId(), 
+                        customer.getAddressShipping().getProvinceId(),
                         java.math.BigDecimal.valueOf(subtotal)
                 );
                 return feeResponse.getShippingFee().doubleValue();
@@ -200,9 +196,9 @@ public class CartController {
             result.put("message", "Sản phẩm không còn tồn tại!");
             return result;
         }
-        if (!cartService.checkStock(detail, quantity)) {
+        if (quantity > 0 && !cartService.checkStock(detail, quantity)) {
             result.put("success", false);
-            result.put("message", "Số lượng vượt quá tồn kho! Chỉ còn " + detail.getQuantity() + " sản phẩm.");
+            result.put("message", getCartErrorMessage(detail, quantity));
             return result;
         }
 
@@ -238,16 +234,6 @@ public class CartController {
         return result;
     }
 
-    // Xóa sản phẩm khỏi giỏ
-    @GetMapping("/cart/remove/{detailId}")
-    public String removeFromCart(@PathVariable Integer detailId, HttpSession session, RedirectAttributes redirectAttributes) {
-        Map<Integer, CartItem> cart = getCartFromSession(session);
-        cart.remove(detailId);
-        updateCartCount(session);
-        redirectAttributes.addFlashAttribute("success", "Đã xóa sản phẩm khỏi giỏ hàng!");
-        return "redirect:/cart";
-    }
-
     // AJAX thêm vào giỏ hàng
     @PostMapping("/cart/add-ajax")
     @ResponseBody
@@ -268,7 +254,7 @@ public class CartController {
 
         if (!cartService.checkStock(detail, quantity)) {
             result.put("success", false);
-            result.put("message", "Số lượng không đủ! Tồn kho: " + detail.getQuantity());
+            result.put("message", getCartErrorMessage(detail, quantity));
             return result;
         }
 
@@ -279,7 +265,7 @@ public class CartController {
             int newQty = item.getQuantity() + quantity;
             if (!cartService.checkStock(detail, newQty)) {
                 result.put("success", false);
-                result.put("message", "Vượt quá số lượng tồn kho!");
+                result.put("message", getCartErrorMessage(detail, newQty));
                 return result;
             }
             item.setQuantity(newQty);
@@ -337,6 +323,33 @@ public class CartController {
         return result;
     }
 
+    private String getCartErrorMessage(ProductDetail detail, int quantity) {
+
+        if (detail == null) {return "Sản phẩm không còn tồn tại!";}
+
+        if (!detail.isVariantStatusActive()) {return "Biến thể sản phẩm hiện đang tạm dừng bán!";}
+
+        if (!detail.isSizeActive()) {return "Size của sản phẩm hiện không còn được bán!";}
+
+        if (!detail.isColorActive()) {return "Màu của sản phẩm hiện không còn được bán!";}
+
+        if (quantity <= 0) {return "Số lượng sản phẩm không hợp lệ!";}
+
+        int stock = detail.getQuantity() != null ? detail.getQuantity() : 0;
+
+        // Kho còn đủ (>= giới hạn) nhưng khách đặt vượt giới hạn cho phép mỗi lần
+        // -> thông báo GIỚI HẠN, không phải thông báo thiếu hàng.
+        if (quantity > CartService.MAX_QUANTITY_PER_ORDER
+                && stock >= CartService.MAX_QUANTITY_PER_ORDER) {
+            return "Bạn chỉ được mua tối đa "
+                    + CartService.MAX_QUANTITY_PER_ORDER
+                    + " sản phẩm cho mỗi biến thể trong 1 lần đặt hàng!";
+        }
+
+        // Còn lại: kho không đủ để đáp ứng số lượng yêu cầu (kể cả khi kho < 15)
+        return "Số lượng không đủ! Tồn kho: " + stock;
+    }
+
     // Inner class CartItem
     public static class CartItem {
         private Integer productDetailId;
@@ -348,22 +361,72 @@ public class CartController {
         private String size;
         private String imageUrl;
 
-        public Integer getProductDetailId() { return productDetailId; }
-        public void setProductDetailId(Integer productDetailId) { this.productDetailId = productDetailId; }
-        public Integer getProductId() { return productId; }
-        public void setProductId(Integer productId) { this.productId = productId; }
-        public String getProductName() { return productName; }
-        public void setProductName(String productName) { this.productName = productName; }
-        public Double getPrice() { return price; }
-        public void setPrice(Double price) { this.price = price; }
-        public Integer getQuantity() { return quantity; }
-        public void setQuantity(Integer quantity) { this.quantity = quantity; }
-        public String getColor() { return color; }
-        public void setColor(String color) { this.color = color; }
-        public String getSize() { return size; }
-        public void setSize(String size) { this.size = size; }
-        public String getImageUrl() { return imageUrl; }
-        public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
-        public Double getTotalPrice() { return price * quantity; }
+        public Integer getProductDetailId() {
+            return productDetailId;
+        }
+
+        public void setProductDetailId(Integer productDetailId) {
+            this.productDetailId = productDetailId;
+        }
+
+        public Integer getProductId() {
+            return productId;
+        }
+
+        public void setProductId(Integer productId) {
+            this.productId = productId;
+        }
+
+        public String getProductName() {
+            return productName;
+        }
+
+        public void setProductName(String productName) {
+            this.productName = productName;
+        }
+
+        public Double getPrice() {
+            return price;
+        }
+
+        public void setPrice(Double price) {
+            this.price = price;
+        }
+
+        public Integer getQuantity() {
+            return quantity;
+        }
+
+        public void setQuantity(Integer quantity) {
+            this.quantity = quantity;
+        }
+
+        public String getColor() {
+            return color;
+        }
+
+        public void setColor(String color) {
+            this.color = color;
+        }
+
+        public String getSize() {
+            return size;
+        }
+
+        public void setSize(String size) {
+            this.size = size;
+        }
+
+        public String getImageUrl() {
+            return imageUrl;
+        }
+
+        public void setImageUrl(String imageUrl) {
+            this.imageUrl = imageUrl;
+        }
+
+        public Double getTotalPrice() {
+            return price * quantity;
+        }
     }
 }

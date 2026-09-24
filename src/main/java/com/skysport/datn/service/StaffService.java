@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import com.skysport.datn.exception.BusinessException;
 
 @Service
 @RequiredArgsConstructor
@@ -33,14 +34,14 @@ public class StaffService {
 
     public void save(Staff staff, String username, String password) {
         if (username == null || username.isBlank()) {
-            throw new RuntimeException("Tên đăng nhập không được để trống!");
+            throw new BusinessException("Tên đăng nhập không được để trống!");
         }
         if (accountRepository.existsByUsername(username)) {
-            throw new RuntimeException("Tên đăng nhập đã tồn tại!");
+            throw new BusinessException("Tên đăng nhập đã tồn tại!");
         }
         if (staff.getEmail() != null && !staff.getEmail().isBlank()
                 && accountRepository.existsByEmail(staff.getEmail())) {
-            throw new RuntimeException("Email đã được sử dụng!");
+            throw new BusinessException("Email đã được sử dụng!");
         }
 
         Account account = new Account();

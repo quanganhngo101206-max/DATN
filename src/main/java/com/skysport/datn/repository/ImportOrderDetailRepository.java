@@ -22,4 +22,11 @@ public interface ImportOrderDetailRepository extends JpaRepository<ImportOrderDe
             "AND d.productDetail IS NOT NULL " +
             "GROUP BY d.productDetail.id")
     List<Object[]> findAverageImportPriceByProductDetail();
+
+    @Query("SELECT d.importPrice FROM ImportOrderDetail d " +
+            "WHERE d.productDetail.id = :productDetailId " +
+            "AND d.importOrder.status = 2 " +
+            "ORDER BY d.importOrder.createDate DESC")
+    List<Float> findLatestImportPricesByProductDetailId(
+            @Param("productDetailId") Integer productDetailId);
 }

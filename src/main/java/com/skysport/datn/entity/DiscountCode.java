@@ -7,7 +7,10 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "Discount_code")
-@Data
+@Getter
+@Setter
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@ToString
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -15,6 +18,7 @@ public class DiscountCode {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @EqualsAndHashCode.Include
     private Integer id;
 
     private String code;
@@ -44,4 +48,7 @@ public class DiscountCode {
     private Integer status;
 
     private Integer type;
+
+    @Transient
+    private String displayStatus;
 }

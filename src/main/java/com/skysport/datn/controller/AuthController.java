@@ -5,23 +5,21 @@ import com.skysport.datn.entity.Account;
 import com.skysport.datn.service.AccountService;
 import com.skysport.datn.service.RegisterService;
 import jakarta.servlet.http.HttpSession;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import lombok.RequiredArgsConstructor;
 
 //@Controller
+@RequiredArgsConstructor
 public class AuthController {
 
-    @Autowired
-    private AccountService accountService;
+    private final AccountService accountService;
 
-    @Autowired
-    private RegisterService registerService;
+    private final RegisterService registerService;
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    private final PasswordEncoder passwordEncoder;
 
     // HiÃ¡Â»Æ’n thÃ¡Â»â€¹ trang Ã„â€˜Ã„Æ’ng nhÃ¡ÂºÂ­p
     @GetMapping("/login")

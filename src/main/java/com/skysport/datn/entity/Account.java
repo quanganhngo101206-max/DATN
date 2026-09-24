@@ -2,11 +2,15 @@ package com.skysport.datn.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "Account")
-@Data
+@Getter
+@Setter
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@ToString(exclude = {"role"})
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -14,6 +18,7 @@ public class Account {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @EqualsAndHashCode.Include
     private Integer id;
 
     private LocalDateTime birthDay;
@@ -24,9 +29,13 @@ public class Account {
 
     private String email;
 
-    private Boolean isNonLocked;
+    @Builder.Default
+    @Column(name = "is_non_locked", nullable = false)
+    private Boolean isNonLocked = true;
 
-    private Integer failedAttempts;
+    @Builder.Default
+    @Column(name = "failed_attempts", nullable = false)
+    private Integer failedAttempts = 0;
 
     private LocalDateTime updateDate;
 

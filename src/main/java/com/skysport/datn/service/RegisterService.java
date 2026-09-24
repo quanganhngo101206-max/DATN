@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
+import com.skysport.datn.exception.BusinessException;
 
 @Service
 @RequiredArgsConstructor
@@ -30,17 +31,17 @@ public class RegisterService {
     public void register(RegisterRequest request) {
 
         if (accountRepository.findByUsername(request.getUsername()).isPresent()) {
-            throw new RuntimeException("Tên đăng nhập đã tồn tại!");
+            throw new BusinessException("Tên đăng nhập đã tồn tại!");
         }
         if (accountRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new RuntimeException("Email đã được đăng ký!");
+            throw new BusinessException("Email đã được đăng ký!");
         }
         if (customerRepository.findByPhoneNumber(request.getPhoneNumber()).isPresent()) {
-            throw new RuntimeException("Số điện thoại đã được đăng ký!");
+            throw new BusinessException("Số điện thoại đã được đăng ký!");
         }
 
         Role customerRole = roleRepository.findById(RoleName.CUSTOMER.getId())
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy role khách hàng"));
+                .orElseThrow(() -> new BusinessException("Không tìm thấy role khách hàng"));
 
         Account account = new Account();
         account.setUsername(request.getUsername());
@@ -51,8 +52,9 @@ public class RegisterService {
         account.setCreateDate(LocalDateTime.now());
         account.setUpdateDate(LocalDateTime.now());
         account.setIsNonLocked(true);
-        // Thread-safe: dùng timestamp + UUID ngắn thay cho count()
+        account.setFailedAttempts(0);
         account.setCode("ACC" + generateShortId());
+
         accountRepository.save(account);
 
         Customer customer = new Customer();

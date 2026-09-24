@@ -2,7 +2,39 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{admin/fragments/layout :: adminHead(~{::title}, ~{::extraHead})}">
     <title>Chi tiết phiếu nhập - SkySport</title>
-    <th:block th:fragment="extraHead"></th:block>
+    <th:block th:fragment="extraHead">
+        <style>
+            .price-info {
+                font-size: 12px;
+                line-height: 1.8;
+            }
+
+            .price-current {
+                color: #16a34a;
+                font-weight: 600;
+            }
+
+            .price-import {
+                color: #334155;
+                font-weight: 600;
+            }
+
+            .price-suggested {
+                color: #2563eb;
+                font-weight: 700;
+            }
+
+            .price-warning {
+                color: #dc2626;
+                font-size: 12px;
+                font-weight: 600;
+            }
+
+            .price-update-box {
+                min-width: 190px;
+            }
+        </style>
+    </th:block>
 </head>
 <body>
 
@@ -27,6 +59,21 @@
                 <i class="bi bi-x-lg"></i> Từ chối
             </button>
         </div>
+    </div>
+
+    <div th:if="${errorMsg}" class="alert alert-danger">
+        <i class="bi bi-exclamation-circle me-2"></i>
+        <span th:text="${errorMsg}"></span>
+    </div>
+
+    <div th:if="${successMsg}" class="alert alert-success">
+        <i class="bi bi-check-circle me-2"></i>
+        <span th:text="${successMsg}"></span>
+    </div>
+
+    <div th:if="${warningMsg}" class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        <span th:utext="${warningMsg}"></span>
     </div>
 
     <!-- Trạng thái nổi bật -->
@@ -76,28 +123,137 @@
             <div class="card">
                 <div class="card-header"><i class="bi bi-box me-2"></i>Sản phẩm nhập</div>
                 <div class="card-body p-0">
-                    <table class="table table-hover mb-0">
-                        <thead class="table-light">
-                        <tr>
-                            <th>Sản phẩm</th>
-                            <th>Size</th>
-                            <th>Màu</th>
-                            <th>SL nhập</th>
-                            <th>Giá nhập</th>
-                            <th>Thành tiền</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        <tr th:each="d : ${details}">
-                            <td th:text="${d.productDetail.product.name}"></td>
-                            <td th:text="${d.productDetail.size != null ? d.productDetail.size.name : '-'}"></td>
-                            <td th:text="${d.productDetail.color != null ? d.productDetail.color.name : '-'}"></td>
-                            <td th:text="${d.quantity}"></td>
-                            <td th:text="${#numbers.formatInteger(d.importPrice, 3, 'POINT') + ' đ'}"></td>
-                            <td th:text="${#numbers.formatInteger(d.importPrice * d.quantity, 3, 'POINT') + ' đ'}"></td>
-                        </tr>
-                        </tbody>
-                    </table>
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0 align-middle">
+                            <thead class="table-light">
+                            <tr>
+                                <th>Sản phẩm</th>
+                                <th>Size</th>
+                                <th>Màu</th>
+                                <th>SL nhập</th>
+                                <th>Giá nhập</th>
+                                <th>Giá bán</th>
+                                <th>Giá đề xuất</th>
+                                <th>Điều chỉnh</th>
+                                <th>Thành tiền</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="d : ${details}">
+                                <td th:text="${d.productDetail.product.name}"></td>
+                                <td th:text="${d.productDetail.size != null ? d.productDetail.size.name : '-'}"></td>
+                                <td th:text="${d.productDetail.color != null ? d.productDetail.color.name : '-'}"></td>
+                                <td th:text="${d.quantity}"></td>
+
+                                <!-- Giá nhập -->
+                                <td>
+                                    <span class="price-import"
+                                          th:text="${#numbers.formatInteger(d.importPrice, 3, 'POINT') + ' đ'}"></span>
+                                </td>
+
+                                <!-- Giá bán hiện tại -->
+                                <td>
+                                    <div class="price-info">
+                                        <div>
+                                            <span class="price-current"
+                                                  th:text="${#numbers.formatInteger(d.productDetail.price, 3, 'POINT') + ' đ'}"></span>
+                                        </div>
+
+                                        <div th:if="${d.productDetail.targetMarginPercent != null}"
+                                             class="text-muted">
+                                            Margin:
+                                            <span th:text="${d.productDetail.targetMarginPercent + '%'}"></span>
+                                        </div>
+
+                                        <div th:if="${d.productDetail.targetMarginPercent == null}"
+                                             class="text-muted">
+                                            Chưa đặt margin
+                                        </div>
+
+                                        <div th:if="${d.productDetail.price != null
+                                                and d.importPrice != null
+                                                and d.productDetail.price < d.importPrice}"
+                                             class="price-warning">
+                                            <i class="bi bi-exclamation-triangle-fill"></i>
+                                            Giá bán thấp hơn giá nhập
+                                        </div>
+                                    </div>
+                                </td>
+
+                                <!-- Giá bán đề xuất -->
+                                <td>
+                                    <div th:with="suggestedPrice=${suggestedPriceMap[d.id]}">
+                                        <div th:if="${suggestedPrice != null}">
+                                            <span class="price-suggested"
+                                                  th:text="${#numbers.formatInteger(suggestedPrice, 3, 'POINT') + ' đ'}"></span>
+
+                                            <div th:if="${d.productDetail.price != null
+                                                    and suggestedPrice > d.productDetail.price}"
+                                                 class="price-warning mt-1">
+                                                Cao hơn giá hiện tại
+                                            </div>
+
+                                            <div th:if="${d.productDetail.price != null
+                                                    and suggestedPrice <= d.productDetail.price}"
+                                                 class="text-success"
+                                                 style="font-size:12px;font-weight:600;">
+                                                Phù hợp giá hiện tại
+                                            </div>
+                                        </div>
+
+                                        <span th:if="${suggestedPrice == null}"
+                                              class="text-muted"
+                                              style="font-size:12px;">
+                                            Chưa thiết lập margin
+                                        </span>
+                                    </div>
+                                </td>
+
+                                <!-- Cập nhật giá bán -->
+                                <td>
+                                    <div class="price-update-box"
+                                         th:if="${order.status == 2}">
+                                        <form th:action="@{/admin/import/update-selling-price/{id}(id=${d.id})}"
+                                              method="post">
+
+                                            <div class="input-group input-group-sm mb-1">
+                                                <input type="number"
+                                                       name="sellingPrice"
+                                                       class="form-control"
+                                                       min="1"
+                                                       th:value="${d.productDetail.price}"
+                                                       required>
+
+                                                <button type="submit"
+                                                        class="btn btn-outline-primary"
+                                                        onclick="return confirm('Bạn có chắc muốn cập nhật giá bán này?')">
+                                                    <i class="bi bi-check-lg"></i>
+                                                </button>
+                                            </div>
+
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-secondary w-100"
+                                                    th:if="${suggestedPriceMap[d.id] != null}"
+                                                    th:attr="data-price=${suggestedPriceMap[d.id]}"
+                                                    onclick="useSuggestedPrice(this)">
+                                                Dùng giá đề xuất
+                                            </button>
+                                        </form>
+                                    </div>
+
+                                    <span th:if="${order.status != 2}"
+                                          class="text-muted"
+                                          style="font-size:12px;">
+                                        Chỉ cập nhật sau khi phiếu được duyệt
+                                    </span>
+                                </td>
+
+                                <!-- Thành tiền -->
+                                <td th:text="${#numbers.formatInteger(d.importPrice * d.quantity, 3, 'POINT') + ' đ'}"></td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -128,5 +284,21 @@
 
 <div th:replace="~{admin/fragments/layout :: adminScripts}"></div>
 <div th:replace="~{fragments/chatbot :: chatbot}"></div>
+
+<script>
+    function useSuggestedPrice(button) {
+        const price = button.getAttribute('data-price');
+        const form = button.closest('form');
+
+        if (!form || !price) return;
+
+        const input = form.querySelector('input[name="sellingPrice"]');
+
+        if (input) {
+            input.value = Math.round(parseFloat(price));
+        }
+    }
+</script>
+
 </body>
 </html>

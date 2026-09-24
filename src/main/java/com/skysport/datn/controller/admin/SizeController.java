@@ -3,17 +3,17 @@ package com.skysport.datn.controller.admin;
 
 import com.skysport.datn.entity.Size;
 import com.skysport.datn.service.SizeService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import lombok.RequiredArgsConstructor;
 
 @Controller
 @RequestMapping("/admin/size")
+@RequiredArgsConstructor
 public class SizeController {
 
-    @Autowired
-    private SizeService sizeService;
+    private final SizeService sizeService;
 
     @GetMapping
     public String list(Model model) {
@@ -22,5 +22,10 @@ public class SizeController {
         return "admin/size/list";
     }
 
-    // Các chức năng thêm, sửa, xóa đã được loại bỏ theo yêu cầu
+    // Bật/Tắt hoạt động — không còn chức năng thêm/sửa/xóa (theo yêu cầu trước đó)
+    @PostMapping("/toggle-status/{id}")
+    public String toggleStatus(@PathVariable Integer id) {
+        sizeService.toggleStatus(id);
+        return "redirect:/admin/size";
+    }
 }

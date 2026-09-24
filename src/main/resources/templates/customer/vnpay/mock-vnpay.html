@@ -1,132 +1,528 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+
 <head>
     <meta charset="UTF-8">
-    <title>Thanh toán VNPay</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <title>Thanh toán QR - SkySport</title>
+
+    <link
+            href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+            rel="stylesheet">
+
     <style>
-        body { background: #f5f5f5; font-family: Arial, sans-serif; }
-        .vnpay-container { max-width: 1100px; margin: 50px auto; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); overflow: hidden; }
-        .header { padding: 20px 40px; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; }
-        .header img { height: 50px; }
-        .timer { font-size: 18px; font-weight: bold; color: #555; }
-        .timer span { background: #333; color: white; padding: 6px 10px; border-radius: 4px; margin: 0 4px; }
-        .content { display: flex; }
-        .left-panel { width: 40%; background: #f8f9fa; padding: 40px; border-right: 1px solid #ddd; }
-        .right-panel { width: 60%; padding: 50px 60px; }
-        .order-title { font-size: 22px; font-weight: bold; margin-bottom: 25px; color: #333; border-bottom: 1px solid #ddd; padding-bottom: 15px; }
-        .info-row { margin-bottom: 25px; }
-        .info-label { font-size: 15px; color: #666; margin-bottom: 8px; }
-        .info-value { font-size: 18px; font-weight: 500; color: #333; }
-        .amount-value { font-size: 26px; color: #005A9E; font-weight: bold; }
-        .otp-title { font-size: 24px; font-weight: bold; text-align: center; margin-bottom: 35px; color: #333; }
-        .otp-input-wrapper { position: relative; margin-bottom: 20px; }
-        .otp-input { width: 100%; padding: 12px 15px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; outline: none; }
-        .otp-input:focus { border-color: #005A9E; box-shadow: 0 0 0 1px #005A9E; }
-        .bank-logo { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); height: 25px; }
-        .otp-desc { font-size: 13px; color: #555; margin-bottom: 30px; line-height: 1.5; }
-        .btn-group-custom { display: flex; gap: 15px; }
-        .btn-cancel { flex: 1; padding: 12px; background: #f1f1f1; border: none; border-radius: 4px; font-weight: bold; color: #555; }
-        .btn-pay { flex: 1; padding: 12px; background: #0068A5; border: none; border-radius: 4px; font-weight: bold; color: white; }
-        .btn-pay:hover { background: #005080; }
+
+        body {
+            background: #f5f5f5;
+            font-family: Arial, sans-serif;
+        }
+
+        .payment-container {
+            max-width: 1000px;
+            margin: 50px auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            padding: 20px 35px;
+            border-bottom: 1px solid #ddd;
+
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-title {
+            font-size: 22px;
+            font-weight: bold;
+        }
+
+        .timer {
+            font-size: 17px;
+            font-weight: bold;
+        }
+
+        .timer span {
+            background: #333;
+            color: white;
+            padding: 6px 10px;
+            border-radius: 5px;
+        }
+
+        .content {
+            display: flex;
+        }
+
+        .left-panel {
+            width: 42%;
+            background: #f8f9fa;
+            padding: 40px;
+            border-right: 1px solid #ddd;
+        }
+
+        .right-panel {
+            width: 58%;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .order-title {
+            font-size: 22px;
+            font-weight: bold;
+            margin-bottom: 30px;
+        }
+
+        .info-row {
+            margin-bottom: 25px;
+        }
+
+        .info-label {
+            font-size: 14px;
+            color: #777;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-size: 18px;
+            font-weight: 500;
+        }
+
+        .amount-value {
+            font-size: 27px;
+            font-weight: bold;
+            color: #0068a5;
+        }
+
+        .qr-title {
+            font-size: 25px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .qr-description {
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .qr-box {
+            display: inline-block;
+            padding: 15px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+        }
+
+        .qr-box img {
+            width: 280px;
+            height: 280px;
+            display: block;
+        }
+
+        .order-code {
+            margin-top: 20px;
+            font-size: 16px;
+        }
+
+        .mock-note {
+            margin-top: 20px;
+            font-size: 13px;
+            color: #777;
+        }
+
+        .btn-cancel {
+            margin-top: 20px;
+            padding: 11px 30px;
+        }
+
+        .payment-success {
+            display: none;
+            min-height: 520px;
+            width: 100%;
+            padding: 70px 30px;
+            text-align: center;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+
+        .success-icon {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            background: #198754;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 52px;
+            font-weight: bold;
+            margin-bottom: 25px;
+        }
+
+        .success-title {
+            font-size: 34px;
+            font-weight: bold;
+            color: #198754;
+            margin-bottom: 12px;
+        }
+
+        .success-order {
+            font-size: 19px;
+            color: #555;
+        }
+
+        .success-amount {
+            font-size: 27px;
+            font-weight: bold;
+            color: #0068a5;
+            margin-top: 8px;
+        }
+
+        @media (max-width: 768px) {
+
+            .content {
+                flex-direction: column;
+            }
+
+            .left-panel,
+            .right-panel {
+                width: 100%;
+            }
+
+            .left-panel {
+                border-right: none;
+                border-bottom: 1px solid #ddd;
+            }
+
+            .qr-box img {
+                width: 240px;
+                height: 240px;
+            }
+        }
+
     </style>
 </head>
+
 <body>
 
-<div class="vnpay-container">
+<div class="payment-container">
+
+    <!-- HEADER -->
     <div class="header">
-        <div>
-            <img src="https://vnpay.vn/s1/statics.vnpay.vn/2023/9/06ncktiwd6dc1694418196384.png" alt="VNPay" style="height: 30px;">
+
+        <div class="header-title">
+            SKYSPORT
         </div>
+
         <div class="timer">
-            Giao dịch hết hạn sau <span id="minute">14</span> : <span id="second">59</span>
+            Giao dịch hết hạn sau
+            <span id="minute" th:text="${#numbers.formatInteger(expireMinutes - 1, 2)}">14</span>
+            :
+            <span id="second">59</span>
         </div>
+
     </div>
-    
+
+
     <div class="content">
-        <!-- Left Panel -->
+
+        <!-- THÔNG TIN ĐƠN -->
         <div class="left-panel">
-            <div class="order-title">Thông tin đơn hàng</div>
-            
-            <div class="info-row">
-                <div class="info-label">Số tiền thanh toán</div>
-                <div class="amount-value" th:text="${#numbers.formatInteger(amount, 0, 'COMMA')} + ' VND'"></div>
+
+            <div class="order-title">
+                Thông tin đơn hàng
             </div>
-            
+
             <div class="info-row">
-                <div class="info-label">Giá trị đơn hàng</div>
-                <div class="info-value" th:text="${#numbers.formatInteger(amount, 0, 'COMMA')} + ' VND'"></div>
+
+                <div class="info-label">
+                    Số tiền thanh toán
+                </div>
+
+                <div
+                        class="amount-value"
+                        th:text="${#numbers.formatInteger(amount, 0, 'COMMA')} + ' VND'">
+                </div>
+
             </div>
-            
+
+
             <div class="info-row">
-                <div class="info-label">Phí giao dịch</div>
-                <div class="info-value">0 VND</div>
+
+                <div class="info-label">
+                    Mã đơn hàng
+                </div>
+
+                <div
+                        class="info-value"
+                        th:text="${bill.code}">
+                </div>
+
             </div>
-            
+
+
             <div class="info-row">
-                <div class="info-label">Mã đơn hàng</div>
-                <div class="info-value" th:text="${bill.code}"></div>
+
+                <div class="info-label">
+                    Phí giao dịch
+                </div>
+
+                <div class="info-value">
+                    0 VND
+                </div>
+
             </div>
-            
+
+
             <div class="info-row">
-                <div class="info-label">Nhà cung cấp</div>
-                <div class="info-value">SkySport</div>
+
+                <div class="info-label">
+                    Phương thức thanh toán
+                </div>
+
+                <div class="info-value">
+                    QR Code
+                </div>
+
             </div>
+
         </div>
-        
-        <!-- Right Panel -->
+
+
+        <!-- QR -->
         <div class="right-panel">
-            <div class="otp-title">Xác thực OTP</div>
-            
-            <form method="post" th:action="@{/mock-vnpay-pay}">
-                <input type="hidden" name="billId" th:value="${bill.id}">
-                <div class="otp-input-wrapper">
-                    <input type="text" name="cardNumber" class="otp-input" value="9704 0000 0000 0018" placeholder="Số thẻ">
-                </div>
-                <div class="otp-input-wrapper">
-                    <input type="text" name="cardName" class="otp-input" value="NGUYEN VAN A" placeholder="Tên chủ thẻ">
-                </div>
-                <div class="otp-input-wrapper">
-                    <input type="text" name="otp" class="otp-input" placeholder="Nhập mã OTP" required autofocus>
-                    <span class="bank-logo" style="font-weight: 900; color: #e33539; font-style: italic; font-size: 18px; top: 50%; transform: translateY(-50%); position: absolute; right: 15px;">⚡ SKYSPORT</span>
-                </div>
-                
-                <p class="otp-desc">
-                    OTP đã được gửi về số điện thoại đăng ký. Quý khách vui lòng nhập OTP để tiếp tục thực hiện giao dịch. (Nhập mã bất kỳ)
-                </p>
-                
-                <div class="btn-group-custom">
-                    <a href="/cart" class="btn-cancel text-center text-decoration-none">Hủy</a>
-                    <button type="submit" class="btn-pay">Thanh toán</button>
-                </div>
-            </form>
+
+            <div class="qr-title">
+                Quét mã QR để thanh toán
+            </div>
+
+            <div class="qr-description">
+                Sử dụng camera hoặc ứng dụng quét QR trên điện thoại
+            </div>
+
+
+            <div class="qr-box">
+
+                <img
+                        th:src="${qrImageUrl}"
+                        alt="QR thanh toán">
+
+            </div>
+
+
+            <div class="order-code">
+
+                Đơn hàng:
+                <strong th:text="${bill.code}"></strong>
+
+            </div>
+
+
+            <div class="mt-2">
+
+                Số tiền:
+
+                <strong
+                        th:text="${#numbers.formatInteger(amount, 0, 'COMMA')} + ' VND'">
+                </strong>
+
+            </div>
+
+
+            <div class="mock-note">
+
+                Đây là giao diện thanh toán QR Mock phục vụ demo DATN.
+
+                <br>
+
+                Quét mã QR sẽ xác nhận thanh toán cho đúng đơn hàng này.
+
+            </div>
+
+
+            <div>
+
+                <a
+                        href="/cart"
+                        class="btn btn-secondary btn-cancel">
+
+                    Hủy thanh toán
+
+                </a>
+
+            </div>
+
         </div>
+
     </div>
+
 </div>
 
-<script>
-    document.addEventListener("DOMContentLoaded", function() {
-        let timeLeft = 14 * 60 + 59; // 14 minutes 59 seconds
-        const minuteEl = document.getElementById('minute');
-        const secondEl = document.getElementById('second');
+<!-- MÀN HÌNH HOÀN THÀNH GIAO DỊCH TRÊN LAPTOP -->
+<div id="paymentSuccess" class="payment-success">
+    <div class="success-icon">✓</div>
+    <div class="success-title">THANH TOÁN THÀNH CÔNG</div>
+    <div class="success-order">Đơn hàng: <strong th:text="${bill.code}"></strong></div>
+    <div class="success-amount" th:text="${#numbers.formatInteger(amount, 0, 'COMMA')} + ' VND'"></div>
+    <div class="text-muted mt-3">Giao dịch đã được xác nhận thành công.</div>
+</div>
 
-        const countdown = setInterval(() => {
+<!-- MÀN HÌNH HẾT HẠN GIAO DỊCH TRÊN LAPTOP -->
+<div id="paymentExpired" class="payment-success">
+    <div class="success-icon" style="background:#dc3545;">!</div>
+    <div class="success-title" style="color:#dc3545;">GIAO DỊCH ĐÃ HẾT HẠN</div>
+    <div class="success-order">Đơn hàng: <strong th:text="${bill.code}"></strong></div>
+    <div class="text-muted mt-3">Mã QR đã hết hiệu lực, vui lòng đặt lại đơn hàng.</div>
+    <a href="/cart" class="btn btn-secondary btn-cancel mt-3">Quay lại giỏ hàng</a>
+</div>
+
+</div>
+
+
+<script th:inline="javascript">
+    document.addEventListener("DOMContentLoaded", function () {
+
+        const expireMinutes = /*[[${expireMinutes}]]*/ 15;
+        let timeLeft = (expireMinutes * 60) - 1;
+
+        const minuteEl = document.getElementById("minute");
+        const secondEl = document.getElementById("second");
+
+        const countdown = setInterval(function () {
+
             if (timeLeft <= 0) {
+
                 clearInterval(countdown);
-                alert("Giao dịch đã hết hạn!");
-                window.location.href = "/cart";
+                clearInterval(paymentCheck);
+
+                const content =
+                    document.querySelector('.content');
+
+                const timer =
+                    document.querySelector('.header .timer');
+
+                const expired =
+                    document.getElementById('paymentExpired');
+
+                if (content) {
+                    content.style.display = 'none';
+                }
+
+                if (timer) {
+                    timer.style.display = 'none';
+                }
+
+                if (expired) {
+                    expired.style.display = 'flex';
+                }
+
                 return;
             }
-            
+
             timeLeft--;
+
             const minutes = Math.floor(timeLeft / 60);
             const seconds = timeLeft % 60;
-            
-            minuteEl.textContent = minutes.toString().padStart(2, '0');
-            secondEl.textContent = seconds.toString().padStart(2, '0');
+
+            minuteEl.textContent =
+                minutes.toString().padStart(2, "0");
+
+            secondEl.textContent =
+                seconds.toString().padStart(2, "0");
+
         }, 1000);
+
+
+        // ==============================
+        // KIỂM TRA TRẠNG THÁI THANH TOÁN
+        // ==============================
+
+        const billId = /*[[${bill.id}]]*/ 0;
+        const token = /*[[${bill.vnpTxnRef}]]*/ "";
+
+        console.log("Bill ID:", billId);
+        console.log("Token:", token);
+
+        const paymentCheck = setInterval(function () {
+
+            fetch(
+                '/mock-vnpay/check-status?billId='
+                + encodeURIComponent(billId)
+                + '&token='
+                + encodeURIComponent(token),
+                {
+                    method: 'GET',
+                    cache: 'no-store'
+                }
+            )
+                .then(function (response) {
+
+                    console.log(
+                        "check-status HTTP:",
+                        response.status
+                    );
+
+                    if (!response.ok) {
+                        throw new Error(
+                            'HTTP ' + response.status
+                        );
+                    }
+
+                    return response.json();
+                })
+                .then(function (data) {
+
+                    console.log(
+                        "check-status response:",
+                        data
+                    );
+
+                    if (data.paid === true) {
+
+                        console.log(
+                            "THANH TOÁN ĐÃ THÀNH CÔNG"
+                        );
+
+                        clearInterval(paymentCheck);
+                        clearInterval(countdown);
+                        setTimeout(() => {
+                            window.location.href = '/order/success/' + billId;
+                        }, 2500);
+
+                        const content =
+                            document.querySelector('.content');
+
+                        const timer =
+                            document.querySelector('.header .timer');
+
+                        const success =
+                            document.getElementById('paymentSuccess');
+
+                        if (content) {
+                            content.style.display = 'none';
+                        }
+
+                        if (timer) {
+                            timer.style.display = 'none';
+                        }
+
+                        if (success) {
+                            success.style.display = 'flex';
+                        }
+                    }
+                })
+                .catch(function (error) {
+
+                    console.error(
+                        'Không thể kiểm tra trạng thái thanh toán:',
+                        error
+                    );
+                });
+        }, 3000);
     });
 </script>
-
 </body>
 </html>

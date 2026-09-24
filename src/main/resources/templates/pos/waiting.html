@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="${isAdmin} ? ~{admin/fragments/layout :: adminHead(~{::title}, ~{::extraHead})} : ~{staff/fragments/layout :: staffHead(~{::title}, ~{::extraHead})}">
+    <title>Đơn POS đang chờ - SkySport Staff</title>
+    <th:block th:fragment="extraHead">
+        <style>
+            .status-badge {
+                display: inline-block;
+                padding: 4px 12px;
+                border-radius: 20px;
+                font-size: 11.5px;
+                font-weight: 700;
+            }
+            .status-waiting { background: #fef3c7; color: #92400e; }
+
+            .order-line {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                border: 1px solid var(--border);
+                border-radius: var(--radius-sm);
+                padding: 10px 12px;
+                margin-bottom: 8px;
+            }
+            .order-line .qty-input { width: 68px; }
+
+            .field-wrapper { position: relative; }
+            .suggest-dropdown {
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                z-index: 1060;
+                background: white;
+                border: 1px solid var(--border);
+                border-radius: var(--radius-sm);
+                max-height: 240px;
+                overflow-y: auto;
+                box-shadow: 0 6px 16px rgba(0,0,0,.08);
+                display: none;
+            }
+            .suggest-dropdown.show { display: block; }
+            .suggest-item {
+                padding: 8px 12px;
+                cursor: pointer;
+                border-bottom: 1px solid #f1f1f1;
+                font-size: 13px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            .suggest-item:hover { background: #f0fdf8; }
+            .suggest-item:last-child { border-bottom: none; }
+
+            .variant-badge {
+                display: inline-block;
+                padding: 4px 10px;
+                margin: 3px 4px 3px 0;
+                border: 1.5px solid var(--border);
+                border-radius: 20px;
+                font-size: 12px;
+                cursor: pointer;
+            }
+            .variant-badge:hover, .variant-badge.selected {
+                border-color: var(--brand-primary);
+                background: var(--brand-primary);
+                color: white;
+            }
+
+            .summary-box {
+                background: #f0fdf8;
+                border: 1.5px solid #6ee7b7;
+                border-radius: var(--radius-sm);
+                padding: 14px 16px;
+            }
+        </style>
+    </th:block>
+</head>
+<body>
+
+<div th:replace="${isAdmin} ? ~{admin/fragments/layout :: adminSidebar('pos')} : ~{staff/fragments/layout :: staffSidebar('order')}"></div>
+
+<div class="main-content">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="fw-bold mb-0"><i class="bi bi-hourglass-split me-2"></i>Đơn POS đang chờ</h4>
+        <div class="btn-group" role="group">
+            <a href="/pos/create" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-cart-plus me-1"></i>Tạo đơn mới
+            </a>
+            <a href="/pos/waiting" class="btn btn-sm btn-purple">
+                <i class="bi bi-hourglass-split me-1"></i>Đơn đang chờ
+            </a>
+            <a href="/pos/completed" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-check2-circle me-1"></i>Đã hoàn thành
+            </a>
+        </div>
+    </div>
+
+    <div th:if="${success}" class="alert alert-success"><i class="bi bi-check-circle me-2"></i><span th:text="${success}"></span></div>
+    <div th:if="${error}" class="alert alert-danger"><i class="bi bi-exclamation-circle me-2"></i><span th:text="${error}"></span></div>
+
+    <div class="card">
+        <div class="card-header"><i class="bi bi-list-ul me-2"></i>Danh sách đơn đang chờ thanh toán</div>
+
+        <div th:if="${#lists.isEmpty(waitingOrders)}" class="card-body text-center text-muted py-5">
+            <i class="bi bi-inbox" style="font-size:32px;"></i>
+            <p class="mt-2 mb-0">Hiện không có đơn POS nào đang chờ.</p>
+        </div>
+
+        <div th:if="${!#lists.isEmpty(waitingOrders)}" class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                <tr>
+                    <th>Mã đơn</th>
+                    <th>Khách hàng</th>
+                    <th>Mã giảm giá</th>
+                    <th>Thời gian tạo</th>
+                    <th class="text-end">Tổng tiền</th>
+                    <th>Trạng thái</th>
+                    <th class="text-end">Thao tác</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="bill : ${waitingOrders}" th:id="'row-' + ${bill.id}">
+                    <td class="fw-semibold" th:text="${bill.code}"></td>
+                    <td>
+                        <span th:if="${bill.customer != null}" th:text="${bill.customer.name}"></span>
+                        <span th:if="${bill.customer == null}" class="text-muted">Khách lẻ</span>
+                        <div th:if="${bill.customer != null and bill.customer.phoneNumber != null}"
+                             class="text-muted" style="font-size:12px;" th:text="${bill.customer.phoneNumber}"></div>
+                        <div th:if="${bill.note != null and !#strings.isEmpty(bill.note)}"
+                             class="badge bg-light text-secondary border mt-1"
+                             style="font-size:11px; font-weight:500; white-space:normal; text-align:left;"
+                             th:text="'📝 ' + ${bill.note}"></div>
+                    </td>
+                    <td>
+                        <span th:if="${bill.discountCode != null}" class="badge bg-light text-dark border" th:text="${bill.discountCode.code}"></span>
+                        <span th:if="${bill.discountCode == null}" class="text-muted">—</span>
+                    </td>
+                    <td>
+                        <div th:text="${#temporals.format(bill.createDate, 'HH:mm dd/MM/yyyy')}"></div>
+                        <span th:with="mins=${T(java.time.Duration).between(bill.createDate, T(java.time.LocalDateTime).now()).toMinutes()}"
+                              th:class="${mins > 120 ? 'badge bg-danger' : (mins > 60 ? 'badge bg-warning text-dark' : 'badge bg-secondary')}"
+                              th:text="${mins >= 60 ? (mins / 60) + 'h' + (mins % 60) + 'p' : mins + ' phút'}">
+                        </span>
+                    </td>
+                    <td class="text-end fw-semibold" th:text="${#numbers.formatDecimal(bill.amount, 0, 'COMMA', 0, 'POINT')} + 'đ'"></td>
+                    <td><span class="status-badge status-waiting">Chờ thanh toán</span></td>
+                    <td class="text-end">
+                        <button type="button" class="btn btn-outline-secondary btn-sm"
+                                th:onclick="'openDetailModal(' + ${bill.id} + ')'">
+                            <i class="bi bi-pencil-square me-1"></i>Chi tiết / Sửa
+                        </button>
+                        <a th:href="@{'/pos/pay/' + ${bill.id}}" class="btn btn-purple btn-sm">
+                            <i class="bi bi-cash-coin me-1"></i>Thanh toán
+                        </a>
+                        <form th:action="@{'/pos/cancel/' + ${bill.id}}" method="post" class="d-inline">
+                            <button type="submit" class="btn btn-outline-danger btn-sm"
+                                    onclick="return confirm('Bạn có chắc muốn hủy đơn này?')">
+                                <i class="bi bi-x-circle"></i>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal xem/sửa chi tiết đơn đang chờ -->
+<div class="modal fade" id="detailModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-receipt me-2"></i>Chi tiết đơn <span id="detailCode"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="detailLoading" class="text-center text-muted py-4">
+                    <div class="spinner-border spinner-border-sm me-2"></div>Đang tải...
+                </div>
+
+                <div id="detailContent" style="display:none;">
+                    <p class="mb-3">
+                        <strong>Khách hàng:</strong> <span id="detailCustomer"></span>
+                    </p>
+
+                    <div id="detailItems" class="mb-3"></div>
+
+                    <!-- Mã giảm giá -->
+                    <div class="mb-3">
+                        <label class="form-label">Mã giảm giá</label>
+                        <div class="input-group">
+                            <input type="text" id="detailDiscountInput" class="form-control" placeholder="Nhập mã (nếu có)">
+                            <button class="btn btn-outline-secondary" type="button" onclick="applyDetailDiscount()">Áp dụng</button>
+                            <button class="btn btn-outline-danger" type="button" id="removeDetailDiscountBtn"
+                                    style="display:none;" onclick="removeDetailDiscount()">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                        </div>
+                        <div id="detailDiscountMsg" class="mt-1" style="font-size:12px;"></div>
+                    </div>
+
+                    <!-- Thêm sản phẩm vào đơn -->
+                    <div class="field-wrapper mb-3">
+                        <input type="text" id="addProductSearch" class="form-control" autocomplete="off"
+                               placeholder="🔍 Tìm sản phẩm để mua thêm...">
+                        <div id="addProductSuggest" class="suggest-dropdown"></div>
+                    </div>
+                    <div id="addVariantPicker" class="mb-3 p-2" style="display:none; border:1px dashed var(--border); border-radius:8px;">
+                        <div id="addVariantList" class="mb-2"></div>
+                        <div class="d-flex align-items-center gap-2" id="addVariantConfirm" style="display:none;">
+                            <input type="number" id="addVariantQty" class="form-control form-control-sm qty-input" min="1" value="1">
+                            <button class="btn btn-purple btn-sm" onclick="confirmAddItem()">
+                                <i class="bi bi-plus-circle me-1"></i>Thêm vào đơn
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="summary-box">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">Tạm tính:</span>
+                            <span id="detailSubtotal"></span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1" id="detailDiscountRow" style="display:none;">
+                            <span class="text-muted">Giảm giá <span id="detailDiscountCode"></span>:</span>
+                            <span id="detailDiscount" class="text-danger"></span>
+                        </div>
+                        <div class="d-flex justify-content-between fw-bold" style="font-size:16px;">
+                            <span>Tổng cộng:</span>
+                            <span id="detailTotal" class="text-success"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                <a id="detailPayLink" href="#" class="btn btn-purple">
+                    <i class="bi bi-cash-coin me-1"></i>Đi tới thanh toán
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentBillId = null;
+    let currentAddProductId = null;
+    let currentAddVariants = [];
+    let selectedAddVariant = null;
+    let modalDirty = false; // đã có thay đổi -> reload danh sách khi đóng modal
+
+    function getCsrfToken() {
+        const cookie = document.cookie.split(';').find(c => c.trim().startsWith('XSRF-TOKEN='));
+        return cookie ? decodeURIComponent(cookie.split('=')[1]) : null;
+    }
+
+    function csrfHeaders(extra) {
+        const h = Object.assign({}, extra || {});
+        const t = getCsrfToken();
+        if (t) h['X-XSRF-TOKEN'] = t;
+        return h;
+    }
+
+    function fmt(n) {
+        return new Intl.NumberFormat('vi-VN').format(n || 0) + 'đ';
+    }
+
+    function escapeHtml(str) {
+        return String(str == null ? '' : str).replace(/[&<>"']/g, c => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        }[c]));
+    }
+
+    function openDetailModal(billId) {
+        currentBillId = billId;
+        modalDirty = false;
+        document.getElementById('detailLoading').style.display = 'block';
+        document.getElementById('detailContent').style.display = 'none';
+        document.getElementById('addProductSearch').value = '';
+        document.getElementById('addProductSuggest').classList.remove('show');
+        document.getElementById('addVariantPicker').style.display = 'none';
+        document.getElementById('detailPayLink').href = '/pos/pay/' + billId;
+
+        new bootstrap.Modal(document.getElementById('detailModal')).show();
+        loadDetail(billId);
+    }
+
+    function loadDetail(billId) {
+        fetch('/pos/waiting/' + billId + '/detail')
+            .then(r => {
+                if (!r.ok) throw new Error('Không thể tải chi tiết đơn');
+                return r.json();
+            })
+            .then(renderDetail)
+            .catch(() => {
+                document.getElementById('detailLoading').innerHTML =
+                    '<span class="text-danger">Không thể tải chi tiết đơn. Vui lòng đóng và thử lại.</span>';
+            });
+    }
+
+    function renderDetail(dto) {
+        document.getElementById('detailLoading').style.display = 'none';
+        document.getElementById('detailContent').style.display = 'block';
+
+        document.getElementById('detailCode').textContent = dto.code || '';
+        document.getElementById('detailCustomer').textContent =
+            (dto.customerName || 'Khách lẻ') + (dto.customerPhone ? ' - ' + dto.customerPhone : '');
+
+        let itemsHtml = '';
+        (dto.items || []).forEach(item => {
+            itemsHtml += `<div class="order-line">
+                <div class="flex-grow-1">
+                    <div class="fw-semibold" style="font-size:13px;">${escapeHtml(item.productName)}</div>
+                    <div class="text-muted" style="font-size:12px;">${escapeHtml(item.size)} / ${escapeHtml(item.color)} — ${fmt(item.price)}</div>
+                </div>
+                <input type="number" class="form-control form-control-sm qty-input" min="0" max="${item.stock}"
+                       value="${item.quantity}"
+                       onchange="updateItemQty(${item.billDetailId}, this.value, ${item.stock})">
+                <button class="btn btn-sm btn-outline-danger" onclick="removeItem(${item.billDetailId})">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>`;
+        });
+        document.getElementById('detailItems').innerHTML = itemsHtml || '<p class="text-muted">Đơn chưa có sản phẩm.</p>';
+
+        document.getElementById('detailSubtotal').textContent = fmt(dto.subtotal);
+        document.getElementById('detailTotal').textContent = fmt(dto.amount);
+
+        const removeBtn = document.getElementById('removeDetailDiscountBtn');
+        const discountInput = document.getElementById('detailDiscountInput');
+
+        if (dto.discountCode) {
+            discountInput.value = dto.discountCode;
+            discountInput.disabled = true;
+            removeBtn.style.display = 'inline-block';
+        } else {
+            discountInput.value = '';
+            discountInput.disabled = false;
+            removeBtn.style.display = 'none';
+        }
+        document.getElementById('detailDiscountMsg').innerHTML = '';
+
+        if (dto.promotionPrice && dto.promotionPrice > 0) {
+            document.getElementById('detailDiscountRow').style.display = 'flex';
+            document.getElementById('detailDiscount').textContent = '-' + fmt(dto.promotionPrice);
+            document.getElementById('detailDiscountCode').textContent = dto.discountCode ? '(' + dto.discountCode + ')' : '';
+        } else {
+            document.getElementById('detailDiscountRow').style.display = 'none';
+        }
+    }
+
+    function applyDetailDiscount() {
+        const code = document.getElementById('detailDiscountInput').value.trim();
+        if (!code) return;
+        const msg = document.getElementById('detailDiscountMsg');
+        msg.innerHTML = '';
+
+        fetch('/pos/waiting/' + currentBillId + '/discount?code=' + encodeURIComponent(code), {
+            method: 'POST',
+            headers: csrfHeaders()
+        })
+            .then(r => r.json().then(data => ({ ok: r.ok, data })))
+            .then(({ ok, data }) => {
+                if (!ok) {
+                    msg.innerHTML = '<span class="text-danger">' + escapeHtml(data.error || 'Mã giảm giá không hợp lệ!') + '</span>';
+                    return;
+                }
+                modalDirty = true;
+                renderDetail(data);
+                document.getElementById('detailDiscountMsg').innerHTML =
+                    '<span class="text-success">✓ Áp dụng mã giảm giá thành công!</span>';
+            })
+            .catch(() => { msg.innerHTML = '<span class="text-danger">Có lỗi xảy ra, vui lòng thử lại!</span>'; });
+    }
+
+    function removeDetailDiscount() {
+        if (!confirm('Hủy mã giảm giá đang áp cho đơn này?')) return;
+        fetch('/pos/waiting/' + currentBillId + '/discount/remove', {
+            method: 'POST',
+            headers: csrfHeaders()
+        })
+            .then(r => r.json().then(data => ({ ok: r.ok, data })))
+            .then(({ ok, data }) => {
+                if (!ok) { alert(data.error || 'Không thể hủy mã giảm giá!'); return; }
+                modalDirty = true;
+                document.getElementById('detailDiscountInput').value = '';
+                renderDetail(data);
+            })
+            .catch(() => alert('Có lỗi xảy ra, vui lòng thử lại!'));
+    }
+
+    function updateItemQty(billDetailId, value, stock) {
+        const qty = parseInt(value);
+        if (isNaN(qty)) { loadDetail(currentBillId); return; }
+        if (qty > stock) {
+            alert('Số lượng vượt quá tồn kho (' + stock + ')!');
+            loadDetail(currentBillId);
+            return;
+        }
+        submitQtyChange(billDetailId, qty);
+    }
+
+    function removeItem(billDetailId) {
+        if (!confirm('Xóa sản phẩm này khỏi đơn?')) return;
+        submitQtyChange(billDetailId, 0);
+    }
+
+    function submitQtyChange(billDetailId, qty) {
+        fetch('/pos/waiting/' + currentBillId + '/items/' + billDetailId + '/quantity?quantity=' + qty, {
+            method: 'POST',
+            headers: csrfHeaders()
+        })
+            .then(r => r.json().then(data => ({ ok: r.ok, data })))
+            .then(({ ok, data }) => {
+                if (!ok) {
+                    alert(data.error || 'Không thể cập nhật số lượng!');
+                    loadDetail(currentBillId);
+                    return;
+                }
+                modalDirty = true;
+                renderDetail(data);
+            })
+            .catch(() => {
+                alert('Có lỗi xảy ra, vui lòng thử lại!');
+                loadDetail(currentBillId);
+            });
+    }
+
+    // ===== TÌM SẢN PHẨM ĐỂ MUA THÊM =====
+    let addSearchTimer = null;
+    document.getElementById('addProductSearch').addEventListener('input', function () {
+        const kw = this.value.trim();
+        clearTimeout(addSearchTimer);
+        const dropdown = document.getElementById('addProductSuggest');
+        if (!kw) { dropdown.classList.remove('show'); dropdown.innerHTML = ''; return; }
+
+        addSearchTimer = setTimeout(() => {
+            fetch('/pos/search-products?keyword=' + encodeURIComponent(kw))
+                .then(r => r.json())
+                .then(products => {
+                    if (!products || products.length === 0) {
+                        dropdown.innerHTML = '<div class="suggest-item text-muted">Không tìm thấy sản phẩm phù hợp</div>';
+                        dropdown.classList.add('show');
+                        return;
+                    }
+                    let html = '';
+                    products.forEach(p => {
+                        html += `<div class="suggest-item" onclick="pickAddProduct(${p.id}, '${escapeHtml(p.name).replace(/'/g, "\\'")}')">
+                            <img src="${p.image}" onerror="this.src='/images/no-image.png'" style="width:28px;height:28px;object-fit:cover;border-radius:4px;">
+                            <span>${escapeHtml(p.name)}</span>
+                        </div>`;
+                    });
+                    dropdown.innerHTML = html;
+                    dropdown.classList.add('show');
+                })
+                .catch(() => {});
+        }, 300);
+    });
+
+    document.addEventListener('click', function (e) {
+        const dropdown = document.getElementById('addProductSuggest');
+        if (dropdown && !e.target.closest('#addProductSearch') && !e.target.closest('#addProductSuggest')) {
+            dropdown.classList.remove('show');
+        }
+    });
+
+    function pickAddProduct(productId, productName) {
+        currentAddProductId = productId;
+        document.getElementById('addProductSearch').value = productName;
+        document.getElementById('addProductSuggest').classList.remove('show');
+        document.getElementById('addVariantPicker').style.display = 'block';
+        document.getElementById('addVariantList').innerHTML = '<span class="text-muted">Đang tải...</span>';
+        document.getElementById('addVariantConfirm').style.display = 'none';
+        selectedAddVariant = null;
+
+        fetch('/pos/product-variants/' + productId)
+            .then(r => r.json())
+            .then(variants => {
+                currentAddVariants = variants;
+                if (!variants.length) {
+                    document.getElementById('addVariantList').innerHTML = '<span class="text-danger">Không còn biến thể nào hàng!</span>';
+                    return;
+                }
+                let html = '';
+                variants.forEach((v, idx) => {
+                    html += `<span class="variant-badge" onclick="selectAddVariant(${idx})">${escapeHtml(v.size)} / ${escapeHtml(v.color)} (tồn: ${v.quantity})</span>`;
+                });
+                document.getElementById('addVariantList').innerHTML = html;
+            })
+            .catch(() => {
+                document.getElementById('addVariantList').innerHTML = '<span class="text-danger">Không thể tải biến thể!</span>';
+            });
+    }
+
+    function selectAddVariant(idx) {
+        selectedAddVariant = currentAddVariants[idx];
+        document.querySelectorAll('#addVariantList .variant-badge').forEach((b, i) => b.classList.toggle('selected', i === idx));
+        document.getElementById('addVariantQty').max = selectedAddVariant.quantity;
+        document.getElementById('addVariantQty').value = 1;
+        document.getElementById('addVariantConfirm').style.display = 'flex';
+    }
+
+    function confirmAddItem() {
+        if (!selectedAddVariant) return;
+        const qty = parseInt(document.getElementById('addVariantQty').value);
+        if (!qty || qty < 1 || qty > selectedAddVariant.quantity) {
+            alert('Số lượng không hợp lệ! Tồn kho: ' + selectedAddVariant.quantity);
+            return;
+        }
+
+        const params = new URLSearchParams({ productDetailId: selectedAddVariant.id, quantity: qty });
+        fetch('/pos/waiting/' + currentBillId + '/items?' + params.toString(), {
+            method: 'POST',
+            headers: csrfHeaders()
+        })
+            .then(r => r.json().then(data => ({ ok: r.ok, data })))
+            .then(({ ok, data }) => {
+                if (!ok) { alert(data.error || 'Không thể thêm sản phẩm!'); return; }
+                modalDirty = true;
+                document.getElementById('addProductSearch').value = '';
+                document.getElementById('addVariantPicker').style.display = 'none';
+                renderDetail(data);
+            })
+            .catch(() => alert('Có lỗi xảy ra, vui lòng thử lại!'));
+    }
+
+    // Reload danh sách khi đóng modal nếu có thay đổi (tổng tiền, mã giảm giá...)
+    document.getElementById('detailModal').addEventListener('hidden.bs.modal', function () {
+        if (modalDirty) {
+            location.reload();
+        }
+    });
+</script>
+
+<div th:replace="${isAdmin} ? ~{admin/fragments/layout :: adminScripts} : ~{staff/fragments/layout :: staffScripts}"></div>
+<div th:replace="~{fragments/chatbot :: chatbot}"></div>
+</body>
+</html>

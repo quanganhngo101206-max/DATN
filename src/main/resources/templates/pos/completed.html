@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="${isAdmin} ? ~{admin/fragments/layout :: adminHead(~{::title}, ~{::extraHead})} : ~{staff/fragments/layout :: staffHead(~{::title}, ~{::extraHead})}">
+  <title>Đơn POS đã hoàn thành - SkySport Staff</title>
+  <th:block th:fragment="extraHead">
+    <style>
+      .status-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 11.5px;
+        font-weight: 700;
+      }
+      .status-completed { background: #d1fae5; color: #065f46; }
+      .receipt-line {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px dashed var(--border);
+        font-size: 13px;
+      }
+      .receipt-line:last-child { border-bottom: none; }
+    </style>
+  </th:block>
+</head>
+<body>
+
+<div th:replace="${isAdmin} ? ~{admin/fragments/layout :: adminSidebar('pos')} : ~{staff/fragments/layout :: staffSidebar('order')}"></div>
+
+<div class="main-content">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="fw-bold mb-0"><i class="bi bi-check2-circle me-2"></i>Đơn POS đã hoàn thành</h4>
+    <div class="btn-group" role="group">
+      <a href="/pos/create" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-cart-plus me-1"></i>Tạo đơn mới
+      </a>
+      <a href="/pos/waiting" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-hourglass-split me-1"></i>Đơn đang chờ
+      </a>
+      <a href="/pos/completed" class="btn btn-sm btn-purple">
+        <i class="bi bi-check2-circle me-1"></i>Đã hoàn thành
+      </a>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><i class="bi bi-list-ul me-2"></i>Danh sách đơn đã thanh toán</div>
+
+    <div th:if="${#lists.isEmpty(completedOrders)}" class="card-body text-center text-muted py-5">
+      <i class="bi bi-receipt" style="font-size:32px;"></i>
+      <p class="mt-2 mb-0">Chưa có đơn POS nào được thanh toán.</p>
+    </div>
+
+    <div th:if="${!#lists.isEmpty(completedOrders)}" class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead>
+        <tr>
+          <th>Mã đơn</th>
+          <th>Khách hàng</th>
+          <th>Phương thức TT</th>
+          <th>Mã giảm giá</th>
+          <th>Thời gian thanh toán</th>
+          <th class="text-end">Tổng tiền</th>
+          <th>Trạng thái</th>
+          <th class="text-end">Thao tác</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="bill : ${completedOrders}">
+          <td class="fw-semibold" th:text="${bill.code}"></td>
+          <td>
+            <span th:if="${bill.customer != null}" th:text="${bill.customer.name}"></span>
+            <span th:if="${bill.customer == null}" class="text-muted">Khách lẻ</span>
+          </td>
+          <td th:text="${bill.paymentMethod != null ? bill.paymentMethod.name : '-'}"></td>
+          <td>
+            <span th:if="${bill.discountCode != null}" class="badge bg-light text-dark border" th:text="${bill.discountCode.code}"></span>
+            <span th:if="${bill.discountCode == null}" class="text-muted">—</span>
+          </td>
+          <td th:text="${#temporals.format(bill.updateDate, 'HH:mm dd/MM/yyyy')}"></td>
+          <td class="text-end fw-semibold" th:text="${#numbers.formatDecimal(bill.amount, 0, 'COMMA', 0, 'POINT')} + 'đ'"></td>
+          <td><span class="status-badge status-completed">Hoàn thành</span></td>
+          <td class="text-end">
+            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal"
+                    th:attr="data-bs-target='#receipt-' + ${bill.id}">
+              <i class="bi bi-receipt me-1"></i>Xem hóa đơn
+            </button>
+          </td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal hóa đơn (read-only) cho từng đơn -->
+<div th:each="bill : ${completedOrders}" class="modal fade" th:id="'receipt-' + ${bill.id}" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-receipt me-2"></i>Hóa đơn <span th:text="${bill.code}"></span></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-1">
+          <strong>Khách hàng:</strong>
+          <span th:if="${bill.customer != null}" th:text="${bill.customer.name}"></span>
+          <span th:if="${bill.customer == null}">Khách lẻ</span>
+        </p>
+        <p class="mb-3 text-muted" style="font-size:13px;">
+          Thanh toán lúc <span th:text="${#temporals.format(bill.updateDate, 'HH:mm dd/MM/yyyy')}"></span>
+          bằng <span th:text="${bill.paymentMethod != null ? bill.paymentMethod.name : 'không xác định'}"></span>
+        </p>
+
+        <div th:each="detail : ${bill.billDetails}" class="receipt-line">
+                    <span>
+                        <span th:text="${detail.productDetail != null and detail.productDetail.product != null ? detail.productDetail.product.name : ''}"></span>
+                        <span class="text-muted" th:if="${detail.productDetail != null}">
+                            (<span th:text="${detail.productDetail.size != null ? detail.productDetail.size.name : '-'}"></span>
+                            / <span th:text="${detail.productDetail.color != null ? detail.productDetail.color.name : '-'}"></span>)
+                        </span>
+                        × <span th:text="${detail.quantity}"></span>
+                    </span>
+          <span th:text="${#numbers.formatDecimal(detail.momentPrice * detail.quantity, 0, 'COMMA', 0, 'POINT')} + 'đ'"></span>
+        </div>
+
+        <hr>
+        <div class="d-flex justify-content-between">
+          <span class="text-muted">Tạm tính</span>
+          <span th:text="${#numbers.formatDecimal(bill.subtotal, 0, 'COMMA', 0, 'POINT')} + 'đ'"></span>
+        </div>
+        <div class="d-flex justify-content-between text-success" th:if="${bill.promotionPrice != null and bill.promotionPrice > 0}">
+                    <span>
+                        Giảm giá
+                        <span th:if="${bill.discountCode != null}" th:text="'(' + ${bill.discountCode.code} + ')'"></span>
+                    </span>
+          <span th:text="'-' + ${#numbers.formatDecimal(bill.promotionPrice, 0, 'COMMA', 0, 'POINT')} + 'đ'"></span>
+        </div>
+        <div class="d-flex justify-content-between fw-bold fs-5 mt-2">
+          <span>Tổng cộng</span>
+          <span th:text="${#numbers.formatDecimal(bill.amount, 0, 'COMMA', 0, 'POINT')} + 'đ'"></span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+        <button type="button" class="btn btn-purple" onclick="window.print()">
+          <i class="bi bi-printer me-1"></i>In hóa đơn
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div th:replace="${isAdmin} ? ~{admin/fragments/layout :: adminScripts} : ~{staff/fragments/layout :: staffScripts}"></div>
+<div th:replace="~{fragments/chatbot :: chatbot}"></div>
+</body>
+</html>

@@ -6,17 +6,14 @@ import com.skysport.datn.entity.Image;
 import com.skysport.datn.enums.OrderStatus;
 import com.skysport.datn.enums.ReturnRequestStatus;
 import com.skysport.datn.repository.ImageRepository;
-import com.skysport.datn.entity.ProductDetail;
-import com.skysport.datn.repository.ProductDetailRepository;
 import com.skysport.datn.entity.BillDetail;
 import com.skysport.datn.repository.BillDetailRepository;
 import com.skysport.datn.repository.BillRepository;
 import com.skysport.datn.repository.CustomerRepository;
 import com.skysport.datn.entity.ReturnRequest;
 import com.skysport.datn.repository.BillReturnRequestRepository;
+import com.skysport.datn.service.BillService;
 import jakarta.servlet.http.HttpSession;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -24,27 +21,23 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 
 @Controller
+@RequiredArgsConstructor
 public class CustomerOrderController {
 
-    @Autowired
-    private BillRepository billRepository;
+    private final BillRepository billRepository;
 
-    @Autowired
-    private BillDetailRepository billDetailRepository;
+    private final BillDetailRepository billDetailRepository;
 
-    @Autowired
-    private CustomerRepository customerRepository;
+    private final CustomerRepository customerRepository;
 
-    @Autowired
-    private ProductDetailRepository productDetailRepository;
+    private final ImageRepository imageRepository;
 
-    @Autowired
-    private ImageRepository imageRepository;
+    private final BillReturnRequestRepository billReturnRequestRepository;
 
-    @Autowired
-    private BillReturnRequestRepository billReturnRequestRepository;
+    private final BillService billService;
 
     // Danh sách đơn hàng của khách hàng
     @GetMapping("/customer/orders")
@@ -80,7 +73,9 @@ public class CustomerOrderController {
         }
 
         var customer = customerRepository.findByAccountId(account.getId());
-        if (customer == null || !bill.getCustomer().getId().equals(customer.getId())) {
+        if (customer == null
+                || bill.getCustomer() == null
+                || !bill.getCustomer().getId().equals(customer.getId())) {
             return "redirect:/customer/orders";
         }
 
@@ -111,7 +106,6 @@ public class CustomerOrderController {
     }
 
     // Hủy đơn hàng (AJAX)
-    @Transactional
     @PostMapping("/customer/order/cancel/{id}")
     @ResponseBody
     public Map<String, Object> cancelOrder(@PathVariable Integer id, HttpSession session) {
@@ -132,34 +126,24 @@ public class CustomerOrderController {
         }
 
         var customer = customerRepository.findByAccountId(account.getId());
-        if (customer == null || bill.getCustomer() == null || !bill.getCustomer().getId().equals(customer.getId())) {
+        if (customer == null || bill.getCustomer() == null
+                || !bill.getCustomer().getId().equals(customer.getId())) {
             result.put("success", false);
             result.put("message", "Bạn không có quyền hủy đơn hàng này!");
             return result;
         }
 
-        if (!OrderStatus.PENDING.matches(bill.getStatus())) {
+        boolean ok = billService.updateStatus(
+                id, OrderStatus.CANCELLED.getValue(), "Khách hủy đơn", account
+        );
+
+        if (ok) {
+            result.put("success", true);
+            result.put("message", "Đã hủy đơn hàng thành công!");
+        } else {
             result.put("success", false);
             result.put("message", "Không thể hủy đơn hàng ở trạng thái hiện tại!");
-            return result;
         }
-
-        bill.setStatus(OrderStatus.CANCELLED.getValue());
-        billRepository.save(bill);
-
-        List<BillDetail> details = billDetailRepository.findByBillId(bill.getId());
-        for (BillDetail detail : details) {
-            if (detail.getProductDetail() != null) {
-                ProductDetail pd = productDetailRepository.findById(detail.getProductDetail().getId()).orElse(null);
-                if (pd != null) {
-                    pd.setQuantity((pd.getQuantity() != null ? pd.getQuantity() : 0) + detail.getQuantity());
-                    productDetailRepository.save(pd);
-                }
-            }
-        }
-
-        result.put("success", true);
-        result.put("message", "Đã hủy đơn hàng thành công!");
         return result;
     }
 

@@ -3,7 +3,6 @@ package com.skysport.datn.controller.customer;
 import com.skysport.datn.entity.*;
 import com.skysport.datn.repository.*;
 import jakarta.servlet.http.HttpSession;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
@@ -14,16 +13,18 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
 
 @Controller
+@RequiredArgsConstructor
 public class WishlistController {
 
-    @Autowired private WishlistRepository wishlistRepository;
-    @Autowired private WishlistDetailRepository wishlistDetailRepository;
-    @Autowired private CustomerRepository customerRepository;
-    @Autowired private ProductRepository productRepository;
-    @Autowired private ProductDetailRepository productDetailRepository;
-    @Autowired private ImageRepository imageRepository;
+    private final WishlistRepository wishlistRepository;
+    private final WishlistDetailRepository wishlistDetailRepository;
+    private final CustomerRepository customerRepository;
+    private final ProductRepository productRepository;
+    private final ProductDetailRepository productDetailRepository;
+    private final ImageRepository imageRepository;
 
     // Lấy (hoặc tạo) wishlist cho customer hiện tại; trả null nếu chưa đăng nhập / không phải customer
     private Wishlist getOrCreateWishlist(HttpSession session) {

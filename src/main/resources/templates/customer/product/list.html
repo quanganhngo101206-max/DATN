@@ -195,7 +195,7 @@
             </a>
             <th:block th:if="${session.account != null}">
                 <a href="/profile" class="nav-link"><i class="bi bi-person"></i> <span th:text="${session.account.username}"></span></a>
-                <a href="/logout" class="btn-nav">Đăng xuất</a>
+                <form th:action="@{/logout}" method="post" class="d-inline m-0"><button type="submit" class="btn-nav border-0" style="background:none;">Đăng xuất</button></form>
             </th:block>
             <th:block th:if="${session.account == null}">
                 <a href="/login" class="btn-nav">Đăng nhập</a>

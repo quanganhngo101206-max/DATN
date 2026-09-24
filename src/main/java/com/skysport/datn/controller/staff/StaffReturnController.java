@@ -5,7 +5,6 @@ import com.skysport.datn.enums.OrderStatus;
 import com.skysport.datn.enums.ReturnRequestStatus;
 import com.skysport.datn.repository.*;
 import jakarta.servlet.http.HttpSession;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
@@ -14,17 +13,19 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 @Controller
 @RequestMapping("/staff/return")
+@RequiredArgsConstructor
 public class StaffReturnController {
 
-    @Autowired private BillReturnRequestRepository requestRepository;
-    @Autowired private BillReturnRequestDetailRepository requestDetailRepository;
-    @Autowired private BillReturnRepository billReturnRepository;
-    @Autowired private BillRepository billRepository;
-    @Autowired private ProductDetailRepository productDetailRepository;
-    @Autowired private StaffRepository staffRepository;
+    private final BillReturnRequestRepository requestRepository;
+    private final BillReturnRequestDetailRepository requestDetailRepository;
+    private final BillReturnRepository billReturnRepository;
+    private final BillRepository billRepository;
+    private final ProductDetailRepository productDetailRepository;
+    private final StaffRepository staffRepository;
 
     // Danh sách yêu cầu hoàn trả
     @GetMapping

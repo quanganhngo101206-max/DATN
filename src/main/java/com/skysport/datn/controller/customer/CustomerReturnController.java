@@ -4,7 +4,6 @@ import com.skysport.datn.entity.*;
 import com.skysport.datn.enums.OrderStatus;
 import com.skysport.datn.repository.*;
 import jakarta.servlet.http.HttpSession;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
@@ -13,15 +12,17 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 @Controller
+@RequiredArgsConstructor
 public class CustomerReturnController {
 
-    @Autowired private BillRepository billRepository;
-    @Autowired private BillDetailRepository billDetailRepository;
-    @Autowired private CustomerRepository customerRepository;
-    @Autowired private BillReturnRequestRepository requestRepository;
-    @Autowired private BillReturnRequestDetailRepository requestDetailRepository;
+    private final BillRepository billRepository;
+    private final BillDetailRepository billDetailRepository;
+    private final CustomerRepository customerRepository;
+    private final BillReturnRequestRepository requestRepository;
+    private final BillReturnRequestDetailRepository requestDetailRepository;
 
     // Hiển thị form tạo yêu cầu trả hàng cho 1 đơn đã hoàn thành
     @GetMapping("/customer/order/return/{billId}")

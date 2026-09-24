@@ -7,7 +7,6 @@ import com.skysport.datn.repository.BillDetailRepository;
 import com.skysport.datn.repository.BillRepository;
 import com.skysport.datn.repository.ImageRepository;
 import jakarta.servlet.http.HttpSession;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -15,18 +14,17 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 
 @Controller
+@RequiredArgsConstructor
 public class GuestOrderController {
 
-    @Autowired
-    private BillRepository billRepository;
+    private final BillRepository billRepository;
 
-    @Autowired
-    private BillDetailRepository billDetailRepository;
+    private final BillDetailRepository billDetailRepository;
 
-    @Autowired
-    private ImageRepository imageRepository;
+    private final ImageRepository imageRepository;
 
     // Hiển thị form tra cứu đơn hàng (cho guest)
     @GetMapping("/track-order")

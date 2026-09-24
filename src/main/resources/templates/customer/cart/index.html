@@ -227,7 +227,7 @@
             </a>
             <th:block th:if="${session.account != null}">
                 <a href="/profile" class="nav-link"><i class="bi bi-person"></i> <span th:text="${session.account.username}"></span></a>
-                <a href="/logout" class="btn-nav">Đăng xuất</a>
+                <form th:action="@{/logout}" method="post" class="d-inline m-0"><button type="submit" class="btn-nav border-0" style="background:none;">Đăng xuất</button></form>
             </th:block>
             <th:block th:if="${session.account == null}">
                 <a href="/login" class="btn-nav">Đăng nhập</a>
@@ -245,6 +245,8 @@
 </section>
 
 <div class="container py-5">
+    <div th:if="${errorMsg}" class="alert alert-danger" th:text="${errorMsg}"></div>
+
     <div class="row g-4">
 
         <!-- Danh sách sản phẩm -->
@@ -440,36 +442,60 @@
             });
     }
 
+    function getCsrfToken() {
+        const match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]+)/);
+        return match ? decodeURIComponent(match[1]) : '';
+    }
+
     function removeItem(btn) {
         const detailId = btn.getAttribute('data-detail-id');
+        const csrfToken = getCsrfToken();
 
         fetch('/cart/remove/' + detailId, {
-            method: 'DELETE'
+            method: 'DELETE',
+            headers: {
+                'X-XSRF-TOKEN': csrfToken
+            }
         })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('HTTP ' + response.status);
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.success) {
                     const row = document.getElementById('cart-item-' + detailId);
-                    row.remove();
-                    document.getElementById('subtotal').innerText = formatNumber(data.subtotal) + 'đ';
-                    document.getElementById('shipping').innerText = data.shipping === 0 ? 'Miễn phí' : formatNumber(data.shipping) + 'đ';
-                    if (data.discountAmount > 0) {
-                        if (!document.getElementById('discountSection')) {
-                            location.reload();
-                        }
-                    }
-                    document.getElementById('total').innerText = formatNumber(data.total) + 'đ';
+                    if (row) row.remove();
+
+                    document.getElementById('subtotal').innerText =
+                        formatNumber(data.subtotal) + 'đ';
+
+                    document.getElementById('shipping').innerText =
+                        data.shipping === 0
+                            ? 'Miễn phí'
+                            : formatNumber(data.shipping) + 'đ';
+
+                    document.getElementById('total').innerText =
+                        formatNumber(data.total) + 'đ';
+
                     const cartBadge = document.querySelector('.cart-badge');
-                    if (cartBadge) cartBadge.innerText = data.cartCount;
+                    if (cartBadge) {
+                        cartBadge.innerText = data.cartCount;
+                    }
+
                     showToast('Đã xóa sản phẩm', 'success');
+
                     if (data.cartCount === 0) {
                         location.reload();
                     }
+                } else {
+                    showToast(data.message || 'Không thể xóa sản phẩm!', 'error');
                 }
             })
             .catch(error => {
-                console.error('Error:', error);
-                showToast('Có lỗi xảy ra!', 'error');
+                console.error('Remove cart error:', error);
+                showToast('Không thể xóa sản phẩm!', 'error');
             });
     }
 

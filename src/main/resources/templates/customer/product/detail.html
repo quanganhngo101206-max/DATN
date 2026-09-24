@@ -421,7 +421,7 @@
             <th:block th:if="${session.account != null}">
                 <a href="/profile" class="nav-link"><i class="bi bi-person"></i> <span
                         th:text="${session.account.username}"></span></a>
-                <a href="/logout" class="btn-nav">Đăng xuất</a>
+                <form th:action="@{/logout}" method="post" class="d-inline m-0"><button type="submit" class="btn-nav border-0" style="background:none;">Đăng xuất</button></form>
             </th:block>
             <th:block th:if="${session.account == null}">
                 <a href="/login" class="btn-nav">Đăng nhập</a>
@@ -478,9 +478,19 @@
                     </div>
                     <span class="text-muted"
                           th:text="${reviewCount > 0 ? '(' + #numbers.formatDecimal(avgRating,1,1) + '/5 - ' + reviewCount + ' đánh giá)' : '(Chưa có đánh giá)'}"></span>
-                    <span class="badge bg-success ms-2">Còn hàng</span>
+                    <span class="badge ms-2"
+                          th:classappend="${hasStock ? 'bg-success' : 'bg-secondary'}"
+                          th:text="${hasStock ? 'Còn hàng' : 'Hết hàng'}"></span>
                 </div>
 
+                <div id="variantData" style="display:none;">
+                    <div th:each="d : ${details}"
+                         class="variant-item"
+                         th:data-color="${d.color != null ? d.color.name : ''}"
+                         th:data-size="${d.size != null ? d.size.name : ''}"
+                         th:data-quantity="${d.quantity != null ? d.quantity : 0}">
+                    </div>
+                </div>
                 <!-- Chọn màu -->
                 <div class="option-group" th:if="${!#lists.isEmpty(colors)}">
                     <label class="option-label">🎨 Màu sắc <span class="text-danger">*</span></label>
@@ -491,6 +501,10 @@
                                 th:data-color="${c}"
                                 onclick="selectColor(this)"></button>
                     </div>
+                </div>
+
+                <div id="stockMessage" class="text-muted mb-3">
+                    Vui lòng chọn màu và kích thước
                 </div>
 
                 <!-- Chọn size -->
@@ -510,13 +524,14 @@
                     <label class="option-label">🔢 Số lượng</label>
                     <div class="qty-selector">
                         <button type="button" class="qty-btn" onclick="changeQty(-1)">−</button>
-                        <input type="number" id="quantity" value="1" min="1" class="qty-input">
+                        <input type="number" id="quantity" value="1" min="1" class="qty-input"
+                               oninput="validateQuantity(this)">
                         <button type="button" class="qty-btn" onclick="changeQty(1)">+</button>
                     </div>
                 </div>
 
                 <div class="d-flex gap-2">
-                    <button class="btn-add-cart flex-grow-1" onclick="addToCart()">
+                    <button id="addCartBtn" class="btn-add-cart flex-grow-1" onclick="addToCart()">
                         <i class="bi bi-cart-plus me-2"></i>Thêm vào giỏ hàng
                     </button>
                     <button id="wishlistBtn" class="btn-add-cart"
@@ -672,19 +687,90 @@
         document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('selected'));
         btn.classList.add('selected');
         selectedColorVal = btn.getAttribute('data-color');
+        updateVariantStock();
     }
 
     function selectSize(btn) {
         document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('selected'));
         btn.classList.add('selected');
         selectedSizeVal = btn.getAttribute('data-size');
+        updateVariantStock();
+    }
+
+    function updateVariantStock() {
+        const stockMessage = document.getElementById('stockMessage');
+        const addButton = document.getElementById('addCartBtn');
+        const quantityInput = document.getElementById('quantity');
+
+        if (!selectedColorVal || !selectedSizeVal) {
+            stockMessage.textContent = 'Vui lòng chọn màu và kích thước';
+            stockMessage.className = 'text-muted mb-3';
+            addButton.disabled = false;
+            quantityInput.max = '';
+            return;
+        }
+
+        const variant = [...document.querySelectorAll('.variant-item')].find(item =>
+            item.dataset.color === selectedColorVal &&
+            item.dataset.size === selectedSizeVal
+        );
+
+        if (!variant) {
+            stockMessage.textContent = 'Biến thể không tồn tại!';
+            stockMessage.className = 'text-danger mb-3';
+            addButton.disabled = true;
+            quantityInput.value = 1;
+            quantityInput.max = 1;
+            return;
+        }
+
+        const quantity = parseInt(variant.dataset.quantity);
+        const maxOrderQty = 15; // đồng bộ với CartService.MAX_QUANTITY_PER_ORDER
+
+        if (quantity <= 0) {
+            stockMessage.textContent = 'Hết hàng';
+            stockMessage.className = 'text-danger mb-3';
+            addButton.disabled = true;
+            quantityInput.value = 1;
+            quantityInput.max = 1;
+            return;
+        }
+
+        const allowedQty = Math.min(quantity, maxOrderQty);
+
+        stockMessage.textContent = 'Còn hàng';
+        stockMessage.className = 'text-success mb-3';
+        addButton.disabled = false;
+        quantityInput.max = allowedQty;
+
+        if (parseInt(quantityInput.value) > allowedQty) {
+            quantityInput.value = allowedQty;
+        }
     }
 
     function changeQty(delta) {
         const input = document.getElementById('quantity');
         let newVal = parseInt(input.value) + delta;
+        const max = parseInt(input.max);
+
         if (newVal < 1) newVal = 1;
+        if (!isNaN(max) && max > 0 && newVal > max) newVal = max;
+
         input.value = newVal;
+    }
+
+    function validateQuantity(input) {
+        let value = parseInt(input.value);
+        const max = parseInt(input.max);
+
+        if (isNaN(value) || value < 1) {
+            input.value = 1;
+            return;
+        }
+
+        if (!isNaN(max) && max > 0 && value > max) {
+            input.value = max;
+        }
     }
 
     function showToast(message, type) {
@@ -701,26 +787,44 @@
 
     function toggleWishlist(btn) {
         const productId = btn.dataset.productId;
-        fetch('/wishlist/toggle/' + productId, {method: 'POST'})
+
+        const csrfToken = document.cookie
+            .split('; ')
+            .find(row => row.startsWith('XSRF-TOKEN='))
+            ?.split('=')[1];
+
+        fetch('/wishlist/toggle/' + productId, {
+            method: 'POST',
+            headers: {
+                'X-XSRF-TOKEN': csrfToken
+                    ? decodeURIComponent(csrfToken)
+                    : ''
+            }
+        })
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
                     const icon = btn.querySelector('i');
+
                     if (data.inWishlist) {
                         icon.className = 'bi bi-heart-fill';
                     } else {
                         icon.className = 'bi bi-heart';
                     }
-                    showToast(data.message);
+
+                    showToast(data.message, 'success');
                 } else {
                     if (data.message && data.message.includes('đăng nhập')) {
                         window.location.href = '/login';
                     } else {
-                        showToast(data.message);
+                        showToast(data.message, 'error');
                     }
                 }
             })
-            .catch(() => showToast('Có lỗi xảy ra!'));
+            .catch(error => {
+                console.error('Wishlist error:', error);
+                showToast('Có lỗi xảy ra!', 'error');
+            });
     }
 
     function addToCart() {
@@ -753,7 +857,13 @@
         fetch('/cart/add-ajax', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-XSRF-TOKEN': decodeURIComponent(
+                    document.cookie
+                        .split('; ')
+                        .find(row => row.startsWith('XSRF-TOKEN='))
+                        ?.split('=')[1] || ''
+                )
             },
             body: formData.toString()
         })
@@ -761,6 +871,7 @@
             .then(data => {
                 if (data.success) {
                     showToast(data.message, 'success');
+
                     const cartBadge = document.querySelector('.cart-badge');
                     if (cartBadge) {
                         cartBadge.textContent = data.cartCount;

@@ -1,13 +1,10 @@
 package com.skysport.datn.controller.admin;
 
-import com.skysport.datn.entity.Product;
-import com.skysport.datn.entity.ProductDetail;
-import com.skysport.datn.entity.Image;
+import com.skysport.datn.entity.*;
 import com.skysport.datn.repository.ImageRepository;
 import com.skysport.datn.service.ProductDetailService;
 import com.skysport.datn.service.ProductDiscountService;
 import com.skysport.datn.service.ProductService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -20,19 +17,22 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
+import lombok.RequiredArgsConstructor;
 
 @Controller
 @RequestMapping("/admin/product")
+@RequiredArgsConstructor
 public class ProductController {
 
-    @Autowired
-    private ProductService productService;
-    @Autowired
-    private ProductDetailService productDetailService;
-    @Autowired
-    private ImageRepository imageRepository;
-    @Autowired
-    private ProductDiscountService productDiscountService;
+    private final ProductService productService;
+    private final ProductDetailService productDetailService;
+    private final ImageRepository imageRepository;
+    private final ProductDiscountService productDiscountService;
+
+    // Whitelist đuôi file cho ảnh sản phẩm — chặn upload .html/.svg/.js núp dưới đuôi ảnh
+    private static final Set<String> ALLOWED_IMAGE_EXT = Set.of("jpg", "jpeg", "png", "webp", "gif");
+    private static final long MAX_IMAGE_SIZE_BYTES = 5L * 1024 * 1024; // 5MB
 
     // Danh sách sản phẩm (tìm kiếm + lọc + phân trang)
     @GetMapping
@@ -68,8 +68,12 @@ public class ProductController {
         model.addAttribute("categories", productService.findAllCategory());
         model.addAttribute("brands", productService.findAllBrand());
         model.addAttribute("materials", productService.findAllMaterial());
-        model.addAttribute("sizes", productDetailService.findAllSize());
-        model.addAttribute("colors", productDetailService.findAllColor());
+        model.addAttribute("sizes", productDetailService.findAllActiveSize());
+        model.addAttribute("colors", productDetailService.findAllActiveColor());
+        // Danh sách chỉ gồm mục đang Hoạt động — dùng cho dropdown khi thêm/sửa sản phẩm
+        model.addAttribute("activeCategories", productService.findAllActiveCategory());
+        model.addAttribute("activeBrands", productService.findAllActiveBrand());
+        model.addAttribute("activeMaterials", productService.findAllActiveMaterial());
 
         // Giữ lại giá trị tìm kiếm/lọc trên form để hiển thị lại sau khi submit
         model.addAttribute("keyword", keyword);
@@ -88,11 +92,11 @@ public class ProductController {
                        @RequestParam Integer categoryId,
                        @RequestParam Integer brandId,
                        @RequestParam Integer materialId) {
-        product.setCategory(productService.findAllCategory()
+        product.setCategory(productService.findAllActiveCategory()
                 .stream().filter(c -> c.getId().equals(categoryId)).findFirst().orElse(null));
-        product.setBrand(productService.findAllBrand()
+        product.setBrand(productService.findAllActiveBrand()
                 .stream().filter(b -> b.getId().equals(brandId)).findFirst().orElse(null));
-        product.setMaterial(productService.findAllMaterial()
+        product.setMaterial(productService.findAllActiveMaterial()
                 .stream().filter(m -> m.getId().equals(materialId)).findFirst().orElse(null));
         productService.save(product);
         return "redirect:/admin/product";
@@ -119,8 +123,11 @@ public class ProductController {
                 .mapToInt(d -> d.getQuantity() != null ? d.getQuantity() : 0)
                 .sum();
         model.addAttribute("totalQuantity", totalQuantity);
-        model.addAttribute("sizes", productDetailService.findAllSize());
-        model.addAttribute("colors", productDetailService.findAllColor());
+        model.addAttribute("sizes", productDetailService.findAllActiveSize());
+        model.addAttribute("colors", productDetailService.findAllActiveColor());
+
+        model.addAttribute("allSizes", productDetailService.findAllSize());
+        model.addAttribute("allColors", productDetailService.findAllColor());
         model.addAttribute("newDetail", new ProductDetail());
         model.addAttribute("images", imageRepository.findByProductId(id));
         return "admin/product/detail";
@@ -136,6 +143,19 @@ public class ProductController {
             ra.addFlashAttribute("errorMsg", "Vui lòng chọn ảnh!");
             return "redirect:/admin/product/detail/" + productId;
         }
+        if (file.getSize() > MAX_IMAGE_SIZE_BYTES) {
+            ra.addFlashAttribute("errorMsg", "Ảnh vượt quá dung lượng cho phép (tối đa 5MB)!");
+            return "redirect:/admin/product/detail/" + productId;
+        }
+        String originalFilename = file.getOriginalFilename();
+        String ext = "";
+        if (originalFilename != null && originalFilename.contains(".")) {
+            ext = originalFilename.substring(originalFilename.lastIndexOf(".") + 1).toLowerCase();
+        }
+        if (!ALLOWED_IMAGE_EXT.contains(ext)) {
+            ra.addFlashAttribute("errorMsg", "Chỉ chấp nhận ảnh định dạng: jpg, jpeg, png, webp, gif!");
+            return "redirect:/admin/product/detail/" + productId;
+        }
         Product product = productService.findById(productId);
         if (product == null) {
             ra.addFlashAttribute("errorMsg", "Sản phẩm không tồn tại!");
@@ -143,27 +163,34 @@ public class ProductController {
         }
 
         try {
+            // Xác thực nội dung file thực sự là ảnh giải mã được (chặn file đổi đuôi giả mạo,
+            // vd. đặt tên evil.html.jpg hoặc đổi đuôi .svg/.js thành .jpg)
+            byte[] fileBytes = file.getBytes();
+            java.awt.image.BufferedImage decoded;
+            try (java.io.ByteArrayInputStream bis = new java.io.ByteArrayInputStream(fileBytes)) {
+                decoded = javax.imageio.ImageIO.read(bis);
+            }
+            if (decoded == null) {
+                ra.addFlashAttribute("errorMsg", "File không phải là ảnh hợp lệ!");
+                return "redirect:/admin/product/detail/" + productId;
+            }
+
             java.nio.file.Path uploadPath = java.nio.file.Paths.get("uploads");
             if (!java.nio.file.Files.exists(uploadPath)) {
                 java.nio.file.Files.createDirectories(uploadPath);
             }
 
-            String originalFilename = file.getOriginalFilename();
-            String ext = "";
-            if (originalFilename != null && originalFilename.contains(".")) {
-                ext = originalFilename.substring(originalFilename.lastIndexOf("."));
-            }
-            String newFilename = java.util.UUID.randomUUID().toString() + ext;
-            
+            String newFilename = java.util.UUID.randomUUID().toString() + "." + ext;
+
             java.nio.file.Path filePath = uploadPath.resolve(newFilename);
-            java.nio.file.Files.copy(file.getInputStream(), filePath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            java.nio.file.Files.write(filePath, fileBytes);
 
             String linkUrl = "/uploads/" + newFilename;
 
             Image image = Image.builder()
                     .createDate(LocalDateTime.now())
                     .updateDate(LocalDateTime.now())
-                    .fileType(ext.replace(".", "").isEmpty() ? "jpg" : ext.replace(".", ""))
+                    .fileType(ext.isEmpty() ? "jpg" : ext)
                     .link(linkUrl)
                     .name(name != null && !name.isBlank() ? name.trim() : product.getName())
                     .product(product)
@@ -179,7 +206,7 @@ public class ProductController {
     }
 
     // Xóa ảnh sản phẩm
-    @GetMapping("/{productId}/image/delete/{imageId}")
+    @PostMapping("/{productId}/image/delete/{imageId}")
     public String deleteImage(@PathVariable Integer productId,
                               @PathVariable Integer imageId,
                               RedirectAttributes ra) {
@@ -203,9 +230,9 @@ public class ProductController {
                              RedirectAttributes ra) {
         Product product = productService.findById(productId);
         detail.setProduct(product);
-        detail.setSize(productDetailService.findAllSize()
+        detail.setSize(productDetailService.findAllActiveSize()
                 .stream().filter(s -> s.getId().equals(sizeId)).findFirst().orElse(null));
-        detail.setColor(productDetailService.findAllColor()
+        detail.setColor(productDetailService.findAllActiveColor()
                 .stream().filter(c -> c.getId().equals(colorId)).findFirst().orElse(null));
         try {
             productDetailService.save(detail);
@@ -230,14 +257,37 @@ public class ProductController {
             return "redirect:/admin/product/detail/" + productId;
         }
 
-        oldDetail.setSize(productDetailService.findAllSize()
-                .stream().filter(s -> s.getId().equals(sizeId)).findFirst().orElse(null));
-        oldDetail.setColor(productDetailService.findAllColor()
-                .stream().filter(c -> c.getId().equals(colorId)).findFirst().orElse(null));
+        Size selectedSize = productDetailService.findAllActiveSize()
+                .stream()
+                .filter(s -> s.getId().equals(sizeId))
+                .findFirst()
+                .orElse(null);
+
+        Color selectedColor = productDetailService.findAllActiveColor()
+                .stream()
+                .filter(c -> c.getId().equals(colorId))
+                .findFirst()
+                .orElse(null);
+
+        if (selectedSize == null) {
+            ra.addFlashAttribute("errorMsg", "Size đã bị tạm dừng, không thể chọn Size này!");
+            return "redirect:/admin/product/detail/" + productId;
+        }
+
+        if (selectedColor == null) {
+            ra.addFlashAttribute("errorMsg", "Màu đã bị tạm dừng, không thể chọn Màu này!");
+            return "redirect:/admin/product/detail/" + productId;
+        }
+
+        oldDetail.setSize(selectedSize);
+        oldDetail.setColor(selectedColor);
         oldDetail.setQuantity(updatedDetail.getQuantity());
         oldDetail.setPrice(updatedDetail.getPrice());
         oldDetail.setBarcode(updatedDetail.getBarcode());
-        oldDetail.setDeleteFlag(updatedDetail.getDeleteFlag());
+        oldDetail.setStatus(updatedDetail.getStatus());
+        oldDetail.setMinStock(updatedDetail.getMinStock());
+        oldDetail.setMaxStock(updatedDetail.getMaxStock());
+        oldDetail.setTargetMarginPercent(updatedDetail.getTargetMarginPercent());
 
         try {
             productDetailService.update(oldDetail);
@@ -270,21 +320,20 @@ public class ProductController {
         old.setName(product.getName());
         old.setGender(product.getGender());
         old.setDescribe(product.getDescribe());
-        old.setStatus(product.getStatus()); // ✅
-        old.setCategory(productService.findAllCategory()
-                .stream().filter(c -> c.getId().equals(categoryId)).findFirst().orElse(null));
-        old.setBrand(productService.findAllBrand()
-                .stream().filter(b -> b.getId().equals(brandId)).findFirst().orElse(null));
-        old.setMaterial(productService.findAllMaterial()
-                .stream().filter(m -> m.getId().equals(materialId)).findFirst().orElse(null));
+        old.setCategory(productService.findAllActiveCategory()
+                .stream().filter(c -> c.getId().equals(categoryId)).findFirst().orElse(old.getCategory()));
+        old.setBrand(productService.findAllActiveBrand()
+                .stream().filter(b -> b.getId().equals(brandId)).findFirst().orElse(old.getBrand()));
+        old.setMaterial(productService.findAllActiveMaterial()
+                .stream().filter(m -> m.getId().equals(materialId)).findFirst().orElse(old.getMaterial()));
         productService.update(old);
         return "redirect:/admin/product";
     }
 
-    // Xóa sản phẩm
-    @GetMapping("/delete/{id}")
-    public String delete(@PathVariable Integer id) {
-        productService.delete(id);
+    // Bật / tắt trạng thái sản phẩm
+    @PostMapping("/toggle-status/{id}")
+    public String toggleStatus(@PathVariable Integer id) {
+        productService.toggleStatus(id);
         return "redirect:/admin/product";
     }
 
@@ -310,7 +359,7 @@ public class ProductController {
     }
 
     // Tắt khuyến mãi trước hạn
-    @GetMapping("/detail/discount/close/{id}")
+    @PostMapping("/detail/discount/close/{id}")
     public String closeDiscount(@PathVariable Integer id, @RequestParam Integer productId, RedirectAttributes ra) {
         try {
             productDiscountService.closeDiscount(id);
@@ -318,17 +367,6 @@ public class ProductController {
         } catch (RuntimeException e) {
             ra.addFlashAttribute("errorMsg", e.getMessage());
         }
-        return "redirect:/admin/product/detail/" + productId;
-    }
-
-    @GetMapping("/detail/delete/{id}")
-    public String deleteDetail(@PathVariable Integer id) {
-        ProductDetail detail = productDetailService.findById(id);
-        if (detail == null || detail.getProduct() == null) {
-            return "redirect:/admin/product";
-        }
-        Integer productId = detail.getProduct().getId();
-        productDetailService.delete(id);
         return "redirect:/admin/product/detail/" + productId;
     }
 }

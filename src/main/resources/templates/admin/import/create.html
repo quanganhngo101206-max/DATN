@@ -19,6 +19,48 @@
                 line-height: 25px;
                 padding-left: 0;
             }
+
+            .import-info {
+                font-size: 12px;
+                line-height: 1.5;
+                margin-top: 4px;
+            }
+
+            .import-info strong {
+                font-weight: 600;
+            }
+
+            .import-warning {
+                color: #dc3545;
+                font-size: 12px;
+                margin-top: 4px;
+            }
+
+            .import-suggest {
+                color: #0d6efd;
+                font-size: 12px;
+                margin-top: 4px;
+            }
+
+            .stock-after {
+                color: #198754;
+                font-size: 12px;
+                margin-top: 4px;
+            }
+
+            .price-current {
+                color: #212529;
+                font-weight: 600;
+            }
+
+            .price-old {
+                color: #6c757d;
+            }
+
+            .price-new {
+                color: #212529;
+                font-weight: 600;
+            }
         </style>
     </th:block>
 </head>
@@ -69,42 +111,99 @@
                 </button>
             </div>
             <div class="card-body p-0">
-                <table class="table mb-0" id="detailTable">
-                    <thead class="table-light">
-                    <tr>
-                        <th style="width:40%">Sản phẩm (Size - Màu)</th>
-                        <th style="width:20%">Số lượng nhập</th>
-                        <th style="width:25%">Giá nhập (đ)</th>
-                        <th style="width:15%"></th>
-                    </thead>
-                    <tbody id="detailBody">
-                    <tr id="row-0">
-                        <td>
-                            <select name="productDetailIds" class="form-select form-select-sm select2-product" required>
-                                <option value="">-- Chọn sản phẩm --</option>
-                                <option th:each="pd : ${productDetails}"
-                                        th:value="${pd.id}"
-                                        th:text="${pd.product.name + ' - ' + (pd.size != null ? pd.size.name : '?') + ' - ' + (pd.color != null ? pd.color.name : '?') + ' (tồn: ' + pd.quantity + ')'}">
-                                </option>
-                            </select>
-                        </td>
-                        <td><input type="number" name="quantities" class="form-control form-control-sm" min="1" value="1" required onchange="calcTotal()"></td>
-                        <td><input type="number" name="importPrices" class="form-control form-control-sm" min="0" value="0" required onchange="calcTotal()"></td>
-                        <td class="text-center">
-                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeRow('row-0')" disabled>
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </td>
-                    </tr>
-                    </tbody>
-                    <tfoot>
-                    <tr class="total-row">
-                        <td colspan="2" class="text-end px-3">Tổng cộng:</td>
-                        <td class="px-3" id="totalDisplay">0đ</td>
-                        <td></td>
-                    </tr>
-                    </tfoot>
-                </table>
+                <div class="table-responsive">
+                    <table class="table mb-0" id="detailTable">
+                        <thead class="table-light">
+                        <tr>
+                            <th style="width:25%">Sản phẩm (Size - Màu)</th>
+                            <th style="width:12%">Tồn kho</th>
+                            <th style="width:10%">Nhập</th>
+                            <th style="width:14%">Giá nhập</th>
+                            <th style="width:13%">Giá bán hiện tại</th>
+                            <th style="width:13%">Giá bán đề xuất</th>
+                            <th style="width:8%"></th>
+                        </tr>
+                        </thead>
+                        <tbody id="detailBody">
+                        <tr id="row-0">
+                            <td>
+                                <select name="productDetailIds" class="form-select form-select-sm select2-product" required>
+                                    <option value="">-- Chọn sản phẩm --</option>
+                                    <option th:each="pd : ${productDetails}"
+                                            th:value="${pd.id}"
+                                            th:text="${pd.product.name + ' - ' + (pd.size != null ? pd.size.name : '?') + ' - ' + (pd.color != null ? pd.color.name : '?') + ' (tồn: ' + pd.quantity + ')'}"
+                                            th:data-quantity="${pd.quantity != null ? pd.quantity : 0}"
+                                            th:data-min-stock="${pd.minStock != null ? pd.minStock : 10}"
+                                            th:data-max-stock="${pd.maxStock != null ? pd.maxStock : 50}"
+                                            th:data-selling-price="${pd.price != null ? pd.price : 0}"
+                                            th:data-margin="${pd.targetMarginPercent != null ? pd.targetMarginPercent : 100}"
+                                            th:data-last-import-price="${lastImportPriceMap[pd.id] != null ? lastImportPriceMap[pd.id] : ''}">
+                                    </option>
+                                </select>
+
+                                <div class="import-info" id="priceHistory-row-0">
+                                    Chọn sản phẩm để xem lịch sử giá
+                                </div>
+                            </td>
+
+                            <td>
+                                <div class="fw-semibold" id="stock-row-0">-</div>
+                                <div class="import-info" id="stockLimit-row-0"></div>
+                                <div class="stock-after" id="stockAfter-row-0"></div>
+                            </td>
+
+                            <td>
+                                <input type="number"
+                                       name="quantities"
+                                       class="form-control form-control-sm"
+                                       min="1"
+                                       value="1"
+                                       required
+                                       onchange="updateRowInfo(this.closest('tr'))">
+                            </td>
+
+                            <td>
+                                <input type="number"
+                                       name="importPrices"
+                                       class="form-control form-control-sm"
+                                       min="0"
+                                       value="0"
+                                       required
+                                       onchange="updateRowInfo(this.closest('tr'))"
+                                       oninput="updateRowInfo(this.closest('tr'))">
+
+                                <div class="import-info" id="importPriceCompare-row-0"></div>
+                            </td>
+
+                            <td>
+                                <div class="price-current" id="sellingPrice-row-0">-</div>
+                                <div class="import-info" id="margin-row-0"></div>
+                            </td>
+
+                            <td>
+                                <div class="price-new" id="suggestedPrice-row-0">-</div>
+                                <div class="import-suggest" id="suggestedInfo-row-0"></div>
+                            </td>
+
+                            <td class="text-center">
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-danger"
+                                        onclick="removeRow('row-0')"
+                                        disabled>
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        </tbody>
+
+                        <tfoot>
+                        <tr class="total-row">
+                            <td colspan="6" class="text-end px-3">Tổng cộng:</td>
+                            <td class="px-3" id="totalDisplay">0đ</td>
+                        </tr>
+                        </tfoot>
+                    </table>
+                </div>
             </div>
         </div>
 
@@ -120,8 +219,10 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
 <script th:inline="javascript">
     let rowCount = 1;
+
     // Lấy nội dung các option ban đầu TRƯỚC KHI init select2
     const firstSelect = document.querySelector('select[name="productDetailIds"]').innerHTML;
 
@@ -131,9 +232,14 @@
             placeholder: '-- Chọn nhà cung cấp --',
             width: '100%'
         });
+
         $('.select2-product').select2({
             placeholder: '-- Chọn sản phẩm --',
             width: '100%'
+        });
+
+        $('select[name="productDetailIds"]').on('change', function() {
+            updateRowInfo(this.closest('tr'));
         });
     });
 
@@ -141,42 +247,316 @@
         const id = 'row-' + rowCount++;
         const tr = document.createElement('tr');
         tr.id = id;
+
         tr.innerHTML = `
-            <td><select name="productDetailIds" class="form-select form-select-sm select2-product" required>${firstSelect}</select></td>
-            <td><input type="number" name="quantities" class="form-control form-control-sm" min="1" value="1" required onchange="calcTotal()"></td>
-            <td><input type="number" name="importPrices" class="form-control form-control-sm" min="0" value="0" required onchange="calcTotal()"></td>
+            <td>
+                <select name="productDetailIds"
+                        class="form-select form-select-sm select2-product"
+                        required>
+                    ${firstSelect}
+                </select>
+
+                <div class="import-info" id="priceHistory-${id}">
+                    Chọn sản phẩm để xem lịch sử giá
+                </div>
+            </td>
+
+            <td>
+                <div class="fw-semibold" id="stock-${id}">-</div>
+                <div class="import-info" id="stockLimit-${id}"></div>
+                <div class="stock-after" id="stockAfter-${id}"></div>
+            </td>
+
+            <td>
+                <input type="number"
+                       name="quantities"
+                       class="form-control form-control-sm"
+                       min="1"
+                       value="1"
+                       required
+                       onchange="updateRowInfo(this.closest('tr'))">
+            </td>
+
+            <td>
+                <input type="number"
+                       name="importPrices"
+                       class="form-control form-control-sm"
+                       min="0"
+                       value="0"
+                       required
+                       onchange="updateRowInfo(this.closest('tr'))"
+                       oninput="updateRowInfo(this.closest('tr'))">
+
+                <div class="import-info" id="importPriceCompare-${id}"></div>
+            </td>
+
+            <td>
+                <div class="price-current" id="sellingPrice-${id}">-</div>
+                <div class="import-info" id="margin-${id}"></div>
+            </td>
+
+            <td>
+                <div class="price-new" id="suggestedPrice-${id}">-</div>
+                <div class="import-suggest" id="suggestedInfo-${id}"></div>
+            </td>
+
             <td class="text-center">
-                <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeRow('${id}')">
+                <button type="button"
+                        class="btn btn-sm btn-outline-danger"
+                        onclick="removeRow('${id}')">
                     <i class="bi bi-trash"></i>
                 </button>
             </td>`;
+
         document.getElementById('detailBody').appendChild(tr);
-        calcTotal();
-        
-        // Init select2 cho dòng mới
+
         $('#' + id + ' .select2-product').select2({
             placeholder: '-- Chọn sản phẩm --',
             width: '100%'
         });
+
+        $('#' + id + ' .select2-product').on('change', function() {
+            updateRowInfo(this.closest('tr'));
+        });
+
+        updateRowInfo(tr);
+        calcTotal();
     }
 
     function removeRow(id) {
         const rows = document.getElementById('detailBody').querySelectorAll('tr');
+
         if (rows.length <= 1) return;
+
         document.getElementById(id).remove();
+        calcTotal();
+    }
+
+    function updateRowInfo(row) {
+        if (!row) return;
+
+        const select = row.querySelector('select[name="productDetailIds"]');
+        const quantityInput = row.querySelector('input[name="quantities"]');
+        const importPriceInput = row.querySelector('input[name="importPrices"]');
+
+        if (!select || !quantityInput || !importPriceInput) return;
+
+        const selectedOption = select.options[select.selectedIndex];
+
+        const rowId = row.id;
+
+        const stockElement = document.getElementById('stock-' + rowId);
+        const stockLimitElement = document.getElementById('stockLimit-' + rowId);
+        const stockAfterElement = document.getElementById('stockAfter-' + rowId);
+
+        const priceHistoryElement = document.getElementById('priceHistory-' + rowId);
+        const importPriceCompareElement = document.getElementById('importPriceCompare-' + rowId);
+
+        const sellingPriceElement = document.getElementById('sellingPrice-' + rowId);
+        const marginElement = document.getElementById('margin-' + rowId);
+
+        const suggestedPriceElement = document.getElementById('suggestedPrice-' + rowId);
+        const suggestedInfoElement = document.getElementById('suggestedInfo-' + rowId);
+
+        if (!selectedOption || !selectedOption.value) {
+            stockElement.textContent = '-';
+            stockLimitElement.textContent = '';
+            stockAfterElement.textContent = '';
+
+            priceHistoryElement.textContent = 'Chọn sản phẩm để xem lịch sử giá';
+            importPriceCompareElement.textContent = '';
+
+            sellingPriceElement.textContent = '-';
+            marginElement.textContent = '';
+
+            suggestedPriceElement.textContent = '-';
+            suggestedInfoElement.textContent = '';
+
+            calcTotal();
+            return;
+        }
+
+        const quantity = parseInt(quantityInput.value) || 0;
+        const importPrice = parseFloat(importPriceInput.value) || 0;
+
+        const currentStock = parseInt(selectedOption.dataset.quantity) || 0;
+        const minStock = parseInt(selectedOption.dataset.minStock) || 0;
+        const maxStock = parseInt(selectedOption.dataset.maxStock) || 0;
+
+        const sellingPrice = parseFloat(selectedOption.dataset.sellingPrice) || 0;
+        const margin = parseFloat(selectedOption.dataset.margin) || 0;
+
+        const lastImportPriceValue = selectedOption.dataset.lastImportPrice;
+
+        // =========================
+        // TỒN KHO
+        // =========================
+
+        stockElement.textContent = formatMoney(currentStock) + ' sản phẩm';
+
+        stockLimitElement.textContent =
+            'Min: ' + formatMoney(minStock) +
+            ' | Max: ' + formatMoney(maxStock);
+
+        const stockAfter = currentStock + quantity;
+
+        if (quantity > 0) {
+            stockAfterElement.textContent =
+                'Sau nhập: ' + formatMoney(stockAfter);
+
+            if (stockAfter > maxStock) {
+                stockAfterElement.className = 'import-warning';
+                stockAfterElement.textContent =
+                    '⚠ Sau nhập: ' + formatMoney(stockAfter) +
+                    ' > Max ' + formatMoney(maxStock);
+            } else {
+                stockAfterElement.className = 'stock-after';
+            }
+        } else {
+            stockAfterElement.textContent = '';
+        }
+
+        // =========================
+        // GIÁ NHẬP CŨ
+        // =========================
+
+        if (lastImportPriceValue !== null
+            && lastImportPriceValue !== undefined
+            && lastImportPriceValue !== '') {
+
+            const lastImportPrice = parseFloat(lastImportPriceValue);
+
+            priceHistoryElement.innerHTML =
+                '<span class="price-old">Giá nhập cũ:</span> ' +
+                '<strong>' + formatMoney(lastImportPrice) + 'đ</strong>' +
+                '<br><span class="text-muted">Lần nhập APPROVED gần nhất</span>';
+
+            if (importPrice > 0) {
+                if (importPrice > lastImportPrice) {
+                    importPriceCompareElement.className = 'import-warning';
+                    importPriceCompareElement.textContent =
+                        '⚠ Giá nhập mới cao hơn giá cũ ' +
+                        formatMoney(importPrice - lastImportPrice) + 'đ';
+                } else if (importPrice < lastImportPrice) {
+                    importPriceCompareElement.className = 'stock-after';
+                    importPriceCompareElement.textContent =
+                        '↓ Giá nhập mới thấp hơn giá cũ ' +
+                        formatMoney(lastImportPrice - importPrice) + 'đ';
+                } else {
+                    importPriceCompareElement.className = 'import-info';
+                    importPriceCompareElement.textContent =
+                        'Giá nhập không thay đổi';
+                }
+            }
+        } else {
+            priceHistoryElement.innerHTML =
+                '<span class="price-old">Giá nhập cũ:</span> ' +
+                '<strong>Chưa có dữ liệu</strong>' +
+                '<br><span class="text-muted">Chưa từng có phiếu nhập APPROVED</span>';
+
+            importPriceCompareElement.textContent = '';
+        }
+
+        // =========================
+        // GIÁ BÁN HIỆN TẠI
+        // =========================
+
+        if (sellingPrice > 0) {
+            sellingPriceElement.textContent =
+                formatMoney(sellingPrice) + 'đ';
+
+            marginElement.textContent =
+                'Margin mục tiêu: ' + formatNumber(margin) + '%';
+        } else {
+            sellingPriceElement.textContent = 'Chưa có';
+            marginElement.textContent =
+                'Chưa thiết lập giá bán';
+        }
+
+        // =========================
+        // GIÁ NHẬP MỚI
+        // =========================
+
+        if (importPrice > 0 && sellingPrice > 0) {
+            if (importPrice > sellingPrice) {
+                importPriceCompareElement.className = 'import-warning';
+                importPriceCompareElement.textContent =
+                    '⚠ Giá nhập mới cao hơn giá bán hiện tại ' +
+                    formatMoney(importPrice - sellingPrice) + 'đ';
+            }
+        }
+
+        // =========================
+        // GIÁ BÁN ĐỀ XUẤT
+        // =========================
+
+        if (importPrice > 0 && margin >= 0) {
+            const suggestedPrice =
+                importPrice * (1 + margin / 100);
+
+            suggestedPriceElement.textContent =
+                formatMoney(suggestedPrice) + 'đ';
+
+            if (sellingPrice > 0 && suggestedPrice > sellingPrice) {
+                suggestedInfoElement.className = 'import-warning';
+                suggestedInfoElement.textContent =
+                    '⚠ Cao hơn giá bán hiện tại ' +
+                    formatMoney(suggestedPrice - sellingPrice) + 'đ';
+            } else if (sellingPrice > 0 && suggestedPrice < sellingPrice) {
+                suggestedInfoElement.className = 'import-suggest';
+                suggestedInfoElement.textContent =
+                    '↓ Thấp hơn giá bán hiện tại ' +
+                    formatMoney(sellingPrice - suggestedPrice) + 'đ';
+            } else {
+                suggestedInfoElement.className = 'import-suggest';
+                suggestedInfoElement.textContent =
+                    'Theo margin mục tiêu ' +
+                    formatNumber(margin) + '%';
+            }
+        } else {
+            suggestedPriceElement.textContent = '-';
+            suggestedInfoElement.textContent =
+                margin > 0
+                    ? 'Nhập giá nhập để tính'
+                    : 'Chưa thiết lập margin mục tiêu';
+        }
+
         calcTotal();
     }
 
     function calcTotal() {
         const rows = document.getElementById('detailBody').querySelectorAll('tr');
         let total = 0;
+
         rows.forEach(row => {
-            const qty = parseFloat(row.querySelector('input[name="quantities"]').value) || 0;
-            const price = parseFloat(row.querySelector('input[name="importPrices"]').value) || 0;
+            const quantityInput =
+                row.querySelector('input[name="quantities"]');
+
+            const priceInput =
+                row.querySelector('input[name="importPrices"]');
+
+            if (!quantityInput || !priceInput) return;
+
+            const qty = parseFloat(quantityInput.value) || 0;
+            const price = parseFloat(priceInput.value) || 0;
+
             total += qty * price;
         });
+
         document.getElementById('totalDisplay').textContent =
-            new Intl.NumberFormat('vi-VN').format(total) + 'đ';
+            formatMoney(total) + 'đ';
+    }
+
+    function formatMoney(value) {
+        return new Intl.NumberFormat('vi-VN').format(
+            Math.round(value || 0)
+        );
+    }
+
+    function formatNumber(value) {
+        return Number(value || 0).toLocaleString('vi-VN', {
+            maximumFractionDigits: 2
+        });
     }
 </script>
 

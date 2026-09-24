@@ -12,22 +12,43 @@
                 margin-bottom: 24px;
                 box-shadow: var(--shadow-sm);
             }
+
             .info-label {
-                font-size: 11.5px; font-weight: 600; text-transform: uppercase;
-                letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 4px;
+                font-size: 11.5px;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                color: var(--text-muted);
+                margin-bottom: 4px;
             }
+
             .info-value {
-                font-size: 14px; font-weight: 500; color: var(--text-primary);
+                font-size: 14px;
+                font-weight: 500;
+                color: var(--text-primary);
             }
-            .info-block { margin-bottom: 16px; }
-            .variant-qty-low { color: #dc2626; font-weight: 700; }
+
+            .info-block {
+                margin-bottom: 16px;
+            }
+
+            .variant-qty-low {
+                color: #dc2626;
+                font-weight: 700;
+            }
 
             /* Bộ lọc size + màu */
-            #sizeFilter, #colorFilter { min-width: 150px; }
+            #sizeFilter, #colorFilter {
+                min-width: 150px;
+            }
+
             tr[data-row-type="header"] td {
                 background: #f8fafc;
             }
-            tr.d-none-filtered { display: none !important; }
+
+            tr.d-none-filtered {
+                display: none !important;
+            }
         </style>
     </th:block>
 </head>
@@ -36,7 +57,6 @@
 <div th:replace="~{admin/fragments/layout :: adminSidebar('product')}"></div>
 
 <div class="main-content">
-
     <!-- Header -->
     <div class="d-flex align-items-center justify-content-between mb-4">
         <div class="d-flex align-items-center gap-3">
@@ -105,7 +125,8 @@
             <div class="card">
                 <div class="card-header"><i class="bi bi-image"></i> Thêm hình ảnh</div>
                 <div class="card-body p-4">
-                    <form th:action="@{/admin/product/{id}/image/add(id=${product.id})}" method="post" enctype="multipart/form-data">
+                    <form th:action="@{/admin/product/{id}/image/add(id=${product.id})}" method="post"
+                          enctype="multipart/form-data">
                         <div class="mb-3">
                             <label class="form-label">Chọn ảnh</label>
                             <input type="file" name="file" class="form-control" accept="image/*" required/>
@@ -139,11 +160,13 @@
                                 <div class="p-2 d-flex align-items-center justify-content-between">
                                     <small class="text-muted text-truncate"
                                            th:text="${img.name}" style="max-width:100px;"></small>
-                                    <a th:href="@{/admin/product/{pid}/image/delete/{iid}(pid=${product.id}, iid=${img.id})}"
-                                       class="btn btn-sm btn-outline-danger"
-                                       onclick="return confirm('Xóa ảnh này?')">
-                                        <i class="bi bi-trash"></i>
-                                    </a>
+                                    <form th:action="@{/admin/product/{pid}/image/delete/{iid}(pid=${product.id}, iid=${img.id})}"
+                                          method="post" style="display:inline;"
+                                          onsubmit="return confirm('Xóa ảnh này?')">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
                                 </div>
                             </div>
                         </div>
@@ -169,7 +192,8 @@
                               th:text="'(' + ${#lists.size(details)} + ' biến thể)'"></span>
                     </div>
                     <div class="d-flex gap-2 flex-wrap">
-                        <button type="button" class="btn btn-sm btn-purple" data-bs-toggle="modal" data-bs-target="#addDetailModal">
+                        <button type="button" class="btn btn-sm btn-purple" data-bs-toggle="modal"
+                                data-bs-target="#addDetailModal">
                             <i class="bi bi-plus-circle"></i> Thêm biến thể
                         </button>
                     </div>
@@ -179,11 +203,11 @@
                         <thead>
                         <tr>
                             <th>#</th>
-                            <th>Size</th>
                             <th>Màu</th>
                             <th>Số lượng</th>
                             <th>Giá bán</th>
                             <th>Barcode</th>
+                            <th>Trạng thái</th>
                             <th>Khuyến mãi</th>
                             <th>Thao tác</th>
                         </tr>
@@ -194,31 +218,53 @@
                             <tr th:if="${i.index == 0 || d.size?.id != details[i.index - 1].size?.id}"
                                 data-row-type="header"
                                 th:attr="data-size-id=${d.size != null ? d.size.id : ''}">
-                                <td colspan="8" style="padding:8px 16px;">
-                                    <span style="font-weight:700;font-size:13px;color:#334155;">
-                                        Size:
-                                        <span style="background:#eff6ff;color:#2563eb;padding:3px 10px;border-radius:20px;font-size:12px;"
+                                <td colspan="8" style="padding:10px 16px; background:#f8fafc;">
+
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span style="font-weight:700;font-size:13px;color:#334155;">Size:</span>
+                                        <!-- Tên Size -->
+                                        <span style="background:#eff6ff;color:#2563eb;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;"
                                               th:text="${d.size != null ? d.size.name : '—'}"></span>
-                                    </span>
+                                        <!-- Trạng thái Size -->
+                                        <span th:if="${d.size != null and d.size.status == 1}"
+                                              class="badge bg-success"
+                                              style="font-size:11px;">Hoạt động</span>
+
+                                        <span th:if="${d.size != null and d.size.status == 0}"
+                                              class="badge bg-danger"
+                                              style="font-size:11px;">Đã dừng</span>
+                                    </div>
                                 </td>
                             </tr>
                             <tr data-row-type="data"
                                 th:attr="data-size-id=${d.size != null ? d.size.id : ''}, data-color-id=${d.color != null ? d.color.id : ''}">
                                 <td th:text="${i.count}" class="text-muted"></td>
                                 <td>
-                                    <span style="background:#eff6ff;color:#2563eb;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;"
-                                          th:text="${d.size != null ? d.size.name : '—'}"></span>
-                                </td>
-                                <td>
                                     <span style="background:#f0fdf4;color:#16a34a;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;"
                                           th:text="${d.color != null ? d.color.name : '—'}"></span>
+                                    <span th:if="${d.color != null and d.color.status == 1}">(Hoạt động)</span>
+                                    <span th:if="${d.color != null and d.color.status == 0}">(Đã dừng)</span>
                                 </td>
                                 <td>
                                     <span th:text="${d.quantity}"
-                                          th:class="${d.quantity != null and d.quantity <= 5} ? 'variant-qty-low' : 'fw-500'"></span>
-                                    <i th:if="${d.quantity != null and d.quantity <= 5}"
-                                       class="bi bi-exclamation-triangle-fill text-warning ms-1"
-                                       title="Tồn kho thấp"></i>
+                                          th:class="${d.quantity != null and d.minStock != null and d.quantity < d.minStock} ? 'variant-qty-low' : 'fw-500'"></span>
+
+                                    <span th:if="${d.quantity != null and d.minStock != null and d.quantity < d.minStock}"
+                                          class="badge bg-danger ms-1"
+                                          style="font-size:10px;">
+                                        Tồn thấp
+                                    </span>
+
+                                    <span th:if="${d.quantity != null and d.maxStock != null and d.quantity > d.maxStock}"
+                                          class="badge bg-warning text-dark ms-1"
+                                          style="font-size:10px;">
+                                        Tồn cao
+                                    </span>
+
+                                    <br/>
+                                    <small class="text-muted" style="font-size:10px;"
+                                           th:text="'Min: ' + ${d.minStock != null ? d.minStock : 0} + ' | Max: ' + ${d.maxStock != null ? d.maxStock : 0}">
+                                    </small>
                                 </td>
                                 <td>
                                     <span th:if="${d.isOnSale()}">
@@ -233,6 +279,18 @@
                                 </td>
                                 <td class="text-muted" th:text="${d.barcode != null ? d.barcode : '—'}"></td>
                                 <td>
+                                    <span th:if="${d.status == 1}"
+                                          class="badge bg-success"
+                                          style="font-size:11px;">
+                                        Hoạt động
+                                    </span>
+                                    <span th:if="${d.status == 0}"
+                                          class="badge bg-secondary"
+                                          style="font-size:11px;">
+                                        Tạm dừng
+                                    </span>
+                                </td>
+                                <td>
                                     <span th:if="${d.isOnSale()}"
                                           style="background:#fef2f2;color:#dc2626;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;"
                                           th:text="'-' + ${#numbers.formatDecimal(d.productDiscount.discountedAmount, 0, 'COMMA', 0, 'POINT')} + 'đ đến ' + ${#temporals.format(d.productDiscount.endDate, 'dd/MM HH:mm')}">
@@ -246,22 +304,19 @@
                                                 title="Áp/đổi khuyến mãi">
                                             <i class="bi bi-tag"></i>
                                         </button>
-                                        <a th:if="${d.isOnSale()}"
-                                           th:href="@{/admin/product/detail/discount/close/{id}(id=${d.productDiscount.id}, productId=${product.id})}"
-                                           class="btn btn-sm btn-outline-warning"
-                                           onclick="return confirm('Tắt khuyến mãi này?')" title="Tắt khuyến mãi">
-                                            <i class="bi bi-tag-fill"></i>
-                                        </a>
+                                        <form th:if="${d.isOnSale()}"
+                                              th:action="@{/admin/product/detail/discount/close/{id}(id=${d.productDiscount.id}, productId=${product.id})}"
+                                              method="post" style="display:inline;"
+                                              onsubmit="return confirm('Tắt khuyến mãi này?')">
+                                            <button type="submit" class="btn btn-sm btn-outline-warning" title="Tắt khuyến mãi">
+                                                <i class="bi bi-tag-fill"></i>
+                                            </button>
+                                        </form>
                                         <button type="button" class="btn btn-sm btn-outline-info"
                                                 data-bs-toggle="modal" th:data-bs-target="'#editDetailModal' + ${d.id}"
                                                 title="Chỉnh sửa biến thể">
                                             <i class="bi bi-pencil"></i>
                                         </button>
-                                        <a th:href="@{/admin/product/detail/delete/{id}(id=${d.id})}"
-                                           class="btn btn-sm btn-outline-danger"
-                                           onclick="return confirm('Xóa biến thể này?')" title="Xóa biến thể">
-                                            <i class="bi bi-trash"></i>
-                                        </a>
                                     </div>
                                 </td>
                             </tr>
@@ -287,59 +342,216 @@
 
     <!-- Modal thêm biến thể -->
     <div class="modal fade" id="addDetailModal" tabindex="-1" data-bs-backdrop="static">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
-                <form th:action="@{/admin/product/detail/save}" method="post">
-                    <input type="hidden" name="productId" th:value="${product.id}"/>
-                    <div class="modal-header">
-                        <h5 class="modal-title"><i class="bi bi-plus-circle"></i> Thêm biến thể</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-plus-circle"></i> Thêm biến thể</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Tab chọn kiểu thêm -->
+                    <ul class="nav nav-tabs mb-3" id="addDetailTabs">
+                        <li class="nav-item">
+                            <a class="nav-link active" data-bs-toggle="tab" href="#singleTab">
+                                <i class="bi bi-plus-square me-1"></i>Một biến thể
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-bs-toggle="tab" href="#batchTab">
+                                <i class="bi bi-grid me-1"></i>Hàng loạt (Size × Màu)
+                            </a>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content">
+                        <!-- Tab đơn lẻ -->
+                        <div class="tab-pane fade show active" id="singleTab">
+                            <form th:action="@{/admin/product/detail/save}" method="post" id="singleDetailForm">
+                                <input type="hidden" name="productId" th:value="${product.id}"/>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Size <span class="text-danger">*</span></label>
+                                        <select name="sizeId" class="form-select" required>
+                                            <option value="">-- Chọn size --</option>
+                                            <option th:each="s : ${sizes}" th:value="${s.id}" th:text="${s.name}"></option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Màu sắc <span class="text-danger">*</span></label>
+                                        <select name="colorId" class="form-select" required>
+                                            <option value="">-- Chọn màu --</option>
+                                            <option th:each="c : ${colors}" th:value="${c.id}" th:text="${c.name}"></option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Số lượng <span class="text-danger">*</span></label>
+                                        <input type="number" name="quantity" class="form-control" placeholder="VD: 100" min="0" required/>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Giá bán (đ) <span class="text-danger">*</span></label>
+                                        <input type="number" name="price" class="form-control" placeholder="VD: 500000" min="0" required/>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Barcode</label>
+                                        <input type="text" name="barcode" class="form-control" placeholder="VD: NK-S-DO-001"/>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Tồn kho tối thiểu</label>
+                                        <input type="number" name="minStock" class="form-control" value="10" min="0" required/>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Tồn kho tối đa</label>
+                                        <input type="number" name="maxStock" class="form-control" value="50" min="0" required/>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Tỷ lệ lợi nhuận mục tiêu (%)</label>
+                                        <input type="number" name="targetMarginPercent" class="form-control" placeholder="VD: 30" min="0" step="0.01"/>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Trạng thái</label>
+                                        <select name="status" class="form-select">
+                                            <option value="1">Hoạt động</option>
+                                            <option value="0">Tạm dừng</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="mt-3 d-flex gap-2 justify-content-end">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                                    <button type="submit" class="btn btn-purple">
+                                        <i class="bi bi-save me-1"></i>Thêm biến thể
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Tab hàng loạt -->
+                        <div class="tab-pane fade" id="batchTab">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold">Chọn Size <span class="text-danger">*</span></label>
+                                    <div class="border rounded p-2" style="max-height:160px; overflow-y:auto;">
+                                        <div th:each="s : ${sizes}" class="form-check">
+                                            <input class="form-check-input batch-size" type="checkbox"
+                                                   th:value="${s.id}" th:id="'batchSize_' + ${s.id}">
+                                            <label class="form-check-label" th:for="'batchSize_' + ${s.id}" th:text="${s.name}"></label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold">Chọn Màu <span class="text-danger">*</span></label>
+                                    <div class="border rounded p-2" style="max-height:160px; overflow-y:auto;">
+                                        <div th:each="c : ${colors}" class="form-check">
+                                            <input class="form-check-input batch-color" type="checkbox"
+                                                   th:value="${c.id}" th:id="'batchColor_' + ${c.id}">
+                                            <label class="form-check-label" th:for="'batchColor_' + ${c.id}" th:text="${c.name}"></label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Giá bán chung (đ) <span class="text-danger">*</span></label>
+                                    <input type="number" id="batchPrice" class="form-control" placeholder="VD: 500000" min="0">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Số lượng chung <span class="text-danger">*</span></label>
+                                    <input type="number" id="batchQty" class="form-control" placeholder="VD: 100" min="0">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Tồn kho tối thiểu</label>
+                                    <input type="number" id="batchMinStock" class="form-control" value="10" min="0">
+                                </div>
+                                <div class="col-12">
+                                    <div id="batchPreview" class="text-muted small mb-2"></div>
+                                    <div id="batchProgress" style="display:none;" class="mb-2">
+                                        <div class="progress">
+                                            <div id="batchProgressBar" class="progress-bar bg-success" style="width:0%"></div>
+                                        </div>
+                                        <div id="batchProgressText" class="text-muted small mt-1 text-center"></div>
+                                    </div>
+                                    <button type="button" class="btn btn-purple w-100" onclick="submitBatch()">
+                                        <i class="bi bi-grid-fill me-1"></i>Thêm hàng loạt
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label class="form-label">Size</label>
-                            <select name="sizeId" class="form-select" required>
-                                <option value="">-- Chọn size --</option>
-                                <option th:each="s : ${sizes}" th:value="${s.id}" th:text="${s.name}"></option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Màu sắc</label>
-                            <select name="colorId" class="form-select" required>
-                                <option value="">-- Chọn màu --</option>
-                                <option th:each="c : ${colors}" th:value="${c.id}" th:text="${c.name}"></option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Số lượng</label>
-                            <input type="number" name="quantity" class="form-control" placeholder="VD: 100" min="0" required/>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Giá bán (đ)</label>
-                            <input type="number" name="price" class="form-control" placeholder="VD: 500000" min="0" required/>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Barcode</label>
-                            <input type="text" name="barcode" class="form-control" placeholder="VD: NK-S-DO-001"/>
-                        </div>
-                        <div class="mb-0">
-                            <label class="form-label">Trạng thái</label>
-                            <select name="deleteFlag" class="form-select">
-                                <option value="false">Hoạt động</option>
-                                <option value="true">Tắt</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                        <button type="submit" class="btn btn-purple">
-                            <i class="bi bi-save"></i> Thêm biến thể
-                        </button>
-                    </div>
-                </form>
+                </div>
             </div>
         </div>
     </div>
+
+    <script th:inline="javascript">
+        const batchProductId = /*[[${product.id}]]*/ 0;
+
+        // Preview số tổ hợp khi chọn size/màu
+        document.querySelectorAll('.batch-size, .batch-color').forEach(cb => {
+            cb.addEventListener('change', updateBatchPreview);
+        });
+
+        function updateBatchPreview() {
+            const sizes = document.querySelectorAll('.batch-size:checked').length;
+            const colors = document.querySelectorAll('.batch-color:checked').length;
+            const preview = document.getElementById('batchPreview');
+            if (sizes > 0 && colors > 0) {
+                preview.textContent = `→ Sẽ tạo tối đa ${sizes} × ${colors} = ${sizes * colors} biến thể (bỏ qua combo đã tồn tại)`;
+            } else {
+                preview.textContent = '';
+            }
+        }
+
+        async function submitBatch() {
+            const sizeIds = [...document.querySelectorAll('.batch-size:checked')].map(e => e.value);
+            const colorIds = [...document.querySelectorAll('.batch-color:checked')].map(e => e.value);
+            const price = document.getElementById('batchPrice').value;
+            const qty = document.getElementById('batchQty').value;
+            const minStock = document.getElementById('batchMinStock').value || 10;
+
+            if (!sizeIds.length || !colorIds.length) { alert('Vui lòng chọn ít nhất 1 size và 1 màu!'); return; }
+            if (!price || !qty) { alert('Vui lòng điền giá bán và số lượng!'); return; }
+
+            const csrfToken = document.cookie.split(';').find(c => c.trim().startsWith('XSRF-TOKEN='));
+            const csrf = csrfToken ? decodeURIComponent(csrfToken.split('=')[1]) : null;
+
+            const combos = [];
+            for (const sizeId of sizeIds) {
+                for (const colorId of colorIds) {
+                    combos.push({ sizeId, colorId });
+                }
+            }
+
+            const progress = document.getElementById('batchProgress');
+            const bar = document.getElementById('batchProgressBar');
+            const text = document.getElementById('batchProgressText');
+            progress.style.display = 'block';
+
+            let success = 0, skipped = 0;
+            for (let i = 0; i < combos.length; i++) {
+                const { sizeId, colorId } = combos[i];
+                const form = new FormData();
+                form.append('productId', batchProductId);
+                form.append('sizeId', sizeId);
+                form.append('colorId', colorId);
+                form.append('price', price);
+                form.append('quantity', qty);
+                form.append('minStock', minStock);
+                form.append('maxStock', 50);
+                form.append('status', 1);
+                if (csrf) form.append('_csrf', csrf);
+
+                try {
+                    const res = await fetch('/admin/product/detail/save', { method: 'POST', body: form });
+                    if (res.ok || res.redirected) success++; else skipped++;
+                } catch { skipped++; }
+
+                const pct = Math.round(((i + 1) / combos.length) * 100);
+                bar.style.width = pct + '%';
+                text.textContent = `${i + 1}/${combos.length} biến thể...`;
+            }
+
+            progress.style.display = 'none';
+            alert(`Hoàn tất! Đã thêm ${success} biến thể.${skipped > 0 ? ' ' + skipped + ' biến thể bị bỏ qua (đã tồn tại hoặc lỗi).' : ''}`);
+            location.reload();
+        }
+    </script>
 
     <!-- Modal chỉnh sửa biến thể -->
     <div class="modal fade" th:id="'editDetailModal' + ${d.id}" tabindex="-1" th:each="d : ${details}">
@@ -356,33 +568,54 @@
                             <label class="form-label">Size</label>
                             <select name="sizeId" class="form-select" required>
                                 <option value="">-- Chọn size --</option>
-                                <option th:each="s : ${sizes}" th:value="${s.id}" th:text="${s.name}" th:selected="${d.size != null and d.size.id == s.id}"></option>
+                                <option th:each="s : ${sizes}" th:value="${s.id}" th:text="${s.name}"
+                                        th:selected="${d.size != null and d.size.id == s.id}"></option>
                             </select>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Màu sắc</label>
                             <select name="colorId" class="form-select" required>
                                 <option value="">-- Chọn màu --</option>
-                                <option th:each="c : ${colors}" th:value="${c.id}" th:text="${c.name}" th:selected="${d.color != null and d.color.id == c.id}"></option>
+                                <option th:each="c : ${colors}" th:value="${c.id}" th:text="${c.name}"
+                                        th:selected="${d.color != null and d.color.id == c.id}"></option>
                             </select>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Số lượng</label>
-                            <input type="number" name="quantity" class="form-control" th:value="${d.quantity}" min="0" required/>
+                            <input type="number" name="quantity" class="form-control" th:value="${d.quantity}" min="0"
+                                   required/>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Giá bán (đ)</label>
-                            <input type="number" name="price" class="form-control" th:value="${d.price}" min="0" required/>
+                            <input type="number" name="price" class="form-control" th:value="${d.price}" min="0"
+                                   required/>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Barcode</label>
                             <input type="text" name="barcode" class="form-control" th:value="${d.barcode}"/>
                         </div>
+                        <div class="mb-3">
+                            <label class="form-label">Tồn kho tối thiểu</label>
+                            <input type="number" name="minStock" class="form-control"
+                                   th:value="${d.minStock != null ? d.minStock : 10}" min="0" required/>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Tồn kho tối đa</label>
+                            <input type="number" name="maxStock" class="form-control"
+                                   th:value="${d.maxStock != null ? d.maxStock : 50}" min="0" required/>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Tỷ lệ lợi nhuận mục tiêu (%)</label>
+                            <input type="number" name="targetMarginPercent" class="form-control"
+                                   th:value="${d.targetMarginPercent}" min="0" step="0.01"/>
+                        </div>
                         <div class="mb-0">
                             <label class="form-label">Trạng thái</label>
-                            <select name="deleteFlag" class="form-select">
-                                <option value="false" th:selected="${d.deleteFlag == null or d.deleteFlag == false}">Hoạt động</option>
-                                <option value="true" th:selected="${d.deleteFlag == true}">Tắt</option>
+                            <select name="status" class="form-select">
+                                <option value="1" th:selected="${d.status == null or d.status == 1}">
+                                    Hoạt động
+                                </option>
+                                <option value="0" th:selected="${d.status == 0}">Tạm dừng</option>
                             </select>
                         </div>
                     </div>

@@ -2,17 +2,17 @@ package com.skysport.datn.controller.admin;
 
 import com.skysport.datn.entity.Category;
 import com.skysport.datn.service.CategoryService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import lombok.RequiredArgsConstructor;
 
 @Controller
 @RequestMapping("/admin/category")
+@RequiredArgsConstructor
 public class CategoryController {
 
-    @Autowired
-    private CategoryService categoryService;
+    private final CategoryService categoryService;
 
     // Danh sách
     @GetMapping
@@ -49,10 +49,10 @@ public class CategoryController {
         return "redirect:/admin/category";
     }
 
-    // Xóa
-    @GetMapping("/delete/{id}")
-    public String delete(@PathVariable Integer id) {
-        categoryService.delete(id);
+    // Bật/Tắt hoạt động — thay cho chức năng xóa
+    @PostMapping("/toggle-status/{id}")
+    public String toggleStatus(@PathVariable Integer id) {
+        categoryService.toggleStatus(id);
         return "redirect:/admin/category";
     }
 }

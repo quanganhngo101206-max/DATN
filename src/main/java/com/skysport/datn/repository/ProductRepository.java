@@ -16,8 +16,6 @@ public interface ProductRepository extends JpaRepository<Product, Integer> {
     List<Product> findByDeleteFlagFalse();
 
     // Tìm kiếm + lọc + phân trang cho trang quản trị.
-    // Mỗi điều kiện chỉ áp dụng khi tham số tương ứng khác null (bỏ qua nếu không lọc theo tiêu chí đó).
-    // size/color nằm ở Product_detail nên lọc bằng EXISTS subquery; dùng DISTINCT để tránh nhân bản dòng.
     @Query("SELECT DISTINCT p FROM Product p WHERE p.deleteFlag = false " +
             "AND (:keyword IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
             "     OR LOWER(p.code) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
@@ -37,4 +35,32 @@ public interface ProductRepository extends JpaRepository<Product, Integer> {
                          @Param("colorId") Integer colorId,
                          @Param("status") Integer status,
                          Pageable pageable);
+
+    /**
+     * Query cho chatbot — trả [productId, productName, firstImage, minPrice] trong 1 query.
+     *
+     * Dùng subquery để lấy ảnh đầu tiên và giá thấp nhất:
+     * - Ảnh: (SELECT MIN(img.link) FROM Image img WHERE img.product.id = p.id) — lấy 1 ảnh
+     * - Giá: giá thấp nhất của biến thể còn hoạt động
+     *
+     * Thay thế pattern:
+     *   imageRepository.findByProductId(id)         → +N query
+     *   productDetailRepository.findByProductId(id) → +N query
+     *
+     * Lưu ý: MIN(img.link) để lấy 1 ảnh không đảm bảo thứ tự ảnh nhất định.
+     * Nếu cần ảnh đầu tiên theo thứ tự insert, cần thêm cột `sort_order` trong bảng Image.
+     * Với DATN đây là chấp nhận được.
+     */
+    @Query("SELECT p.id, p.name, " +
+            "  (SELECT MIN(img.link) FROM Image img WHERE img.product.id = p.id), " +
+            "  (SELECT MIN(pd.price) FROM ProductDetail pd " +
+            "   WHERE pd.product.id = p.id AND pd.deleteFlag = false AND pd.status = 1) " +
+            "FROM Product p " +
+            "WHERE p.deleteFlag = false AND p.status = 1 " +
+            "AND (:keyword IS NULL " +
+            "     OR LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "     OR LOWER(p.code) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+    List<Object[]> searchForChatbot(
+            @Param("keyword") String keyword,
+            Pageable pageable);
 }

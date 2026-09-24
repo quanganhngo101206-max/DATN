@@ -2,17 +2,17 @@ package com.skysport.datn.controller;
 
 import com.skysport.datn.entity.Staff;
 import com.skysport.datn.service.StaffService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import lombok.RequiredArgsConstructor;
 
 //@Controller
 @RequestMapping("/admin/staff")
+@RequiredArgsConstructor
 public class StaffController {
 
-    @Autowired
-    private StaffService staffService;
+    private final StaffService staffService;
 
     // Danh sÃƒÂ¡ch nhÃƒÂ¢n viÃƒÂªn
     @GetMapping

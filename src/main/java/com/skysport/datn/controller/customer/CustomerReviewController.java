@@ -4,27 +4,23 @@ import com.skysport.datn.entity.*;
 import com.skysport.datn.enums.OrderStatus;
 import com.skysport.datn.repository.*;
 import jakarta.servlet.http.HttpSession;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 @Controller
+@RequiredArgsConstructor
 public class CustomerReviewController {
 
-    @Autowired
-    private ProductRepository productRepository;
-    @Autowired
-    private ReviewRepository reviewRepository;
-    @Autowired
-    private CustomerRepository customerRepository;
-    @Autowired
-    private BillRepository billRepository;
-    @Autowired
-    private BillDetailRepository billDetailRepository;
+    private final ProductRepository productRepository;
+    private final ReviewRepository reviewRepository;
+    private final CustomerRepository customerRepository;
+    private final BillRepository billRepository;
+    private final BillDetailRepository billDetailRepository;
 
     @PostMapping("/products/{id}/review")
     public String submitReview(@PathVariable Integer id,

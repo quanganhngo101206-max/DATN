@@ -41,7 +41,15 @@ public class VNPayService {
      * amount: số tiền VND (KHÔNG nhân 100 ở đây, hàm tự nhân theo yêu cầu VNPay).
      */
     public PaymentUrlResult createPaymentUrl(Bill bill, long amount, String orderInfo, HttpServletRequest request) {
-        String vnp_TxnRef = "HD" + bill.getId() + "T" + VNPayConfig.getRandomNumber(6);
+        // Dùng lại txnRef cũ nếu đã có — tránh mất đối soát khi khách bấm thanh toán lại
+        String vnp_TxnRef;
+        if (bill.getVnpTxnRef() != null && !bill.getVnpTxnRef().isBlank()) {
+            vnp_TxnRef = bill.getVnpTxnRef();
+        } else {
+            vnp_TxnRef = "HD" + bill.getId() + "T" + VNPayConfig.getRandomNumber(6);
+            bill.setVnpTxnRef(vnp_TxnRef);
+            billRepository.save(bill);
+        }
 
         String vnp_IpAddr;
         try {

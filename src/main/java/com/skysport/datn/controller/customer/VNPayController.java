@@ -1,25 +1,19 @@
 package com.skysport.datn.controller.customer;
 
 import com.skysport.datn.entity.Bill;
-import com.skysport.datn.entity.OrderStatusHistory;
-import com.skysport.datn.enums.OrderStatus;
 import com.skysport.datn.repository.BillRepository;
-import com.skysport.datn.repository.OrderStatusHistoryRepository;
 import com.skysport.datn.service.BillService;
-import com.skysport.datn.service.DiscountCodeService;
 import com.skysport.datn.service.VNPayService;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpSession;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
+
 import lombok.RequiredArgsConstructor;
 
 /**
@@ -42,14 +36,15 @@ import lombok.RequiredArgsConstructor;
 public class VNPayController {
 
     private final VNPayService vnPayService;
-    private final BillRepository billRepository;
-    private final OrderStatusHistoryRepository orderStatusHistoryRepository;
-    private final DiscountCodeService discountCodeService;
     private final BillService billService;
+    private final BillRepository billRepository;
 
-    @Transactional
+    /*
+     * KHÔNG đánh @Transactional ở controller: toàn bộ việc lock Bill + đổi trạng thái +
+     * hoàn kho + voucher nằm trong BillService.processVnPayResult() — 1 transaction duy nhất.
+     */
     @GetMapping("/vnpay-return")
-    public String vnpayReturn(HttpServletRequest request, HttpSession session, Model model) {
+    public String vnpayReturn(HttpServletRequest request, Model model) {
         VNPayService.VerifyResult result = vnPayService.verify(request);
 
         switch (result.status()) {
@@ -72,10 +67,14 @@ public class VNPayController {
         }
 
         Bill bill = result.bill();
-        applyPaymentResult(bill, result);
+        boolean success = result.status() == VNPayService.VerifyStatus.SUCCESS;
+        // Return trùng IPN / F5: processVnPayResult trả false (đã xử lý) -> bỏ qua, vẫn hiển thị kết quả
+        billService.processVnPayResult(bill.getId(), success, result.transactionNo());
 
-        model.addAttribute("bill", bill);
-        model.addAttribute("success", result.status() == VNPayService.VerifyStatus.SUCCESS);
+// Reload Bill để lấy trạng thái mới nhất sau khi process
+        Bill updatedBill = billRepository.findById(bill.getId()).orElse(bill);
+        model.addAttribute("bill", updatedBill);
+        model.addAttribute("success", success);
         model.addAttribute("transactionNo", result.transactionNo());
         model.addAttribute("payDate", result.payDate());
         return "customer/vnpay/vnpay-result";
@@ -86,7 +85,6 @@ public class VNPayController {
      * Mã RspCode chuẩn: "00" = Confirm Success, "01" = Order not found,
      * "02" = Order already confirmed, "04" = Invalid amount, "97" = Invalid signature.
      */
-    @Transactional
     @GetMapping("/vnpay-ipn")
     @ResponseBody
     public ResponseEntity<Map<String, String>> vnpayIpn(HttpServletRequest request) {
@@ -113,66 +111,18 @@ public class VNPayController {
             default -> { /* SUCCESS hoặc FAILED */ }
         }
 
-        Bill bill = result.bill();
+        boolean success = result.status() == VNPayService.VerifyStatus.SUCCESS;
+        // Idempotency nằm trong service (kiểm tra PENDING sau khi lock Bill)
+        boolean processed = billService.processVnPayResult(result.bill().getId(), success, result.transactionNo());
 
-        // Idempotency: nếu đơn không còn ở PENDING (đã được /vnpay-return xử lý trước,
-        // hoặc VNPay gọi IPN trùng lặp) thì báo "đã xác nhận", không xử lý lại.
-        if (!OrderStatus.PENDING.matches(bill.getStatus())) {
+        if (!processed) {
             resp.put("RspCode", "02");
             resp.put("Message", "Order already confirmed");
             return ResponseEntity.ok(resp);
         }
 
-        applyPaymentResult(bill, result);
-
         resp.put("RspCode", "00");
         resp.put("Message", "Confirm Success");
         return ResponseEntity.ok(resp);
-    }
-
-    /**
-     * Cập nhật trạng thái Bill theo kết quả xác thực — dùng chung cho Return URL và IPN.
-     * <p>
-     * Thất bại/hủy: đi qua BillService.updateStatus() để tái dùng đúng logic
-     * hoàn kho + hoàn voucher đã có sẵn (giống job tự hủy đơn quá hạn), tránh
-     * viết lại và có nguy cơ quên hoàn tồn kho đã trừ lúc đặt hàng.
-     * Thành công: set thẳng CONFIRMED (không có gì cần hoàn) + tính lượt voucher,
-     * giữ đúng hành vi cũ của luồng mock.
-     * <p>
-     * Khóa lại Bill bằng findByIdForUpdate ngay đầu hàm (bỏ qua instance được
-     * verify() trả về, vốn không có lock): VNPay có thể gọi /vnpay-return
-     * (qua trình duyệt khách) và /vnpay-ipn (server-to-server) gần như đồng
-     * thời cho cùng 1 giao dịch, nên vẫn cần khóa + đọc lại trạng thái mới
-     * nhất trước khi kiểm tra PENDING, giống hệt lý do PosOrderService.pay()
-     * phải khóa Bill trước khi kiểm tra WAITING.
-     */
-    private void applyPaymentResult(Bill unlockedBill, VNPayService.VerifyResult result) {
-        Bill bill = billRepository.findByIdForUpdate(unlockedBill.getId())
-                .orElse(unlockedBill);
-
-        if (!OrderStatus.PENDING.matches(bill.getStatus())) {
-            return; // đã được xử lý trước đó (bởi Return URL hoặc IPN gọi lần khác) -> bỏ qua
-        }
-
-        boolean success = result.status() == VNPayService.VerifyStatus.SUCCESS;
-
-        if (!success) {
-            billService.updateStatus(bill.getId(), OrderStatus.CANCELLED.getValue(), "Thanh toán VNPay thất bại/bị hủy", null);
-            return;
-        }
-
-        bill.setStatus(OrderStatus.CONFIRMED.getValue());
-        billRepository.save(bill);
-
-        OrderStatusHistory history = new OrderStatusHistory();
-        history.setBill(bill);
-        history.setStatus(bill.getStatus());
-        history.setNote("Đã thanh toán online qua VNPay (sandbox) - GD: " + result.transactionNo());
-        history.setCreatedDate(LocalDateTime.now());
-        orderStatusHistoryRepository.save(history);
-
-        if (bill.getDiscountCode() != null) {
-            discountCodeService.incrementUsage(bill.getDiscountCode().getId());
-        }
     }
 }

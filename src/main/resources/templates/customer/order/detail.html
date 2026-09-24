@@ -210,8 +210,8 @@
             <div class="card">
                 <div class="card-header"><i class="bi bi-truck"></i> Địa chỉ giao hàng</div>
                 <div class="card-body">
-                    <div class="info-row"><div class="info-label">Người nhận:</div><div class="info-value" th:text="${bill.customer != null ? bill.customer.name : 'Khách lẻ'}"></div></div>
-                    <div class="info-row"><div class="info-label">Số điện thoại:</div><div class="info-value" th:text="${bill.customer != null ? bill.customer.phoneNumber : ''}"></div></div>
+                    <div class="info-row"><div class="info-label">Người nhận:</div><div class="info-value" th:text="${bill.receiverName != null ? bill.receiverName : (bill.customer != null ? bill.customer.name : 'Khách lẻ')}"></div></div>
+                    <div class="info-row"><div class="info-label">Số điện thoại:</div><div class="info-value" th:text="${bill.receiverPhone != null ? bill.receiverPhone : (bill.customer != null ? bill.customer.phoneNumber : '')}"></div></div>
                     <div class="info-row"><div class="info-label">Địa chỉ:</div><div class="info-value" th:text="${bill.billingAddress}"></div></div>
                 </div>
             </div>
@@ -224,6 +224,11 @@
                         th:data-order-id="${bill.id}">
                     <i class="bi bi-x-circle"></i> Hủy đơn
                 </button>
+                <a th:if="${isBankingPending}"
+                   th:href="@{/customer/order/repay/{id}(id=${bill.id})}"
+                   class="btn btn-warning rounded-pill ms-2">
+                    <i class="bi bi-credit-card"></i> Thanh toán ngay
+                </a>
                 <a th:if="${bill.status == 7 and !hasActiveReturn}"
                    th:href="@{/customer/order/return/{id}(id=${bill.id})}"
                    class="btn btn-outline-warning rounded-pill ms-2">

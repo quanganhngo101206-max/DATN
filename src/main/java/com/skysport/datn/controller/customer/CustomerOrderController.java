@@ -13,6 +13,9 @@ import com.skysport.datn.repository.CustomerRepository;
 import com.skysport.datn.entity.ReturnRequest;
 import com.skysport.datn.repository.BillReturnRequestRepository;
 import com.skysport.datn.service.BillService;
+import com.skysport.datn.service.VNPayService;
+import com.skysport.datn.util.PaymentMethodUtil;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -21,7 +24,9 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
 @RequiredArgsConstructor
@@ -38,6 +43,8 @@ public class CustomerOrderController {
     private final BillReturnRequestRepository billReturnRequestRepository;
 
     private final BillService billService;
+
+    private final VNPayService vnPayService;
 
     // Danh sách đơn hàng của khách hàng
     @GetMapping("/customer/orders")
@@ -102,6 +109,10 @@ public class CustomerOrderController {
         boolean hasActiveReturn = returnRequests.stream().anyMatch(r -> ReturnRequestStatus.PENDING.matches(r.getStatus()) || ReturnRequestStatus.APPROVED.matches(r.getStatus()));
         model.addAttribute("hasActiveReturn", hasActiveReturn);
 
+        boolean isBankingPending = bill.getStatus() == 1
+                && PaymentMethodUtil.isBanking(bill.getPaymentMethod());
+        model.addAttribute("isBankingPending", isBankingPending);
+
         return "customer/order/detail";
     }
 
@@ -162,5 +173,44 @@ public class CustomerOrderController {
             }
         }
         return map;
+    }
+
+    @GetMapping("/customer/order/repay/{id}")
+    public String repay(@PathVariable Integer id,
+                        HttpSession session,
+                        HttpServletRequest request,
+                        RedirectAttributes redirectAttributes) {
+
+        Account account = (Account) session.getAttribute("account");
+        if (account == null) return "redirect:/login";
+
+        Bill bill = billRepository.findById(id).orElse(null);
+        if (bill == null) return "redirect:/customer/orders";
+
+        // Kiểm tra đúng chủ đơn
+        var customer = customerRepository.findByAccountId(account.getId());
+        if (customer == null || bill.getCustomer() == null
+                || !bill.getCustomer().getId().equals(customer.getId())) {
+            return "redirect:/customer/orders";
+        }
+
+        // Chỉ cho repay khi đơn đang PENDING + banking
+        if (bill.getStatus() != 1 || !PaymentMethodUtil.isBanking(bill.getPaymentMethod())) {
+            redirectAttributes.addFlashAttribute("error", "Đơn hàng không thể thanh toán lại!");
+            return "redirect:/customer/order/detail/" + id;
+        }
+
+        try {
+            VNPayService.PaymentUrlResult pay = vnPayService.createPaymentUrl(
+                    bill,
+                    Math.round(bill.getAmount()),
+                    "Thanh toan don hang " + bill.getCode(),
+                    request
+            );
+            return "redirect:" + pay.paymentUrl();
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Không tạo được liên kết thanh toán, vui lòng thử lại!");
+            return "redirect:/customer/order/detail/" + id;
+        }
     }
 }

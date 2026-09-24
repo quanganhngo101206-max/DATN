@@ -7,10 +7,13 @@ import com.skysport.datn.exception.BusinessException;
 import com.skysport.datn.repository.*;
 import com.skysport.datn.service.CheckoutService;
 import com.skysport.datn.service.DiscountCodeService;
+import com.skysport.datn.service.VNPayService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -31,6 +34,7 @@ public class CheckoutController {
     private static final Logger log = LoggerFactory.getLogger(CheckoutController.class);
 
     private final CheckoutService checkoutService;
+    private final VNPayService vnPayService;
     private final CustomerRepository customerRepository;
     private final PaymentMethodRepository paymentMethodRepository;
     private final DiscountCodeService discountCodeService;
@@ -39,6 +43,10 @@ public class CheckoutController {
     private final BillRepository billRepository;
     private final BillDetailRepository billDetailRepository;
     private final AddressShippingRepository addressShippingRepository;
+
+    /** Cổng thanh toán cho phương thức BANKING: "vnpay" (sandbox thật) hoặc "mock" (trang QR giả lập). */
+    @Value("${payment.banking-provider:vnpay}")
+    private String bankingProvider;
 
     private static final String CART_KEY = "cart";
     private static final double FREE_SHIP_THRESHOLD = 800000;
@@ -233,6 +241,7 @@ public class CheckoutController {
             @Valid @ModelAttribute CheckoutRequest request,
             BindingResult bindingResult,
             HttpSession session,
+            HttpServletRequest httpRequest,
             RedirectAttributes redirectAttributes) {
 
         Map<Integer, CartController.CartItem> cart = getCart(session);
@@ -300,6 +309,33 @@ public class CheckoutController {
             session.setAttribute("cartCount", 0);
 
             if ("BANKING".equals(request.getPaymentMethod())) {
+
+                // Luồng chính: chuyển khách sang trang thanh toán VNPay sandbox.
+                // Kết quả về qua /vnpay-return (trình duyệt) và /vnpay-ipn (server-to-server),
+                // cùng đi vào BillService.processVnPayResult().
+                if ("vnpay".equalsIgnoreCase(bankingProvider)) {
+                    try {
+                        VNPayService.PaymentUrlResult pay = vnPayService.createPaymentUrl(
+                                bill,
+                                Math.round(bill.getAmount()),
+                                "Thanh toan don hang " + bill.getCode(),
+                                httpRequest
+                        );
+                        return "redirect:" + pay.paymentUrl();
+                    } catch (Exception e) {
+                        // Đơn đã tạo (PENDING, đã trừ kho) — không để khách mất dấu đơn.
+                        // Nếu không thanh toán, job auto-cancel sẽ hủy + hoàn kho sau hạn.
+                        log.error("Không tạo được URL VNPay cho billId={}", bill.getId(), e);
+                        redirectAttributes.addFlashAttribute(
+                                "successMsg",
+                                "Đơn " + bill.getCode() + " đã được tạo nhưng chưa tạo được liên kết "
+                                        + "thanh toán VNPay. Vui lòng liên hệ shop hoặc đặt lại."
+                        );
+                        return "redirect:/order/success/" + bill.getId();
+                    }
+                }
+
+                // Dự phòng (payment.banking-provider=mock): trang QR giả lập
                 redirectAttributes.addAttribute(
                         "billId",
                         bill.getId()

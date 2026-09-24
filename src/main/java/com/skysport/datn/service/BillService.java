@@ -4,6 +4,7 @@ import com.skysport.datn.entity.*;
 import com.skysport.datn.enums.OrderStatus;
 import com.skysport.datn.repository.*;
 import com.skysport.datn.util.PaymentMethodUtil;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,6 +14,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
@@ -34,6 +36,7 @@ public class BillService {
     private final BillDetailRepository billDetailRepository;
     private final OrderStatusHistoryRepository orderStatusHistoryRepository;
     private final StaffRepository staffRepository;
+    private final EntityManager entityManager;
 
     private static final int ONLINE_INVOICE_TYPE = 1;
 
@@ -72,6 +75,9 @@ public class BillService {
      * tên Payment. Dùng chung cho cả logic hoàn voucher (updateStatus) và
      * job tự hủy đơn bỏ dở (autoCancelExpiredBankingOrders).
      */
+    /** Thời gian đệm (phút) cộng thêm vào timeout trước khi job tự hủy đơn banking. */
+    private static final int PAYMENT_GRACE_MINUTES = 5;
+
     private boolean isBankingPayment(Bill bill) {
         return PaymentMethodUtil.isBanking(bill.getPaymentMethod());
     }
@@ -97,6 +103,55 @@ public class BillService {
         if (billId == null) return false;
         Bill bill = billRepository.findByIdForUpdate(billId).orElse(null);
         if (bill == null) return false;
+        return applyTransition(bill, newStatus, note, account);
+    }
+
+    /**
+     * Xử lý kết quả VNPay (Return URL + IPN) trong DUY NHẤT 1 transaction:
+     * lock Bill -> refresh -> kiểm tra PENDING -> CONFIRMED | CANCELLED (+ hoàn kho)
+     * -> commit. Không lồng REQUIRES_NEW vào transaction đang giữ lock Bill.
+     * <p>
+     * refresh(): request đã load Bill (không lock) qua VNPayService.verify(), nên
+     * persistence context có thể đang giữ trạng thái cũ. Query có lock KHÔNG ghi đè
+     * entity đã load -> phải refresh sau khi có lock để thấy trạng thái mới nhất
+     * (vd. IPN vừa commit CONFIRMED).
+     *
+     * @return true nếu lần gọi này thực sự đổi trạng thái; false nếu đơn đã được
+     *         xử lý trước đó (idempotent) hoặc không hợp lệ.
+     */
+    @Transactional
+    public boolean processVnPayResult(Integer billId, boolean success, String transactionNo) {
+        if (billId == null) return false;
+        Bill bill = billRepository.findByIdForUpdate(billId).orElse(null);
+        if (bill == null) return false;
+        entityManager.refresh(bill);
+
+        if (!OrderStatus.PENDING.matches(bill.getStatus())) {
+            return false;
+        }
+
+        if (!success) {
+            return applyTransition(bill, OrderStatus.CANCELLED.getValue(),
+                    "Thanh toán VNPay thất bại/bị hủy", null);
+        }
+
+        boolean changed = applyTransition(bill, OrderStatus.CONFIRMED.getValue(),
+                "Đã thanh toán online qua VNPay (sandbox) - GD: " + transactionNo, null);
+        if (changed && bill.getDiscountCode() != null) {
+            try {
+                discountCodeService.incrementUsage(bill.getDiscountCode().getId());
+            } catch (Exception e) {
+                // Voucher hết lượt hoặc lỗi — đơn vẫn CONFIRMED, không rollback
+                // Admin xử lý thủ công nếu cần
+                log.warn("Không thể tăng lượt dùng voucher id={} cho bill id={}: {}",
+                        bill.getDiscountCode().getId(), bill.getId(), e.getMessage());
+            }
+        }
+        return changed;
+    }
+
+    /** Logic chuyển trạng thái — CHỈ gọi khi caller đã giữ lock Bill trong transaction hiện tại. */
+    private boolean applyTransition(Bill bill, Integer newStatus, String note, Account account) {
 
         // POS (bán tại quầy) có lifecycle riêng theo Bill.posStatus (WAITING/COMPLETED/
         // CANCELLED/EXPIRED), xử lý bởi PosOrderService — không đi qua state machine online
@@ -185,7 +240,10 @@ public class BillService {
      * @return số đơn đã bị hủy tự động, để job log lại.
      */
     public int autoCancelExpiredBankingOrders() {
-        LocalDateTime cutoff = LocalDateTime.now().minusMinutes(pendingBankingTimeoutMinutes);
+        // Cộng thêm thời gian đệm: link VNPay còn hiệu lực tới (giờ tạo link + timeout). Nếu job hủy
+        // đúng lúc khách trả tiền ở phút cuối thì VNPay đã thu tiền nhưng đơn bị hủy + hoàn kho.
+        LocalDateTime cutoff = LocalDateTime.now()
+                .minusMinutes(pendingBankingTimeoutMinutes + PAYMENT_GRACE_MINUTES);
         List<Bill> candidates = billRepository.findPendingOnlineBillsCreatedBefore(cutoff);
 
         int cancelledCount = 0;
@@ -216,12 +274,15 @@ public class BillService {
     }
 
     private void restockBillItems(Bill bill) {
-        List<BillDetail> details = billDetailRepository.findByBillId(bill.getId());
+        // Sort theo productDetailId để mọi transaction lock ProductDetail cùng 1 thứ tự
+        // (checkout/POS cũng sort) -> tránh deadlock khi lock nhiều dòng.
+        List<BillDetail> details = billDetailRepository.findByBillId(bill.getId()).stream()
+                .filter(d -> d.getProductDetail() != null && d.getQuantity() != null)
+                .sorted(Comparator.comparing(d -> d.getProductDetail().getId()))
+                .toList();
         for (BillDetail detail : details) {
-            if (detail.getProductDetail() == null || detail.getQuantity() == null) continue;
             // Khóa PESSIMISTIC_WRITE giống lúc trừ kho ở checkout — restock cũng là ghi
-            // vào ProductDetail.quantity, không khóa thì có thể lost update nếu trùng lúc
-            // có thao tác khác (nhập kho, đơn khác trừ/hoàn kho) trên cùng productDetail.
+            // vào ProductDetail.quantity, không khóa thì có thể lost update.
             ProductDetail pd = productDetailRepository.findByIdForUpdate(detail.getProductDetail().getId()).orElse(null);
             if (pd != null) {
                 pd.setQuantity((pd.getQuantity() != null ? pd.getQuantity() : 0) + detail.getQuantity());

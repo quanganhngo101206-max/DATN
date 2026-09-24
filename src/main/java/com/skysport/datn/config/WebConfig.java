@@ -29,6 +29,8 @@ public class WebConfig implements WebMvcConfigurer {
 
                         // Mock VNPay: điện thoại quét QR không cần đăng nhập
                         "/mock-vnpay", "/mock-vnpay/**", "/mock-vnpay-success",
+                        // VNPay thật: browser return + IPN server-to-server, không có session đăng nhập
+                        "/vnpay-return", "/vnpay-ipn",
                         // AJAX endpoints bán tại quầy — AuthInterceptor không xử lý được
                         // vì chúng trả JSON (không redirect được), Spring Security đã bảo vệ qua hasRole
                         "/staff/order/search-customer",

@@ -83,6 +83,7 @@ public class AuthInterceptor implements HandlerInterceptor {
                 || uri.startsWith("/wishlist/add")
                 || uri.startsWith("/wishlist/remove")
                 || uri.startsWith("/api/chatbot")
-                || uri.startsWith("/mock-vnpay");
+                || uri.startsWith("/mock-vnpay")
+                || uri.equals("/vnpay-return") || uri.equals("/vnpay-ipn");
     }
 }

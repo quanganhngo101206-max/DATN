@@ -37,6 +37,13 @@ public class Bill {
 
     private String billingAddress;
 
+    /** Người nhận hàng theo đơn (có thể khác chủ tài khoản/Customer). Đơn cũ & đơn POS: null. */
+    @Column(name = "receiver_name")
+    private String receiverName;
+
+    @Column(name = "receiver_phone")
+    private String receiverPhone;
+
     private Float amount;
 
     private Float subtotal;

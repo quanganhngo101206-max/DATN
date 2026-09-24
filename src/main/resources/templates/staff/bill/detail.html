@@ -92,12 +92,12 @@
                             </div>
                         </div>
                         <div class="col-md-6 mb-2">
-                            <small class="text-muted">Khách hàng</small>
-                            <div th:text="${bill.customer != null ? bill.customer.name : 'Khách lẻ'}"></div>
+                            <small class="text-muted">Người nhận</small>
+                            <div th:text="${bill.receiverName != null ? bill.receiverName : (bill.customer != null ? bill.customer.name : 'Khách lẻ')}"></div>
                         </div>
                         <div class="col-md-6 mb-2">
                             <small class="text-muted">Số điện thoại</small>
-                            <div th:text="${bill.customer != null ? bill.customer.phoneNumber : '-'}"></div>
+                            <div th:text="${bill.receiverPhone != null ? bill.receiverPhone : (bill.customer != null ? bill.customer.phoneNumber : '-')}"></div>
                         </div>
                         <div class="col-md-6 mb-2">
                             <small class="text-muted">Địa chỉ giao</small>

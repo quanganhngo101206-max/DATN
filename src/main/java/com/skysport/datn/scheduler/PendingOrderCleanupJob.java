@@ -16,7 +16,7 @@ import org.springframework.stereotype.Component;
  * Đơn COD ở trạng thái PENDING KHÔNG bị job này đụng tới — COD PENDING
  * là trạng thái chờ nhân viên xác nhận bình thường, không phải lỗi.
  *
- * Cũng xử lý luôn đơn POS (bán tại quầy) còn WAITING quá ngày — đây là
+ * Cũng xử lý luôn đơn POS (bán tại quầy) còn WAITING quá hạn (1 giờ) — đây là
  * lifecycle riêng của POS (posStatus), tách hẳn khỏi state machine online
  * (Bill.status) nên dùng PosOrderService.expireOverdueWaitingOrders(),
  * không đi qua BillService.updateStatus().
@@ -40,7 +40,7 @@ public class PendingOrderCleanupJob {
 
         int expiredPos = posOrderService.expireOverdueWaitingOrders();
         if (expiredPos > 0) {
-            log.info("PendingOrderCleanupJob: đã tự hết hạn {} đơn POS còn chờ từ hôm trước", expiredPos);
+            log.info("PendingOrderCleanupJob: đã tự hết hạn {} đơn POS chờ quá hạn", expiredPos);
         }
     }
 }

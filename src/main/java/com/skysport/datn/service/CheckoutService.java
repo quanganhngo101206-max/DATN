@@ -14,9 +14,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Business logic cho checkout — tách ra từ CheckoutController.
@@ -221,23 +223,22 @@ public class CheckoutService {
         // Ghép địa chỉ đầy đủ = số nhà + phường/xã + tỉnh/thành
         String fullAddress = request.getAddress();
 
-        Ward ward = wardRepository.findById(request.getWardId()).orElse(null);
-
         Province province = provinceRepository.findById(request.getProvinceId()).orElse(null);
+        if (province == null) {
+            throw new BusinessException("Tỉnh/thành phố không tồn tại!");
+        }
+
+        Ward ward = wardRepository.findById(request.getWardId()).orElse(null);
+        if (ward == null) {
+            throw new BusinessException("Phường/xã không tồn tại!");
+        }
 
         // Kiểm tra phường/xã phải thuộc tỉnh/thành đã chọn — tránh địa chỉ không hợp lệ
-        if (ward != null && province != null
-                && !ward.getProvinceId().equals(province.getId())) {
+        if (!Objects.equals(ward.getProvinceId(), province.getId())) {
             throw new BusinessException("Phường/xã không thuộc tỉnh/thành đã chọn!");
         }
 
-        if (ward != null) {
-            fullAddress += ", " + ward.getName();
-        }
-
-        if (province != null) {
-            fullAddress += ", " + province.getName();
-        }
+        fullAddress += ", " + ward.getName() + ", " + province.getName();
 
         /*
          * Tạo Bill skeleton — amount/subtotal/shippingFee/discount sẽ được
@@ -250,6 +251,10 @@ public class CheckoutService {
         bill.setUpdateDate(LocalDateTime.now());
         bill.setStatus(OrderStatus.PENDING.getValue());
         bill.setBillingAddress(fullAddress);
+        // Lưu người nhận theo đúng thông tin khách nhập/chọn lúc đặt hàng,
+        // không lấy từ Customer (chủ tài khoản) vì có thể là người khác.
+        bill.setReceiverName(request.getFullName());
+        bill.setReceiverPhone(request.getPhoneNumber());
         bill.setInvoiceType(1);
         bill.setNote(request.getNote());
         bill.setCustomer(customer);
@@ -295,7 +300,13 @@ public class CheckoutService {
         Map<Integer, ProductDetail> lockedDetails = new LinkedHashMap<>();
         Map<Integer, Double> dbPriceByDetailId = new LinkedHashMap<>();
 
-        for (CartController.CartItem item : cart.values()) {
+        // Lock theo thứ tự productDetailId tăng dần: 2 request mua cùng lúc nhiều biến thể
+        // sẽ lock cùng thứ tự -> không thể chờ vòng tròn (deadlock).
+        List<CartController.CartItem> itemsInLockOrder = cart.values().stream()
+                .sorted(Comparator.comparing(CartController.CartItem::getProductDetailId))
+                .toList();
+
+        for (CartController.CartItem item : itemsInLockOrder) {
 
             ProductDetail pd = productDetailRepository.findByIdForUpdate(item.getProductDetailId()).orElse(null);
 
